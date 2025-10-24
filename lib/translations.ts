@@ -15,11 +15,11 @@ export function getTranslation(locale: "en" | "am") {
 // Helper function to get nested translation
 export function t(translations: Translations, key: string): string {
   const keys = key.split(".")
-  let value: any = translations
+  let value: unknown = translations
 
   for (const k of keys) {
     if (value && typeof value === "object" && k in value) {
-      value = value[k]
+      value = value[k as keyof typeof value]
     } else {
       return key // Return key if translation not found
     }

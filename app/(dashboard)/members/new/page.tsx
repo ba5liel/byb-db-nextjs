@@ -25,7 +25,6 @@ import {
   GraduationCap,
   DollarSign,
   Check,
-  Calendar as CalendarIcon,
 } from "lucide-react"
 import { useMembers } from "@/lib/members-context"
 import { useToast } from "@/hooks/use-toast"

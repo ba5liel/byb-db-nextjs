@@ -27,7 +27,7 @@ export default function Home() {
   const totalMembers = members.length
   const activeMembers = members.filter((m) => m.membershipStatus === "Active").length
   const inactiveMembers = members.filter((m) => m.membershipStatus === "Inactive").length
-  const suspendedMembers = members.filter((m) => m.membershipStatus === "Suspended").length
+  const removedMembers = members.filter((m) => m.membershipStatus === "Removed").length
 
   const now = new Date()
   const firstDayOfMonth = new Date(now.getFullYear(), now.getMonth(), 1)
@@ -50,7 +50,7 @@ export default function Home() {
           <div className="flex items-center justify-between mb-8">
             <div>
               <h1 className="text-4xl font-bold text-foreground mb-2">Church Member Management</h1>
-              <p className="text-muted-foreground text-lg">Welcome, {user?.name}</p>
+              <p className="text-muted-foreground text-lg">Welcome, {user?.firstName} {user?.lastName}</p>
             </div>
             <div className="flex gap-2">
               <Link href="/members/new">
@@ -144,9 +144,9 @@ export default function Home() {
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-3">
                     <div className="w-3 h-3 rounded-full bg-red-600" />
-                    <span className="text-sm font-medium">Suspended</span>
+                    <span className="text-sm font-medium">Removed</span>
                   </div>
-                  <span className="text-2xl font-bold">{suspendedMembers}</span>
+                  <span className="text-2xl font-bold">{removedMembers}</span>
                 </div>
               </div>
             </CardContent>

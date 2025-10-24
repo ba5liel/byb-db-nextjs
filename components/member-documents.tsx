@@ -8,7 +8,7 @@ import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Textarea } from "@/components/ui/textarea"
 import { Badge } from "@/components/ui/badge"
-import { FileText, Upload, Download, Trash2, Eye, Plus, X } from "lucide-react"
+import { FileText, Upload, Download, Trash2, Eye, Plus } from "lucide-react"
 import { useLanguage } from "@/lib/language-context"
 import { getTranslation } from "@/lib/translations"
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
@@ -47,7 +47,7 @@ export function MemberDocuments({ documents = [], onAddDocument, onDeleteDocumen
     }
   }
 
-  const getDocumentIcon = (type: string) => {
+  const getDocumentIcon = () => {
     return <FileText className="w-5 h-5" />
   }
 
@@ -167,7 +167,7 @@ export function MemberDocuments({ documents = [], onAddDocument, onDeleteDocumen
                 className="flex items-center justify-between p-4 border rounded-lg hover:bg-muted/50 transition-colors"
               >
                 <div className="flex items-center gap-3 flex-1">
-                  {getDocumentIcon(doc.type)}
+                  {getDocumentIcon()}
                   <div className="flex-1 min-w-0">
                     <p className="font-medium text-foreground truncate">{doc.fileName}</p>
                     <div className="flex items-center gap-2 mt-1">

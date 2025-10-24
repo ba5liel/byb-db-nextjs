@@ -36,13 +36,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const storedUsers = localStorage.getItem("church_users")
     const users = storedUsers ? JSON.parse(storedUsers) : []
 
-    const foundUser = users.find((u: any) => u.email === email && u.password === password)
+    const foundUser = users.find((u: { email: string; password: string; id: string; name: string; role: string }) => u.email === email && u.password === password)
 
     if (foundUser) {
       const user: User = {
         id: foundUser.id,
         email: foundUser.email,
-        name: foundUser.name,
+        firstName: foundUser.firstName || foundUser.name?.split(" ")[0] || "",
+        lastName: foundUser.lastName || foundUser.name?.split(" ")[1] || "",
         role: foundUser.role || "admin",
       }
       setUser(user)
@@ -58,7 +59,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const users = storedUsers ? JSON.parse(storedUsers) : []
 
     // Check if user already exists
-    if (users.find((u: any) => u.email === email)) {
+    if (users.find((u: { email: string }) => u.email === email)) {
       return { success: false, error: "User already exists" }
     }
 
@@ -76,7 +77,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const user: User = {
       id: newUser.id,
       email: newUser.email,
-      name: newUser.name,
+      firstName: name.split(" ")[0] || name,
+      lastName: name.split(" ")[1] || "",
       role: newUser.role,
     }
     setUser(user)

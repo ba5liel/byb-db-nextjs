@@ -9,8 +9,6 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Textarea } from "@/components/ui/textarea"
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
-import { Checkbox } from "@/components/ui/checkbox"
 import { Progress } from "@/components/ui/progress"
 import { Separator } from "@/components/ui/separator"
 import {
@@ -101,30 +99,6 @@ export default function EditMemberPage() {
     setFormData((prev) => prev ? { ...prev, [name]: value } : null)
   }
 
-  const handleCheckboxChange = (name: string, checked: boolean) => {
-    setFormData((prev) => prev ? { ...prev, [name]: checked } : null)
-  }
-
-  const handleMultiSelectChange = (name: string, value: string, checked: boolean) => {
-    setFormData((prev) => {
-      if (!prev) return null
-      const currentArray = (prev[name as keyof typeof prev] as string[]) || []
-      if (checked) {
-        if (name === "currentServices" && currentArray.length >= 2) {
-          toast({
-            title: locale === "en" ? "Maximum services reached" : "ከፍተኛው አገልግሎቶች ደርሰዋል",
-            description: t.serviceMinistry.maxServicesReached,
-            variant: "destructive",
-          })
-          return prev
-        }
-        return { ...prev, [name]: [...currentArray, value] }
-      } else {
-        return { ...prev, [name]: currentArray.filter((item) => item !== value) }
-      }
-    })
-  }
-
   const validateStep = (step: number): boolean => {
     if (!formData) return false
 
@@ -185,12 +159,12 @@ export default function EditMemberPage() {
     setLoading(true)
 
     try {
-      const updatedMember: Member = {
+      const updatedData: Partial<Member> = {
         ...formData,
         updatedAt: new Date().toISOString(),
-      } as Member
+      }
 
-      updateMember(updatedMember)
+      updateMember(memberId, updatedData)
 
       toast({
         title: t.memberForm.updateSuccess,
@@ -231,17 +205,6 @@ export default function EditMemberPage() {
     { number: 6, title: t.memberSteps.family, icon: Home },
     { number: 7, title: t.memberSteps.education, icon: GraduationCap },
     { number: 8, title: t.memberSteps.financial, icon: DollarSign },
-  ]
-
-  const serviceOptions = [
-    { value: "Choir", label: t.services.choir },
-    { value: "Youth Ministry", label: t.services.youthMinistry },
-    { value: "Sunday School", label: t.services.sundaySchool },
-    { value: "Media Team", label: t.services.mediaTeam },
-    { value: "Ushering", label: t.services.ushering },
-    { value: "Prayer Team", label: t.services.prayerTeam },
-    { value: "Worship", label: t.services.worship },
-    { value: "Teaching", label: t.services.teaching },
   ]
 
   return (

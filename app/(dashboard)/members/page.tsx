@@ -382,7 +382,9 @@ export default function MembersPage() {
                         <th className="text-left py-3 px-4 font-semibold text-foreground hidden lg:table-cell">
                           {t.basicInfo.gender}
                         </th>
-                        <th className="text-left py-3 px-4 font-semibold text-foreground">{t.common.status}</th>
+                        <th className="text-left py-3 px-4 font-semibold text-foreground">
+                          {locale === "en" ? "Status" : "ሁኔታ"}
+                        </th>
                         <th className="text-right py-3 px-4 font-semibold text-foreground">{t.common.actions}</th>
                       </tr>
                     </thead>
