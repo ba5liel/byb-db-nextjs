@@ -1,0 +1,294 @@
+{
+  "common": {
+    "appName": "የቤተክርስትያን አባላት አስተዳደር",
+    "loading": "በመጫን ላይ...",
+    "saving": "በማስቀመጥ ላይ...",
+    "save": "አስቀምጥ",
+    "cancel": "ሰርዝ",
+    "delete": "ሰርዝ",
+    "edit": "አስተካክል",
+    "view": "ተመልከት",
+    "add": "ጨምር",
+    "search": "ፈልግ",
+    "filter": "አጣራ",
+    "filters": "አጣሪዎች",
+    "clear": "አጽዳ",
+    "clearAll": "ሁሉንም አጽዳ",
+    "actions": "ተግባራት",
+    "back": "ተመለስ",
+    "next": "ቀጣይ",
+    "previous": "ቀዳሚ",
+    "submit": "አስገባ",
+    "required": "አስፈላጊ",
+    "optional": "አማራጭ",
+    "yes": "አዎ",
+    "no": "አይደለም",
+    "none": "የለም",
+    "all": "ሁሉም",
+    "male": "ወንድ",
+    "female": "ሴት",
+    "other": "ሌላ"
+  },
+  
+  "navigation": {
+    "dashboard": "መነሻ",
+    "members": "አባላት",
+    "services": "አገልግሎቶች",
+    "groups": "ቡድኖች",
+    "reports": "ሪፖርቶች",
+    "settings": "ቅንብሮች"
+  },
+  
+  "members": {
+    "title": "አባላት",
+    "subtitle": "ሁሉንም የቤተክርስትያን አባላት አስተዳድር",
+    "addMember": "አባል ጨምር",
+    "newMember": "አዲስ አባል",
+    "editMember": "አባልን አስተካክል",
+    "viewMember": "አባልን ተመልከት",
+    "deleteMember": "አባልን ሰርዝ",
+    "memberProfile": "የአባል መገለጫ",
+    "allMembers": "ሁሉም አባላት",
+    "activeMembers": "ንቁ አባላት",
+    "inactiveMembers": "ንቁ ያልሆኑ አባላት",
+    "searchPlaceholder": "በስም፣ በኢሜይል ወይም በስልክ ይፈልጉ...",
+    "noMembers": "አባላት አልተገኙም",
+    "memberCount": "ከ {total} አባላት {start}-{end} በማሳየት ላይ",
+    "filterActive": "{count} አጣሪ(ዎች) ንቁ"
+  },
+  
+  "memberForm": {
+    "createTitle": "አዲስ አባል ጨምር",
+    "createSubtitle": "ሙሉ የቤተክርስትያን አባል መገለጫ ይፍጠሩ",
+    "editTitle": "የአባል መገለጫ አስተካክል",
+    "editSubtitle": "የአባል መረጃ ያዘምኑ",
+    "stepProgress": "ደረጃ {current} ከ {total}",
+    "percentComplete": "{percent}% ተጠናቋል",
+    "createSuccess": "አባል በተሳካ ሁኔታ ተፈጥሯል",
+    "updateSuccess": "አባል በተሳካ ሁኔታ ተዘምኗል",
+    "createError": "አባልን በመፍጠር ላይ ስህተት",
+    "updateError": "አባልን በማዘመን ላይ ስህተት",
+    "requiredFields": "እባክዎ ሁሉንም አስፈላጊ መስኮች ይሙሉ"
+  },
+  
+  "memberSteps": {
+    "basicInfo": "መሰረታዊ መረጃ",
+    "spiritualJourney": "መንፈሳዊ ጉዞ",
+    "churchGrouping": "የቤተክርስትያን ቡድን",
+    "transferInfo": "የዝውውር መረጃ",
+    "serviceMinistry": "አገልግሎት",
+    "family": "ቤተሰብ",
+    "education": "ትምህርት",
+    "financial": "ገንዘብ"
+  },
+  
+  "basicInfo": {
+    "title": "መሰረታዊ መረጃ",
+    "subtitle": "የአባሉን መሰረታዊ የግል መረጃ ያስገቡ",
+    "personalInfo": "የግል መረጃ",
+    "fullName": "ሙሉ ስም",
+    "firstName": "የመጀመሪያ ስም",
+    "middleName": "የአባት ስም",
+    "lastName": "የአያት ስም",
+    "email": "ኢሜይል",
+    "phone": "ስልክ",
+    "phoneNumber": "ስልክ ቁጥር",
+    "yearOfBirth": "የትውልድ አመት",
+    "yearOfBirthEthiopian": "የትውልድ አመት (ዓ.ም)",
+    "dateOfBirth": "የትውልድ ቀን",
+    "gender": "ጾታ",
+    "maritalStatus": "የትዳር ሁኔታ",
+    "nationality": "ዜግነት",
+    "occupation": "የስራ መደብ",
+    "memberPicture": "የአባል ፎቶ",
+    "membershipNumber": "የአባልነት ቁጥር",
+    "registrationDate": "የምዝገባ ቀን",
+    "addressInfo": "የአድራሻ መረጃ",
+    "physicalAddress": "የመኖሪያ አድራሻ",
+    "streetAddress": "የመንገድ አድራሻ",
+    "city": "ከተማ",
+    "subCity": "ክፍለ ከተማ",
+    "woreda": "ወረዳ",
+    "kebele": "ቀበሌ",
+    "zipCode": "የፖስታ ኮድ",
+    "emergencyContact": "የድንገተኛ ጊዜ ግንኙነት",
+    "emergencyContactName": "የመገናኛ ስም",
+    "emergencyContactRelation": "ግንኙነት",
+    "emergencyContactPhone": "የመገናኛ ስልክ",
+    "membershipInfo": "የአባልነት መረጃ",
+    "joinDate": "የተቀላቀለበት ቀን",
+    "membershipStatus": "የአባልነት ሁኔታ",
+    "membershipType": "የአባልነት አይነት"
+  },
+  
+  "spiritualJourney": {
+    "title": "መንፈሳዊ ጉዞ",
+    "subtitle": "የአባሉን መንፈሳዊ ጉዞና ምዕራፎች ይመዝግቡ",
+    "salvationYear": "ጌታን ያገኙበት አመት",
+    "salvationYearEthiopian": "ጌታን ያገኙበት አመት (ዓ.ም)",
+    "salvationDate": "ጌታን ያገኙበት ቀን",
+    "baptismYear": "የተጠመቁበት አመት",
+    "baptismYearEthiopian": "የተጠመቁበት አመት (ዓ.ም)",
+    "baptismDate": "የተጠመቁበት ቀን",
+    "confirmationDate": "የማረጋገጫ ቀን",
+    "catechesisStatus": "የካቴኬሲስ ሁኔታ",
+    "discipleshipProgram": "የደቀመዝሙርነት ፕሮግራም",
+    "discipleshipLevel": "የደቀመዝሙርነት ደረጃ",
+    "mentor": "እረኛ/ፓስተር",
+    "testimony": "ምስክርነት",
+    "faithJourneyNotes": "የእምነት ጉዞ ማስታወሻዎች"
+  },
+  
+  "churchGrouping": {
+    "title": "የቤተክርስትያን ቡድን እና ማህበረሰብ",
+    "subtitle": "አባሉን ወደ ቤተክርስትያን ቡድኖች እና ማህበረሰቦች ያመድቡ",
+    "subCommunity": "መንደር/ክፍል",
+    "currentGroupType": "የሚማሩበት ቡድን አይነት",
+    "cellGroupName": "የሚማሩበት ቡድን ስም",
+    "cellGroupNumber": "የሴል ግሩፕ ቁጥር",
+    "reasonForNoGroup": "ቡድን የሌላቸው ምክንያት"
+  },
+  
+  "transferInfo": {
+    "title": "የዝውውር መረጃ",
+    "subtitle": "የሚመለከተው ከሆነ የዝውውር መረጃ ያቅርቡ",
+    "isTransfer": "ይህ አባል ከሌላ ቤተክርስትያን ተዛውሯል?",
+    "cameByTransfer": "ተዘዋውሮ የመጣ",
+    "transferFromChurch": "የመጣበት ቤተክርስትያን",
+    "transferYear": "የመጣበት አመት",
+    "transferYearEthiopian": "የመጣበት አመት (ዓ.ም)",
+    "transferDate": "የዝውውር ቀን",
+    "transferLetter": "የዝውውር ደብዳቤ"
+  },
+  
+  "serviceMinistry": {
+    "title": "አገልግሎት እና ሚኒስትሪ",
+    "subtitle": "የአገልግሎት እና የሚኒስትሪ ተሳትፎን ይምረጡ",
+    "currentServices": "የሚያገለግሉበት አገልግሎት ዘርፍ",
+    "currentServicesNote": "አባላት ከፍተኛው በ2 አገልግሎቶች ላይ መሳተፍ ይችላሉ",
+    "desiredServices": "ማገልገል የሚፈልጉበት አገልግሎት ዘርፍ",
+    "mentorshipBy": "እረኝነት በ",
+    "maxServicesReached": "ከፍተኛው 2 አገልግሎቶች ደርሰዋል። ሌላ ለመምረጥ አገልግሎት ይዝጉ።"
+  },
+  
+  "family": {
+    "title": "የቤተሰብ እና የግል ሁኔታ",
+    "subtitle": "የቤተሰብ እና የግል ሁኔታ መረጃ ያክሉ",
+    "spouseName": "የትዳር ጓደኛ ስም",
+    "numberOfChildren": "የልጆች ብዛት",
+    "additionalNotes": "ተጨማሪ የቤተሰብ ማስታወሻዎች"
+  },
+  
+  "education": {
+    "title": "የትምህርት እና የሙያ መረጃ",
+    "subtitle": "የትምህርት እና የሙያ ዝርዝሮችን ያስገቡ",
+    "educationLevel": "የትምህርት ደረጃ",
+    "jobType": "የስራ አይነት",
+    "profession": "ሙያ/መስክ"
+  },
+  
+  "financial": {
+    "title": "የገንዘብ አስተዋጽኦ",
+    "subtitle": "የገንዘብ አስተዋጽኦ መረጃ ይመዝግቡ",
+    "paysTithe": "አስራት ይከፍላሉ?",
+    "titheAmount": "የአስራት መጠን",
+    "titheAmountInBirr": "መጠን በብር",
+    "titheFrequency": "የክፍያ ድግግሞሽ"
+  },
+  
+  "status": {
+    "active": "ንቁ",
+    "inactive": "ንቁ ያልሆነ",
+    "removed": "የተወገደ",
+    "transferredOut": "ወደ ሌላ ተዛውሯል",
+    "deceased": "የሞተ",
+    "suspended": "ታግዷል"
+  },
+  
+  "maritalStatus": {
+    "unmarried": "ያላገባ",
+    "married": "ያገባ",
+    "divorced": "የፈታ",
+    "widowed": "የሞተበት/ባት",
+    "single": "ያላገባ"
+  },
+  
+  "catechesisStatus": {
+    "notStarted": "አልጀመረም",
+    "inProgress": "በሂደት ላይ",
+    "completed": "ተጠናቋል"
+  },
+  
+  "subCommunity": {
+    "jemmo": "ጀሞ",
+    "bethel": "ቤተል",
+    "weyira": "ወይራ",
+    "alfa": "አልፋ"
+  },
+  
+  "groupType": {
+    "cellGroup": "ሴል ግሩፕ",
+    "youthGroup": "የወጣቶች ቡድን",
+    "bibleStudy": "መጽሐፍ ቅዱስ ጥናት",
+    "prayerGroup": "የጸሎት ቡድን",
+    "none": "የለም"
+  },
+  
+  "educationLevel": {
+    "uneducated": "ያልተማረ",
+    "level1_8": "1-8",
+    "level9_12": "9-12",
+    "finished12": "12ኛ ክፍል ያጠናቀቀ",
+    "diploma": "ዲፕሎማ",
+    "degree": "ዲግሪ",
+    "masters": "ማስተርስ",
+    "phd": "ዶክትሬት"
+  },
+  
+  "jobType": {
+    "personal": "የግል ስራ",
+    "government": "መንግስት",
+    "private": "ግል ድርጅት",
+    "unemployed": "ስራ የለውም",
+    "student": "ተማሪ",
+    "retired": "ጡረተኛ"
+  },
+  
+  "frequency": {
+    "weekly": "ሳምንታዊ",
+    "monthly": "ወርሃዊ",
+    "occasionally": "አልፎ አልፎ",
+    "yearly": "ዓመታዊ"
+  },
+  
+  "ageGroup": {
+    "children": "ህጻናት (0-13)",
+    "teenagers": "ታዳጊዎች (14-17)",
+    "youth": "ወጣቶች (18-35)",
+    "adults": "አዋቂዎች (36-65)",
+    "seniors": "ሽማግሌዎች (65+)"
+  },
+  
+  "services": {
+    "choir": "መዘምራን",
+    "youthMinistry": "የወጣቶች አገልግሎት",
+    "sundaySchool": "እሁድ ትምህርት ቤት",
+    "mediaTeam": "ሚዲያ ቡድን",
+    "ushering": "መቀበያ",
+    "prayerTeam": "የጸሎት ቡድን",
+    "worship": "አምልኮ",
+    "teaching": "ትምህርት"
+  },
+  
+  "documents": {
+    "title": "ሰነዶች",
+    "uploadDocument": "ሰነድ ስቀል",
+    "memberAcceptanceFile": "የአባል መቀበያ ፋይል",
+    "sinbetFile": "የስንብት ፋይል",
+    "marriageCertificate": "የጋብቻ ሰርተፊኬት",
+    "baptismCertificate": "የጥምቀት ሰርተፊኬት",
+    "idCardCopy": "መታወቂያ ቅጂ",
+    "other": "ሌሎች ሰነዶች"
+  }
+}
+

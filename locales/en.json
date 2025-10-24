@@ -1,0 +1,294 @@
+{
+  "common": {
+    "appName": "Church Member Management",
+    "loading": "Loading...",
+    "saving": "Saving...",
+    "save": "Save",
+    "cancel": "Cancel",
+    "delete": "Delete",
+    "edit": "Edit",
+    "view": "View",
+    "add": "Add",
+    "search": "Search",
+    "filter": "Filter",
+    "filters": "Filters",
+    "clear": "Clear",
+    "clearAll": "Clear All",
+    "actions": "Actions",
+    "back": "Back",
+    "next": "Next",
+    "previous": "Previous",
+    "submit": "Submit",
+    "required": "Required",
+    "optional": "Optional",
+    "yes": "Yes",
+    "no": "No",
+    "none": "None",
+    "all": "All",
+    "male": "Male",
+    "female": "Female",
+    "other": "Other"
+  },
+  
+  "navigation": {
+    "dashboard": "Dashboard",
+    "members": "Members",
+    "services": "Services",
+    "groups": "Groups",
+    "reports": "Reports",
+    "settings": "Settings"
+  },
+  
+  "members": {
+    "title": "Members",
+    "subtitle": "Manage all church members",
+    "addMember": "Add Member",
+    "newMember": "New Member",
+    "editMember": "Edit Member",
+    "viewMember": "View Member",
+    "deleteMember": "Delete Member",
+    "memberProfile": "Member Profile",
+    "allMembers": "All Members",
+    "activeMembers": "Active Members",
+    "inactiveMembers": "Inactive Members",
+    "searchPlaceholder": "Search by name, email, or phone...",
+    "noMembers": "No members found",
+    "memberCount": "Showing {start}-{end} of {total} members",
+    "filterActive": "{count} filter(s) active"
+  },
+  
+  "memberForm": {
+    "createTitle": "Add New Member",
+    "createSubtitle": "Create a comprehensive church member profile",
+    "editTitle": "Edit Member Profile",
+    "editSubtitle": "Update member information",
+    "stepProgress": "Step {current} of {total}",
+    "percentComplete": "{percent}% Complete",
+    "createSuccess": "Member created successfully",
+    "updateSuccess": "Member updated successfully",
+    "createError": "Error creating member",
+    "updateError": "Error updating member",
+    "requiredFields": "Please fill in all required fields"
+  },
+  
+  "memberSteps": {
+    "basicInfo": "Basic Info",
+    "spiritualJourney": "Spiritual Journey",
+    "churchGrouping": "Church Grouping",
+    "transferInfo": "Transfer Info",
+    "serviceMinistry": "Service & Ministry",
+    "family": "Family",
+    "education": "Education",
+    "financial": "Financial"
+  },
+  
+  "basicInfo": {
+    "title": "Basic Information",
+    "subtitle": "Enter the member's basic personal information",
+    "personalInfo": "Personal Information",
+    "fullName": "Full Name",
+    "firstName": "First Name",
+    "middleName": "Middle Name",
+    "lastName": "Last Name",
+    "email": "Email",
+    "phone": "Phone",
+    "phoneNumber": "Phone Number",
+    "yearOfBirth": "Year of Birth",
+    "yearOfBirthEthiopian": "Year of Birth (Ethiopian Calendar)",
+    "dateOfBirth": "Date of Birth",
+    "gender": "Gender",
+    "maritalStatus": "Marital Status",
+    "nationality": "Nationality",
+    "occupation": "Occupation",
+    "memberPicture": "Member Picture",
+    "membershipNumber": "Membership Number",
+    "registrationDate": "Registration Date",
+    "addressInfo": "Address Information",
+    "physicalAddress": "Physical Address",
+    "streetAddress": "Street Address",
+    "city": "City",
+    "subCity": "Sub-City",
+    "woreda": "Woreda",
+    "kebele": "Kebele",
+    "zipCode": "Zip Code",
+    "emergencyContact": "Emergency Contact",
+    "emergencyContactName": "Contact Name",
+    "emergencyContactRelation": "Relationship",
+    "emergencyContactPhone": "Contact Phone",
+    "membershipInfo": "Membership Information",
+    "joinDate": "Join Date",
+    "membershipStatus": "Membership Status",
+    "membershipType": "Membership Type"
+  },
+  
+  "spiritualJourney": {
+    "title": "Spiritual Journey",
+    "subtitle": "Record the member's spiritual journey and milestones",
+    "salvationYear": "Salvation Year",
+    "salvationYearEthiopian": "Salvation Year (Ethiopian Calendar)",
+    "salvationDate": "Salvation Date",
+    "baptismYear": "Baptism Year",
+    "baptismYearEthiopian": "Baptism Year (Ethiopian Calendar)",
+    "baptismDate": "Baptism Date",
+    "confirmationDate": "Confirmation Date",
+    "catechesisStatus": "Catechesis Status",
+    "discipleshipProgram": "Discipleship Program",
+    "discipleshipLevel": "Discipleship Level",
+    "mentor": "Mentor/Pastor",
+    "testimony": "Testimony",
+    "faithJourneyNotes": "Faith Journey Notes"
+  },
+  
+  "churchGrouping": {
+    "title": "Church Grouping & Community",
+    "subtitle": "Assign the member to church groups and communities",
+    "subCommunity": "Sub-Community",
+    "currentGroupType": "Current Group Type",
+    "cellGroupName": "Cell Group Name",
+    "cellGroupNumber": "Cell Group Number",
+    "reasonForNoGroup": "Reason for No Group"
+  },
+  
+  "transferInfo": {
+    "title": "Transfer Information",
+    "subtitle": "Provide transfer information if applicable",
+    "isTransfer": "Is this member transferring from another church?",
+    "cameByTransfer": "Came by Transfer",
+    "transferFromChurch": "Transferred From Church",
+    "transferYear": "Transfer Year",
+    "transferYearEthiopian": "Transfer Year (Ethiopian Calendar)",
+    "transferDate": "Transfer Date",
+    "transferLetter": "Transfer Letter"
+  },
+  
+  "serviceMinistry": {
+    "title": "Service & Ministry",
+    "subtitle": "Select services and ministry participation",
+    "currentServices": "Currently Serving At",
+    "currentServicesNote": "Members can participate in a maximum of 2 services",
+    "desiredServices": "Wanting to Serve At",
+    "mentorshipBy": "Mentorship By",
+    "maxServicesReached": "Maximum of 2 services reached. Uncheck a service to select another."
+  },
+  
+  "family": {
+    "title": "Family & Personal Status",
+    "subtitle": "Add family and personal status information",
+    "spouseName": "Spouse Name",
+    "numberOfChildren": "Number of Children",
+    "additionalNotes": "Additional Family Notes"
+  },
+  
+  "education": {
+    "title": "Education & Professional Information",
+    "subtitle": "Enter education and professional details",
+    "educationLevel": "Education Level",
+    "jobType": "Job Type",
+    "profession": "Profession/Field"
+  },
+  
+  "financial": {
+    "title": "Financial Contribution",
+    "subtitle": "Record financial contribution information",
+    "paysTithe": "Pays Tithe?",
+    "titheAmount": "Tithe Amount",
+    "titheAmountInBirr": "Tithe Amount (in Birr)",
+    "titheFrequency": "Payment Frequency"
+  },
+  
+  "status": {
+    "active": "Active",
+    "inactive": "Inactive",
+    "removed": "Removed",
+    "transferredOut": "Transferred Out",
+    "deceased": "Deceased",
+    "suspended": "Suspended"
+  },
+  
+  "maritalStatus": {
+    "unmarried": "Unmarried",
+    "married": "Married",
+    "divorced": "Divorced",
+    "widowed": "Widowed",
+    "single": "Single"
+  },
+  
+  "catechesisStatus": {
+    "notStarted": "Not Started",
+    "inProgress": "In Progress",
+    "completed": "Completed"
+  },
+  
+  "subCommunity": {
+    "jemmo": "Jemmo",
+    "bethel": "Bethel",
+    "weyira": "Weyira",
+    "alfa": "Alfa"
+  },
+  
+  "groupType": {
+    "cellGroup": "Cell Group",
+    "youthGroup": "Youth Group",
+    "bibleStudy": "Bible Study",
+    "prayerGroup": "Prayer Group",
+    "none": "None"
+  },
+  
+  "educationLevel": {
+    "uneducated": "Uneducated",
+    "level1_8": "1-8",
+    "level9_12": "9-12",
+    "finished12": "Finished 12th Grade",
+    "diploma": "Diploma",
+    "degree": "Degree",
+    "masters": "Masters",
+    "phd": "PhD"
+  },
+  
+  "jobType": {
+    "personal": "Personal/Self-employed",
+    "government": "Government",
+    "private": "Private",
+    "unemployed": "Unemployed",
+    "student": "Student",
+    "retired": "Retired"
+  },
+  
+  "frequency": {
+    "weekly": "Weekly",
+    "monthly": "Monthly",
+    "occasionally": "Occasionally",
+    "yearly": "Yearly"
+  },
+  
+  "ageGroup": {
+    "children": "Children (0-13)",
+    "teenagers": "Teenagers (14-17)",
+    "youth": "Youth (18-35)",
+    "adults": "Adults (36-65)",
+    "seniors": "Seniors (65+)"
+  },
+  
+  "services": {
+    "choir": "Choir",
+    "youthMinistry": "Youth Ministry",
+    "sundaySchool": "Sunday School",
+    "mediaTeam": "Media Team",
+    "ushering": "Ushering",
+    "prayerTeam": "Prayer Team",
+    "worship": "Worship",
+    "teaching": "Teaching"
+  },
+  
+  "documents": {
+    "title": "Documents",
+    "uploadDocument": "Upload Document",
+    "memberAcceptanceFile": "Member Acceptance File",
+    "sinbetFile": "Sinbet File",
+    "marriageCertificate": "Marriage Certificate",
+    "baptismCertificate": "Baptism Certificate",
+    "idCardCopy": "ID Card Copy",
+    "other": "Other Documents"
+  }
+}
+
