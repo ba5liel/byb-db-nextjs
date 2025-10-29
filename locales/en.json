@@ -289,6 +289,24 @@
     "baptismCertificate": "Baptism Certificate",
     "idCardCopy": "ID Card Copy",
     "other": "Other Documents"
+  },
+  
+  "servicesPage": {
+    "title": "Services & Ministries",
+    "subtitle": "Manage member service assignments and ministry participation",
+    "cardTitle": "Service & Ministry",
+    "cardSubtitle": "Select services and ministry participation",
+    "currentServices": "Currently Serving At",
+    "currentServicesNote": "Members can participate in a maximum of 2 services",
+    "desiredServices": "Wanting to Serve At",
+    "desiredServicesNote": "Select services the member wishes to serve in the future",
+    "mentorshipBy": "Shepherding/Mentorship",
+    "mentorshipByNote": "Name of mentor or leader providing shepherding/mentorship",
+    "mentorshipByPlaceholder": "Name of mentor or leader",
+    "save": "Save Changes",
+    "saved": "Changes saved successfully",
+    "maxServicesReachedTitle": "Maximum services reached",
+    "maxServicesReached": "Maximum of 2 services reached. Uncheck a service to select another."
   }
 }
 

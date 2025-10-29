@@ -51,7 +51,7 @@ export function Sidebar() {
             {navigation
               .filter((item) => item.section === section)
               .map((item) => {
-                const isActive = pathname === item.href
+                const isActive = pathname === item.href || pathname?.startsWith(`${item.href}/`)
                 return (
                   <Link
                     key={item.name}
