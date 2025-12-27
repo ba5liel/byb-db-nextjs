@@ -2,94 +2,111 @@
 
 import { createContext, useContext, useState, useEffect, type ReactNode } from "react"
 import type { User } from "./types"
+import { signIn, signUp, signOut, getSession } from "./auth-api"
 
 interface AuthContextType {
   user: User | null
   loading: boolean
   login: (email: string, password: string) => Promise<{ success: boolean; error?: string }>
   register: (name: string, email: string, password: string) => Promise<{ success: boolean; error?: string }>
-  logout: () => void
+  logout: () => Promise<void>
   isAuthenticated: boolean
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined)
 
+/**
+ * Maps backend user data to frontend User type
+ */
+function mapBackendUserToUser(backendUser: any): User | null {
+  if (!backendUser) return null
+
+  // Split name into firstName and lastName if needed
+  const nameParts = backendUser.name?.split(" ") || []
+  const firstName = backendUser.firstName || nameParts[0] || ""
+  const lastName = backendUser.lastName || nameParts.slice(1).join(" ") || ""
+
+  return {
+    id: backendUser.id,
+    email: backendUser.email,
+    firstName,
+    lastName,
+    role: backendUser.role || "user",
+  }
+}
+
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null)
   const [loading, setLoading] = useState(true)
 
+  // Check for existing session on mount
   useEffect(() => {
-    // Check if user is logged in
-    const storedUser = localStorage.getItem("church_user")
-    if (storedUser) {
+    async function checkSession() {
       try {
-        setUser(JSON.parse(storedUser))
+        const sessionUser = await getSession()
+        if (sessionUser) {
+          const mappedUser = mapBackendUserToUser(sessionUser)
+          setUser(mappedUser)
+        }
       } catch (error) {
-        console.error("Failed to parse user from localStorage:", error)
+        console.error("Error checking session:", error)
+      } finally {
+        setLoading(false)
       }
     }
-    setLoading(false)
+
+    checkSession()
   }, [])
 
   const login = async (email: string, password: string) => {
-    // In production, this would call a real API
-    const storedUsers = localStorage.getItem("church_users")
-    const users = storedUsers ? JSON.parse(storedUsers) : []
-
-    const foundUser = users.find((u: { email: string; password: string; id: string; name: string; role: string }) => u.email === email && u.password === password)
-
-    if (foundUser) {
-      const user: User = {
-        id: foundUser.id,
-        email: foundUser.email,
-        firstName: foundUser.firstName || foundUser.name?.split(" ")[0] || "",
-        lastName: foundUser.lastName || foundUser.name?.split(" ")[1] || "",
-        role: foundUser.role || "admin",
+    try {
+      const response = await signIn(email, password)
+      
+      // Better Auth returns user in response.user or response.data.user
+      const backendUser = response.user || response.data?.user || response
+      const mappedUser = mapBackendUserToUser(backendUser)
+      
+      if (mappedUser) {
+        setUser(mappedUser)
+        return { success: true }
       }
-      setUser(user)
-      localStorage.setItem("church_user", JSON.stringify(user))
-      return { success: true }
+      
+      return { success: false, error: "Invalid response from server" }
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : "Login failed"
+      return { success: false, error: errorMessage }
     }
-
-    return { success: false, error: "Invalid email or password" }
   }
 
   const register = async (name: string, email: string, password: string) => {
-    const storedUsers = localStorage.getItem("church_users")
-    const users = storedUsers ? JSON.parse(storedUsers) : []
-
-    // Check if user already exists
-    if (users.find((u: { email: string }) => u.email === email)) {
-      return { success: false, error: "User already exists" }
+    try {
+      const response = await signUp(email, password, name)
+      
+      // Better Auth returns user in response.user or response.data.user
+      const backendUser = response.user || response.data?.user || response
+      const mappedUser = mapBackendUserToUser(backendUser)
+      
+      if (mappedUser) {
+        setUser(mappedUser)
+        return { success: true }
+      }
+      
+      return { success: false, error: "Invalid response from server" }
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : "Registration failed"
+      return { success: false, error: errorMessage }
     }
-
-    const newUser = {
-      id: crypto.randomUUID(),
-      email,
-      password,
-      name,
-      role: "admin",
-    }
-
-    users.push(newUser)
-    localStorage.setItem("church_users", JSON.stringify(users))
-
-    const user: User = {
-      id: newUser.id,
-      email: newUser.email,
-      firstName: name.split(" ")[0] || name,
-      lastName: name.split(" ")[1] || "",
-      role: newUser.role,
-    }
-    setUser(user)
-    localStorage.setItem("church_user", JSON.stringify(user))
-
-    return { success: true }
   }
 
-  const logout = () => {
-    setUser(null)
-    localStorage.removeItem("church_user")
+  const logout = async () => {
+    try {
+      await signOut()
+    } catch (error) {
+      console.error("Error signing out:", error)
+    } finally {
+      // Always clear user state on client side
+      setUser(null)
+    }
   }
 
   return (

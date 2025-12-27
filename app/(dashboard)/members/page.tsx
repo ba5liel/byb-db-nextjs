@@ -59,11 +59,16 @@ export default function MembersPage() {
     setDeleteDialogOpen(true)
   }
 
-  function handleDeleteConfirm() {
+  async function handleDeleteConfirm() {
     if (memberToDelete) {
-      deleteMember(memberToDelete)
-      setDeleteDialogOpen(false)
-      setMemberToDelete(null)
+      try {
+        await deleteMember(memberToDelete)
+        setDeleteDialogOpen(false)
+        setMemberToDelete(null)
+      } catch (error) {
+        console.error('Failed to delete member:', error)
+        // Keep dialog open on error so user can retry
+      }
     }
   }
 
@@ -404,7 +409,7 @@ export default function MembersPage() {
                           </td>
                           <td className="py-3 px-4 text-muted-foreground">{member.phone}</td>
                           <td className="py-3 px-4 text-muted-foreground hidden lg:table-cell">
-                            {member.gender === "Male" ? t.common.male : member.gender === "Female" ? t.common.female : member.gender}
+                            {member.gender === "Male" ? t.common.male : t.common.female}
                           </td>
                           <td className="py-3 px-4">
                             <Badge

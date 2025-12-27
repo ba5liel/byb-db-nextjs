@@ -248,9 +248,8 @@ export default function NewMemberPage() {
     setLoading(true)
 
     try {
-      const memberData: Member = {
+      const memberData = {
         ...formData,
-        id: `member-${Date.now()}`,
         firstName: formData.firstName!,
         lastName: formData.lastName!,
         phone: formData.phone!,
@@ -264,11 +263,9 @@ export default function NewMemberPage() {
         joinDate: formData.joinDate!,
         membershipStatus: formData.membershipStatus!,
         membershipType: formData.membershipType!,
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
-      } as Member
+      } as Omit<Member, "id" | "createdAt" | "updatedAt">
 
-      addMember(memberData)
+      await addMember(memberData)
 
       toast({
         title: t.memberForm.createSuccess,

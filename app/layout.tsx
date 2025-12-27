@@ -4,6 +4,8 @@ import { Geist, Geist_Mono } from "next/font/google"
 import "./globals.css"
 import { AuthProvider } from "@/lib/auth-context"
 import { MembersProvider } from "@/lib/members-context"
+import { ChurchServicesProvider } from "@/lib/church-services-context"
+import { SystemAdminProvider } from "@/lib/system-admin-context"
 import { LanguageProvider } from "@/lib/language-context"
 import { Toaster } from "@/components/ui/toaster"
 import { ThemeProvider } from "@/components/theme-provider"
@@ -36,8 +38,12 @@ export default function RootLayout({
           <LanguageProvider>
             <AuthProvider>
               <MembersProvider>
-                {children}
-                <Toaster />
+                <ChurchServicesProvider>
+                  <SystemAdminProvider>
+                    {children}
+                    <Toaster />
+                  </SystemAdminProvider>
+                </ChurchServicesProvider>
               </MembersProvider>
             </AuthProvider>
           </LanguageProvider>

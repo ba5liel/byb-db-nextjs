@@ -35,14 +35,17 @@ export default function MemberDetailPage() {
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    if (memberId === "new") {
-      router.push("/members/new")
-      return
-    }
+    async function loadMember() {
+      if (memberId === "new") {
+        router.push("/members/new")
+        return
+      }
 
-    const foundMember = getMember(memberId)
-    setMember(foundMember || null)
-    setLoading(false)
+      const foundMember = await getMember(memberId)
+      setMember(foundMember || null)
+      setLoading(false)
+    }
+    loadMember()
   }, [memberId, getMember, router])
 
   if (loading) {

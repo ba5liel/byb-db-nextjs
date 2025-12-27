@@ -40,7 +40,6 @@ export default function Home() {
 
   const maleCount = members.filter((m) => m.gender === "Male").length
   const femaleCount = members.filter((m) => m.gender === "Female").length
-  const otherGenderCount = members.filter((m) => m.gender === "Other").length
 
   return (
     <main className="min-h-screen bg-gradient-to-br from-background to-secondary">
@@ -172,13 +171,6 @@ export default function Home() {
                     <span className="text-sm font-medium">Female</span>
                   </div>
                   <span className="text-2xl font-bold">{femaleCount}</span>
-                </div>
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <div className="w-3 h-3 rounded-full bg-purple-600" />
-                    <span className="text-sm font-medium">Other</span>
-                  </div>
-                  <span className="text-2xl font-bold">{otherGenderCount}</span>
                 </div>
               </div>
             </CardContent>
