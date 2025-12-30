@@ -8,6 +8,7 @@ import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
+import { PasswordInput } from "@/components/ui/password-input"
 import { Label } from "@/components/ui/label"
 import { AlertCircle } from "lucide-react"
 import { useAuth } from "@/lib/auth-context"
@@ -50,23 +51,25 @@ export default function LoginPage() {
   }
 
   return (
-    <main className="min-h-screen bg-gradient-to-br from-background to-secondary flex items-center justify-center px-4">
-      <Card className="border-0 shadow-lg w-full max-w-md">
-        <CardHeader className="text-center">
-          <CardTitle className="text-3xl">Church Management</CardTitle>
-          <CardDescription>Sign in to your account</CardDescription>
+    <main className="min-h-screen gradient-bg flex items-center justify-center px-4">
+      <Card variant="glass-strong" className="w-full max-w-md">
+        <CardHeader className="text-center space-y-2">
+          <CardTitle className="text-4xl font-bold bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">
+            Church Management
+          </CardTitle>
+          <CardDescription className="text-base">Sign in to your account</CardDescription>
         </CardHeader>
         <CardContent>
-          <form onSubmit={handleSubmit} className="space-y-4">
+          <form onSubmit={handleSubmit} className="space-y-6">
             {error && (
-              <div className="flex gap-3 p-3 bg-destructive/10 border border-destructive/20 rounded-md">
+              <div className="flex gap-3 p-4 bg-destructive/10 border border-destructive/20 rounded-lg glass">
                 <AlertCircle className="w-5 h-5 text-destructive flex-shrink-0 mt-0.5" />
-                <p className="text-sm text-destructive">{error}</p>
+                <p className="text-sm text-destructive font-medium">{error}</p>
               </div>
             )}
 
-            <div>
-              <Label htmlFor="email">Email</Label>
+            <div className="space-y-2">
+              <Label htmlFor="email" className="text-sm font-semibold">Email</Label>
               <Input
                 id="email"
                 name="email"
@@ -74,32 +77,31 @@ export default function LoginPage() {
                 value={formData.email}
                 onChange={handleChange}
                 required
-                className="mt-1"
+                className="h-11 border-white/10 bg-white/5 backdrop-blur-sm"
                 placeholder="admin@church.com"
               />
             </div>
 
-            <div>
-              <Label htmlFor="password">Password</Label>
-              <Input
+            <div className="space-y-2">
+              <Label htmlFor="password" className="text-sm font-semibold">Password</Label>
+              <PasswordInput
                 id="password"
                 name="password"
-                type="password"
                 value={formData.password}
                 onChange={handleChange}
                 required
-                className="mt-1"
+                className="h-11 border-white/10 bg-white/5 backdrop-blur-sm"
                 placeholder="••••••••"
               />
             </div>
 
-            <Button type="submit" disabled={loading} className="w-full">
+            <Button type="submit" disabled={loading} size="lg" className="w-full font-bold">
               {loading ? "Signing in..." : "Sign In"}
             </Button>
 
-            <div className="text-center text-sm">
+            <div className="text-center text-sm pt-2">
               <span className="text-muted-foreground">Don&apos;t have an account? </span>
-              <Link href="/register" className="text-primary hover:underline font-medium">
+              <Link href="/register" className="text-primary hover:text-primary/80 font-semibold transition-colors">
                 Sign up
               </Link>
             </div>

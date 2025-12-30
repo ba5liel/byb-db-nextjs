@@ -7,7 +7,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Badge } from "@/components/ui/badge"
-import { Separator } from "@/components/ui/separator"
+import { Skeleton } from "@/components/ui/skeleton"
 import {
   Plus,
   Edit,
@@ -17,13 +17,12 @@ import {
   Filter,
   ChevronLeft,
   ChevronRight,
-  Download,
-  Upload,
+  Users,
+  UserCheck,
+  TrendingUp,
   X,
+  AlertCircle,
 } from "lucide-react"
-import { useMembers } from "@/lib/members-context"
-import { useLanguage } from "@/lib/language-context"
-import { getTranslation } from "@/lib/translations"
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -33,9 +32,14 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog"
+import { Label } from "@/components/ui/label"
+import { useMembers, useServices, useDeleteMember } from "@/lib/api/hooks"
+import { useLanguage } from "@/lib/language-context"
+import { getTranslation } from "@/lib/translations"
+import { toast } from "@/hooks/use-toast"
+import type { MemberDto } from "@/lib/api/types"
 
 export default function MembersPage() {
-  const { members, deleteMember } = useMembers()
   const { locale } = useLanguage()
   const t = getTranslation(locale)
 
@@ -54,435 +58,438 @@ export default function MembersPage() {
   const [groupTypeFilter, setGroupTypeFilter] = useState<string>("all")
   const [maritalStatusFilter, setMaritalStatusFilter] = useState<string>("all")
 
+  // API hooks
+  const { data: membersData, isLoading, error } = useMembers({
+    page: currentPage,
+    limit: itemsPerPage,
+    search: searchTerm,
+    subCommunity: subCommunityFilter === "all" ? undefined : subCommunityFilter,
+    sex: genderFilter === "all" ? undefined : genderFilter,
+    maritalStatus: maritalStatusFilter === "all" ? undefined : maritalStatusFilter,
+    memberStatus: statusFilter === "all" ? undefined : statusFilter,
+    groupType: groupTypeFilter === "all" ? undefined : groupTypeFilter,
+    ageGroup: ageGroupFilter === "all" ? undefined : ageGroupFilter,
+  })
+
+  const { data: servicesData } = useServices({ limit: 100 }) // Get all services for dropdown
+  const deleteMutation = useDeleteMember()
+
+  const members = membersData?.data || []
+  const pagination = membersData?.pagination
+  const services = servicesData?.data || []
+
   function handleDeleteClick(id: string) {
     setMemberToDelete(id)
     setDeleteDialogOpen(true)
   }
 
-  function handleDeleteConfirm() {
+  async function handleDeleteConfirm() {
     if (memberToDelete) {
-      deleteMember(memberToDelete)
-      setDeleteDialogOpen(false)
-      setMemberToDelete(null)
+      try {
+        await deleteMutation.mutateAsync(memberToDelete)
+        toast({
+          title: "Success",
+          description: "Member deleted successfully",
+        })
+        setDeleteDialogOpen(false)
+        setMemberToDelete(null)
+      } catch (error) {
+        toast({
+          title: "Error",
+          description: "Failed to delete member",
+          variant: "destructive",
+        })
+      }
     }
   }
 
-  const filteredMembers = members.filter((member) => {
-    const matchesSearch =
-      member.firstName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      member.lastName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      member.email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      member.phone.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      member.membershipNumber?.toLowerCase().includes(searchTerm.toLowerCase())
+  const getStatusBadge = (status: string) => {
+    switch (status) {
+      case "active":
+        return <Badge className="bg-green-500">{t.members.active}</Badge>
+      case "inactive":
+        return <Badge variant="secondary">{t.members.inactive}</Badge>
+      case "removed":
+        return <Badge variant="destructive">{t.members.removed}</Badge>
+      default:
+        return <Badge variant="outline">{status}</Badge>
+    }
+  }
 
-    const matchesStatus = statusFilter === "all" || member.membershipStatus === statusFilter
-    const matchesGender = genderFilter === "all" || member.gender === genderFilter
-    const matchesAgeGroup = ageGroupFilter === "all" || member.ageGroup === ageGroupFilter
-    const matchesSubCommunity = subCommunityFilter === "all" || member.subCommunity === subCommunityFilter
-    const matchesGroupType = groupTypeFilter === "all" || member.currentGroupType === groupTypeFilter
-    const matchesMaritalStatus = maritalStatusFilter === "all" || member.maritalStatus === maritalStatusFilter
-
+  if (error) {
     return (
-      matchesSearch &&
-      matchesStatus &&
-      matchesGender &&
-      matchesAgeGroup &&
-      matchesSubCommunity &&
-      matchesGroupType &&
-      matchesMaritalStatus
+      <div className="flex items-center justify-center min-h-[400px]">
+        <Card variant="glass" className="p-8 max-w-md">
+          <div className="flex flex-col items-center gap-4 text-center">
+            <AlertCircle className="w-12 h-12 text-destructive" />
+            <h2 className="text-2xl font-bold">Failed to load members</h2>
+            <p className="text-muted-foreground">Please try refreshing the page</p>
+          </div>
+        </Card>
+      </div>
     )
-  })
-
-  const totalPages = Math.ceil(filteredMembers.length / itemsPerPage)
-  const startIndex = (currentPage - 1) * itemsPerPage
-  const endIndex = startIndex + itemsPerPage
-  const paginatedMembers = filteredMembers.slice(startIndex, endIndex)
-
-  const activeFiltersCount = [
-    statusFilter !== "all",
-    genderFilter !== "all",
-    ageGroupFilter !== "all",
-    subCommunityFilter !== "all",
-    groupTypeFilter !== "all",
-    maritalStatusFilter !== "all",
-  ].filter(Boolean).length
-
-  const clearAllFilters = () => {
-    setStatusFilter("all")
-    setGenderFilter("all")
-    setAgeGroupFilter("all")
-    setSubCommunityFilter("all")
-    setGroupTypeFilter("all")
-    setMaritalStatusFilter("all")
-    setSearchTerm("")
-    setCurrentPage(1)
   }
 
   return (
-    <main className="min-h-screen bg-gradient-to-br from-background via-background to-secondary/20">
-      <div className="container mx-auto px-4 py-8 sm:py-12">
-        {/* Header */}
-        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-8">
-          <div>
-            <h1 className="text-3xl sm:text-4xl font-bold text-foreground mb-2">{t.members.title}</h1>
-            <p className="text-muted-foreground">{t.members.subtitle}</p>
-          </div>
-          <div className="flex gap-2">
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button variant="outline" className="gap-2">
-                  <Download className="w-4 h-4" />
-                  <span className="hidden sm:inline">{t.common.actions}</span>
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end">
-                <DropdownMenuLabel>Export Options</DropdownMenuLabel>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem>
-                  <Download className="w-4 h-4 mr-2" />
-                  Export to Excel
-                </DropdownMenuItem>
-                <DropdownMenuItem>
-                  <Download className="w-4 h-4 mr-2" />
-                  Export to PDF
-                </DropdownMenuItem>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem>
-                  <Upload className="w-4 h-4 mr-2" />
-                  Import from Excel
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
-            <Link href="/members/new">
-              <Button size="lg" className="gap-2">
-                <Plus className="w-5 h-5" />
-                <span className="hidden sm:inline">{t.members.addMember}</span>
-              </Button>
-            </Link>
-          </div>
+    <div className="space-y-6">
+      {/* Header */}
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-4xl font-bold">{t.members.title}</h1>
+          <p className="text-muted-foreground text-lg">{t.members.subtitle}</p>
         </div>
-
-        {/* Stats Cards */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-          <Card className="border-0 shadow-md bg-gradient-to-br from-blue-500/10 to-blue-600/5">
-            <CardHeader className="pb-3">
-              <CardDescription className="text-xs uppercase tracking-wider">Total Members</CardDescription>
-              <CardTitle className="text-3xl font-bold">{members.length}</CardTitle>
-            </CardHeader>
-          </Card>
-          <Card className="border-0 shadow-md bg-gradient-to-br from-green-500/10 to-green-600/5">
-            <CardHeader className="pb-3">
-              <CardDescription className="text-xs uppercase tracking-wider">
-                {t.members.activeMembers}
-              </CardDescription>
-              <CardTitle className="text-3xl font-bold">
-                {members.filter((m) => m.membershipStatus === "Active").length}
-              </CardTitle>
-            </CardHeader>
-          </Card>
-          <Card className="border-0 shadow-md bg-gradient-to-br from-amber-500/10 to-amber-600/5">
-            <CardHeader className="pb-3">
-              <CardDescription className="text-xs uppercase tracking-wider">New This Month</CardDescription>
-              <CardTitle className="text-3xl font-bold">
-                {
-                  members.filter((m) => {
-                    const joinDate = new Date(m.joinDate)
-                    const now = new Date()
-                    return joinDate.getMonth() === now.getMonth() && joinDate.getFullYear() === now.getFullYear()
-                  }).length
-                }
-              </CardTitle>
-            </CardHeader>
-          </Card>
-          <Card className="border-0 shadow-md bg-gradient-to-br from-purple-500/10 to-purple-600/5">
-            <CardHeader className="pb-3">
-              <CardDescription className="text-xs uppercase tracking-wider">Transfers</CardDescription>
-              <CardTitle className="text-3xl font-bold">
-                {members.filter((m) => m.isTransfer).length}
-              </CardTitle>
-            </CardHeader>
-          </Card>
+        <div className="flex gap-3">
+          <Link href="/members/new">
+            <Button size="lg" className="gap-2 font-semibold">
+              <Plus className="w-5 h-5" />
+              {t.members.addMember}
+            </Button>
+          </Link>
+          <Button
+            variant="outline"
+            size="lg"
+            className="gap-2"
+            onClick={() => setShowFilters(!showFilters)}
+          >
+            <Filter className="w-5 h-5" />
+            {t.members.filters}
+          </Button>
         </div>
+      </div>
 
-        {/* Search and Filters */}
-        <Card className="border-0 shadow-lg mb-8">
-          <CardContent className="pt-6">
-            <div className="space-y-4">
-              <div className="flex flex-col sm:flex-row gap-3">
-                <div className="relative flex-1">
-                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
-                  <Input
-                    placeholder={t.members.searchPlaceholder}
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                    className="pl-10"
-                  />
-                </div>
-                <Button
-                  variant={showFilters ? "default" : "outline"}
-                  className="gap-2"
-                  onClick={() => setShowFilters(!showFilters)}
-                >
-                  <Filter className="w-4 h-4" />
-                  {t.common.filters}
-                  {activeFiltersCount > 0 && (
-                    <Badge variant="secondary" className="ml-1">
-                      {activeFiltersCount}
-                    </Badge>
-                  )}
-                </Button>
-                {activeFiltersCount > 0 && (
-                  <Button variant="ghost" onClick={clearAllFilters} className="gap-2">
-                    <X className="w-4 h-4" />
-                    <span className="hidden sm:inline">{t.common.clearAll}</span>
-                  </Button>
-                )}
+      {/* Search Bar */}
+      <Card variant="glass">
+        <CardContent className="pt-6">
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+            <Input
+              type="search"
+              placeholder={t.members.searchPlaceholder}
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="pl-10 h-12"
+            />
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Filters */}
+      {showFilters && (
+        <Card variant="glass">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Filter className="w-5 h-5" />
+              {t.members.filters}
+            </CardTitle>
+            <CardDescription>{t.members.filtersDescription}</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              <div>
+                <Label htmlFor="status-filter">{t.members.membershipStatus}</Label>
+                <Select value={statusFilter} onValueChange={setStatusFilter}>
+                  <SelectTrigger id="status-filter">
+                    <SelectValue placeholder={t.members.selectStatus} />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">{t.members.allStatuses}</SelectItem>
+                    <SelectItem value="active">{t.members.active}</SelectItem>
+                    <SelectItem value="inactive">{t.members.inactive}</SelectItem>
+                    <SelectItem value="removed">{t.members.removed}</SelectItem>
+                    <SelectItem value="transferred">{t.members.transferredOut}</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
 
-              {showFilters && (
-                <>
-                  <Separator />
-                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 pt-2">
-                    <div>
-                      <label className="text-sm font-medium mb-2 block">{t.basicInfo.membershipStatus}</label>
-                      <Select value={statusFilter} onValueChange={setStatusFilter}>
-                        <SelectTrigger>
-                          <SelectValue placeholder={t.common.all} />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="all">{t.common.all}</SelectItem>
-                          <SelectItem value="Active">{t.status.active}</SelectItem>
-                          <SelectItem value="Inactive">{t.status.inactive}</SelectItem>
-                          <SelectItem value="Removed">{t.status.removed}</SelectItem>
-                          <SelectItem value="Transferred Out">{t.status.transferredOut}</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
+              <div>
+                <Label htmlFor="gender-filter">{t.members.gender}</Label>
+                <Select value={genderFilter} onValueChange={setGenderFilter}>
+                  <SelectTrigger id="gender-filter">
+                    <SelectValue placeholder={t.members.selectGender} />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">{t.members.allGenders}</SelectItem>
+                    <SelectItem value="male">{t.members.male}</SelectItem>
+                    <SelectItem value="female">{t.members.female}</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
 
-                    <div>
-                      <label className="text-sm font-medium mb-2 block">{t.basicInfo.gender}</label>
-                      <Select value={genderFilter} onValueChange={setGenderFilter}>
-                        <SelectTrigger>
-                          <SelectValue placeholder={t.common.all} />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="all">{t.common.all}</SelectItem>
-                          <SelectItem value="Male">{t.common.male}</SelectItem>
-                          <SelectItem value="Female">{t.common.female}</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
+              <div>
+                <Label htmlFor="subcommunity-filter">{t.members.subCommunity}</Label>
+                <Select value={subCommunityFilter} onValueChange={setSubCommunityFilter}>
+                  <SelectTrigger id="subcommunity-filter">
+                    <SelectValue placeholder={t.members.selectSubCommunity} />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">{t.members.allSubCommunities}</SelectItem>
+                    <SelectItem value="jemmo">{t.members.jemmo}</SelectItem>
+                    <SelectItem value="bethel">{t.members.bethel}</SelectItem>
+                    <SelectItem value="weyira">{t.members.weyira}</SelectItem>
+                    <SelectItem value="alfa">{t.members.alfa}</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
 
-                    <div>
-                      <label className="text-sm font-medium mb-2 block">Age Group</label>
-                      <Select value={ageGroupFilter} onValueChange={setAgeGroupFilter}>
-                        <SelectTrigger>
-                          <SelectValue placeholder={t.common.all} />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="all">{t.common.all}</SelectItem>
-                          <SelectItem value="Children">{t.ageGroup.children}</SelectItem>
-                          <SelectItem value="Teenagers">{t.ageGroup.teenagers}</SelectItem>
-                          <SelectItem value="Youth">{t.ageGroup.youth}</SelectItem>
-                          <SelectItem value="Adults">{t.ageGroup.adults}</SelectItem>
-                          <SelectItem value="Seniors">{t.ageGroup.seniors}</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
+              <div>
+                <Label htmlFor="age-group-filter">{t.members.ageGroup}</Label>
+                <Select value={ageGroupFilter} onValueChange={setAgeGroupFilter}>
+                  <SelectTrigger id="age-group-filter">
+                    <SelectValue placeholder={t.members.selectAgeGroup} />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">{t.members.allAgeGroups}</SelectItem>
+                    <SelectItem value="children">{t.members.children}</SelectItem>
+                    <SelectItem value="teenagers">{t.members.teenagers}</SelectItem>
+                    <SelectItem value="youth">{t.members.youth}</SelectItem>
+                    <SelectItem value="adults">{t.members.adults}</SelectItem>
+                    <SelectItem value="seniors">{t.members.seniors}</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
 
-                    <div>
-                      <label className="text-sm font-medium mb-2 block">{t.churchGrouping.subCommunity}</label>
-                      <Select value={subCommunityFilter} onValueChange={setSubCommunityFilter}>
-                        <SelectTrigger>
-                          <SelectValue placeholder={t.common.all} />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="all">{t.common.all}</SelectItem>
-                          <SelectItem value="Jemmo">{t.subCommunity.jemmo}</SelectItem>
-                          <SelectItem value="Bethel">{t.subCommunity.bethel}</SelectItem>
-                          <SelectItem value="Weyira">{t.subCommunity.weyira}</SelectItem>
-                          <SelectItem value="Alfa">{t.subCommunity.alfa}</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
+              <div>
+                <Label htmlFor="group-type-filter">{t.members.groupType}</Label>
+                <Select value={groupTypeFilter} onValueChange={setGroupTypeFilter}>
+                  <SelectTrigger id="group-type-filter">
+                    <SelectValue placeholder={t.members.selectGroupType} />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">{t.members.allGroupTypes}</SelectItem>
+                    <SelectItem value="cell_group">{t.members.cellGroup}</SelectItem>
+                    <SelectItem value="youth_group">{t.members.youthGroup}</SelectItem>
+                    <SelectItem value="bible_study">{t.members.bibleStudy}</SelectItem>
+                    <SelectItem value="prayer_group">{t.members.prayerGroup}</SelectItem>
+                    <SelectItem value="none">{t.members.noGroup}</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
 
-                    <div>
-                      <label className="text-sm font-medium mb-2 block">{t.churchGrouping.currentGroupType}</label>
-                      <Select value={groupTypeFilter} onValueChange={setGroupTypeFilter}>
-                        <SelectTrigger>
-                          <SelectValue placeholder={t.common.all} />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="all">{t.common.all}</SelectItem>
-                          <SelectItem value="Cell Group">{t.groupType.cellGroup}</SelectItem>
-                          <SelectItem value="Youth Group">{t.groupType.youthGroup}</SelectItem>
-                          <SelectItem value="Bible Study">{t.groupType.bibleStudy}</SelectItem>
-                          <SelectItem value="Prayer Group">{t.groupType.prayerGroup}</SelectItem>
-                          <SelectItem value="None">{t.groupType.none}</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-
-                    <div>
-                      <label className="text-sm font-medium mb-2 block">{t.basicInfo.maritalStatus}</label>
-                      <Select value={maritalStatusFilter} onValueChange={setMaritalStatusFilter}>
-                        <SelectTrigger>
-                          <SelectValue placeholder={t.common.all} />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="all">{t.common.all}</SelectItem>
-                          <SelectItem value="Unmarried">{t.maritalStatus.unmarried}</SelectItem>
-                          <SelectItem value="Married">{t.maritalStatus.married}</SelectItem>
-                          <SelectItem value="Divorced">{t.maritalStatus.divorced}</SelectItem>
-                          <SelectItem value="Widowed">{t.maritalStatus.widowed}</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-                  </div>
-                </>
-              )}
+              <div>
+                <Label htmlFor="marital-status-filter">{t.members.maritalStatus}</Label>
+                <Select value={maritalStatusFilter} onValueChange={setMaritalStatusFilter}>
+                  <SelectTrigger id="marital-status-filter">
+                    <SelectValue placeholder={t.members.selectMaritalStatus} />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">{t.members.allMaritalStatuses}</SelectItem>
+                    <SelectItem value="unmarried">{t.members.unmarried}</SelectItem>
+                    <SelectItem value="married">{t.members.married}</SelectItem>
+                    <SelectItem value="divorced">{t.members.divorced}</SelectItem>
+                    <SelectItem value="widowed">{t.members.widowed}</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+            <div className="flex justify-end pt-4">
+              <Button
+                variant="outline"
+                onClick={() => {
+                  setStatusFilter("all")
+                  setGenderFilter("all")
+                  setAgeGroupFilter("all")
+                  setSubCommunityFilter("all")
+                  setGroupTypeFilter("all")
+                  setMaritalStatusFilter("all")
+                }}
+              >
+                <X className="w-4 h-4 mr-2" />
+                {t.members.clearFilters}
+              </Button>
             </div>
           </CardContent>
         </Card>
+      )}
 
-        {/* Members Table */}
-        <Card className="border-0 shadow-lg">
-          <CardHeader>
-            <CardTitle>{t.members.allMembers}</CardTitle>
-            <CardDescription>
-              {t.members.memberCount
-                .replace("{start}", String(startIndex + 1))
-                .replace("{end}", String(Math.min(endIndex, filteredMembers.length)))
-                .replace("{total}", String(filteredMembers.length))}
-              {activeFiltersCount > 0 &&
-                ` (${t.members.filterActive.replace("{count}", String(activeFiltersCount))})`}
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            {filteredMembers.length === 0 ? (
-              <div className="text-center py-12">
-                <p className="text-muted-foreground mb-4">{t.members.noMembers}</p>
-                {(searchTerm || activeFiltersCount > 0) && (
-                  <Button variant="outline" onClick={clearAllFilters}>
-                    {t.common.clearAll}
-                  </Button>
-                )}
-              </div>
-            ) : (
-              <>
-                <div className="overflow-x-auto">
-                  <table className="w-full">
-                    <thead>
-                      <tr className="border-b border-border">
-                        <th className="text-left py-3 px-4 font-semibold text-foreground">{t.basicInfo.fullName}</th>
-                        <th className="text-left py-3 px-4 font-semibold text-foreground hidden md:table-cell">
-                          {t.basicInfo.email}
-                        </th>
-                        <th className="text-left py-3 px-4 font-semibold text-foreground">{t.basicInfo.phone}</th>
-                        <th className="text-left py-3 px-4 font-semibold text-foreground hidden lg:table-cell">
-                          {t.basicInfo.gender}
-                        </th>
-                        <th className="text-left py-3 px-4 font-semibold text-foreground">
-                          {locale === "en" ? "Status" : "ሁኔታ"}
-                        </th>
-                        <th className="text-right py-3 px-4 font-semibold text-foreground">{t.common.actions}</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {paginatedMembers.map((member) => (
-                        <tr key={member.id} className="border-b border-border hover:bg-muted/50 transition-colors">
-                          <td className="py-3 px-4">
-                            <div className="font-medium text-foreground">
-                              {member.firstName} {member.lastName}
-                            </div>
-                            {member.membershipNumber && (
-                              <div className="text-xs text-muted-foreground">ID: {member.membershipNumber}</div>
-                            )}
-                          </td>
-                          <td className="py-3 px-4 text-muted-foreground hidden md:table-cell">
-                            {member.email || "-"}
-                          </td>
-                          <td className="py-3 px-4 text-muted-foreground">{member.phone}</td>
-                          <td className="py-3 px-4 text-muted-foreground hidden lg:table-cell">
-                            {member.gender === "Male" ? t.common.male : member.gender === "Female" ? t.common.female : member.gender}
-                          </td>
-                          <td className="py-3 px-4">
-                            <Badge
-                              variant={
-                                member.membershipStatus === "Active"
-                                  ? "default"
-                                  : member.membershipStatus === "Inactive"
-                                    ? "secondary"
-                                    : "destructive"
-                              }
-                            >
-                              {member.membershipStatus === "Active"
-                                ? t.status.active
-                                : member.membershipStatus === "Inactive"
-                                  ? t.status.inactive
-                                  : member.membershipStatus}
-                            </Badge>
-                          </td>
-                          <td className="py-3 px-4">
-                            <div className="flex justify-end gap-1">
-                              <Link href={`/members/${member.id}`}>
-                                <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
-                                  <Eye className="w-4 h-4" />
-                                </Button>
-                              </Link>
-                              <Link href={`/members/${member.id}/edit`}>
-                                <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
-                                  <Edit className="w-4 h-4" />
-                                </Button>
-                              </Link>
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                className="h-8 w-8 p-0 text-destructive hover:text-destructive"
-                                onClick={() => handleDeleteClick(member.id)}
-                              >
-                                <Trash2 className="w-4 h-4" />
-                              </Button>
-                            </div>
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
+      {/* Statistics Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+        {isLoading ? (
+          <>
+            {[...Array(4)].map((_, i) => (
+              <Card key={i} variant="glass">
+                <CardContent className="p-6">
+                  <Skeleton className="h-16 w-full" />
+                </CardContent>
+              </Card>
+            ))}
+          </>
+        ) : (
+          <>
+            <Card variant="glass" hover="lift">
+              <CardContent className="p-6">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm font-medium text-muted-foreground">{t.members.totalMembers}</p>
+                    <p className="text-3xl font-bold text-primary">{pagination?.total || 0}</p>
+                  </div>
+                  <Users className="w-12 h-12 text-primary/20" />
                 </div>
+              </CardContent>
+            </Card>
 
-                {totalPages > 1 && (
-                  <div className="flex flex-col sm:flex-row items-center justify-between gap-4 mt-6 pt-6 border-t">
-                    <div className="text-sm text-muted-foreground">
-                      Page {currentPage} of {totalPages}
-                    </div>
-                    <div className="flex gap-2">
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => setCurrentPage((prev) => Math.max(1, prev - 1))}
-                        disabled={currentPage === 1}
-                      >
-                        <ChevronLeft className="w-4 h-4 mr-1" />
-                        {t.common.previous}
-                      </Button>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => setCurrentPage((prev) => Math.min(totalPages, prev + 1))}
-                        disabled={currentPage === totalPages}
-                      >
-                        {t.common.next}
-                        <ChevronRight className="w-4 h-4 ml-1" />
-                      </Button>
+            <Card variant="glass" hover="lift">
+              <CardContent className="p-6">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm font-medium text-muted-foreground">{t.members.activeMembers}</p>
+                    <p className="text-3xl font-bold text-green-600">
+                      {members.filter((m) => m.memberStatus === "active").length}
+                    </p>
+                  </div>
+                  <UserCheck className="w-12 h-12 text-green-600/20" />
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card variant="glass" hover="lift">
+              <CardContent className="p-6">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm font-medium text-muted-foreground">Services</p>
+                    <p className="text-3xl font-bold text-blue-600">{services.length}</p>
+                  </div>
+                  <TrendingUp className="w-12 h-12 text-blue-600/20" />
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card variant="glass" hover="lift">
+              <CardContent className="p-6">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm font-medium text-muted-foreground">Current Page</p>
+                    <p className="text-3xl font-bold text-purple-600">{members.length}</p>
+                  </div>
+                  <Filter className="w-12 h-12 text-purple-600/20" />
+                </div>
+              </CardContent>
+            </Card>
+          </>
+        )}
+      </div>
+
+      {/* Members Table */}
+      <Card variant="glass">
+        <CardHeader>
+          <CardTitle>{t.members.membersList}</CardTitle>
+          <CardDescription>
+            {pagination && `Showing ${((pagination.page - 1) * pagination.limit) + 1} to ${Math.min(pagination.page * pagination.limit, pagination.total)} of ${pagination.total} members`}
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          {isLoading ? (
+            <div className="space-y-4">
+              {[...Array(5)].map((_, i) => (
+                <div key={i} className="flex items-center justify-between p-4 border rounded-lg">
+                  <div className="flex items-center gap-4">
+                    <Skeleton className="h-12 w-12 rounded-full" />
+                    <div className="space-y-2">
+                      <Skeleton className="h-4 w-32" />
+                      <Skeleton className="h-3 w-24" />
                     </div>
                   </div>
-                )}
-              </>
-            )}
-          </CardContent>
-        </Card>
-      </div>
+                  <Skeleton className="h-8 w-20" />
+                </div>
+              ))}
+            </div>
+          ) : members.length === 0 ? (
+            <div className="text-center py-12">
+              <Users className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
+              <h3 className="text-lg font-semibold mb-2">No members found</h3>
+              <p className="text-muted-foreground mb-4">Try adjusting your search or filters</p>
+              <Link href="/members/new">
+                <Button>
+                  <Plus className="w-4 h-4 mr-2" />
+                  Add First Member
+                </Button>
+              </Link>
+            </div>
+          ) : (
+            <div className="space-y-4">
+              {members.map((member) => (
+                <div key={member._id} className="flex items-center justify-between p-4 border rounded-lg hover:bg-accent/50 transition-colors">
+                  <div className="flex items-center gap-4">
+                    <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center">
+                      <Users className="w-6 h-6 text-primary" />
+                    </div>
+                    <div>
+                      <h3 className="font-semibold">{member.fullName}</h3>
+                      <div className="flex items-center gap-4 text-sm text-muted-foreground">
+                        <span>{member.phoneNumber}</span>
+                        {member.email && <span>{member.email}</span>}
+                        <span className="capitalize">{member.subCommunity}</span>
+                      </div>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    {getStatusBadge(member.memberStatus || "active")}
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button variant="ghost" size="sm">
+                          Actions
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end">
+                        <DropdownMenuLabel>Actions</DropdownMenuLabel>
+                        <DropdownMenuSeparator />
+                        <DropdownMenuItem asChild>
+                          <Link href={`/members/${member._id}`}>
+                            <Eye className="w-4 h-4 mr-2" />
+                            View Details
+                          </Link>
+                        </DropdownMenuItem>
+                        <DropdownMenuItem asChild>
+                          <Link href={`/members/${member._id}/edit`}>
+                            <Edit className="w-4 h-4 mr-2" />
+                            Edit Member
+                          </Link>
+                        </DropdownMenuItem>
+                        <DropdownMenuSeparator />
+                        <DropdownMenuItem
+                          className="text-destructive"
+                          onClick={() => handleDeleteClick(member._id)}
+                        >
+                          <Trash2 className="w-4 h-4 mr-2" />
+                          Delete Member
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Pagination */}
+      {pagination && pagination.pages > 1 && (
+        <div className="flex items-center justify-between">
+          <p className="text-sm text-muted-foreground">
+            Page {pagination.page} of {pagination.pages}
+          </p>
+          <div className="flex gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setCurrentPage(currentPage - 1)}
+              disabled={currentPage === 1}
+            >
+              <ChevronLeft className="w-4 h-4 mr-1" />
+              Previous
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setCurrentPage(currentPage + 1)}
+              disabled={currentPage === pagination.pages}
+            >
+              Next
+              <ChevronRight className="w-4 h-4 ml-1" />
+            </Button>
+          </div>
+        </div>
+      )}
 
       {/* Delete Confirmation Dialog */}
       <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
@@ -490,17 +497,20 @@ export default function MembersPage() {
           <AlertDialogHeader>
             <AlertDialogTitle>{t.members.deleteMember}</AlertDialogTitle>
             <AlertDialogDescription>
-              Are you sure you want to delete this member? This action cannot be undone.
+              {t.members.deleteConfirmation}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>{t.common.cancel}</AlertDialogCancel>
-            <AlertDialogAction onClick={handleDeleteConfirm} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
-              {t.common.delete}
+            <AlertDialogCancel>{t.members.cancel}</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleDeleteConfirm}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {deleteMutation.isPending ? "Deleting..." : t.members.delete}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-    </main>
+    </div>
   )
 }
