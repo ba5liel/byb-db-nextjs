@@ -84,6 +84,7 @@ export default function MembersPage() {
   }
 
   async function handleDeleteConfirm() {
+  async function handleDeleteConfirm() {
     if (memberToDelete) {
       try {
         await deleteMutation.mutateAsync(memberToDelete)

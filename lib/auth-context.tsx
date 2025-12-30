@@ -3,6 +3,7 @@
 import { createContext, useContext, type ReactNode } from "react"
 import { useSession, signIn, signUp, signOut } from "./auth-client"
 import type { User } from "./types"
+import { signIn, signUp, signOut, getSession } from "./auth-api"
 
 interface AuthContextType {
   user: User | null
@@ -10,10 +11,31 @@ interface AuthContextType {
   login: (email: string, password: string) => Promise<{ success: boolean; error?: string }>
   register: (name: string, email: string, password: string) => Promise<{ success: boolean; error?: string }>
   logout: () => Promise<void>
+  logout: () => Promise<void>
   isAuthenticated: boolean
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined)
+
+/**
+ * Maps backend user data to frontend User type
+ */
+function mapBackendUserToUser(backendUser: any): User | null {
+  if (!backendUser) return null
+
+  // Split name into firstName and lastName if needed
+  const nameParts = backendUser.name?.split(" ") || []
+  const firstName = backendUser.firstName || nameParts[0] || ""
+  const lastName = backendUser.lastName || nameParts.slice(1).join(" ") || ""
+
+  return {
+    id: backendUser.id,
+    email: backendUser.email,
+    firstName,
+    lastName,
+    role: backendUser.role || "user",
+  }
+}
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const { data: session, isPending } = useSession()

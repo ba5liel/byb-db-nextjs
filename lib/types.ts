@@ -10,7 +10,7 @@ export interface Member {
   phone: string
   yearOfBirthEthiopian?: string // Ethiopian calendar year
   dateOfBirth?: string // Gregorian calendar
-  gender: "Male" | "Female" | "Other"
+  gender: "Male" | "Female"
   photoUrl?: string
   membershipNumber?: string // Auto-generated unique ID
   registrationDate?: string // Auto-filled on creation
@@ -131,3 +131,157 @@ export interface User {
 }
 
 export type Locale = "en" | "am"
+
+// ============================================================================
+// System Admin Types
+// ============================================================================
+
+/**
+ * Admin User Role
+ */
+export type AdminUserRole = 
+  | 'superAdmin'
+  | 'admin'
+  | 'ministerAdmin'
+  | 'serviceManager'
+  | 'reportViewer'
+  | 'dataEntry'
+  | 'user'
+
+/**
+ * Admin User Status
+ */
+export type AdminUserStatus = 
+  | 'active'
+  | 'inactive'
+  | 'locked'
+  | 'pending_activation'
+
+/**
+ * Admin User Interface
+ */
+export interface AdminUser {
+  _id: string
+  authUserId: string
+  username: string
+  fullName: string
+  email: string
+  phoneNumber?: string
+  role: AdminUserRole
+  customPrivileges?: string[]
+  deniedPrivileges?: string[]
+  status: AdminUserStatus
+  statusReason?: string
+  statusChangedAt?: string
+  statusChangedBy?: string
+  mustChangePassword: boolean
+  passwordLastChangedAt?: string
+  passwordExpiresAt?: string
+  lastLoginAt?: string
+  lastLoginIp?: string
+  failedLoginAttempts: number
+  lockedUntil?: string
+  lockReason?: string
+  isDeleted: boolean
+  deletedAt?: string
+  deletedBy?: string
+  notifyOnPasswordChange: boolean
+  notifyOnLogin: boolean
+  ministerId?: string
+  memberId?: string
+  createdBy?: string
+  updatedBy?: string
+  createdAt?: string
+  updatedAt?: string
+}
+
+/**
+ * Active Session Interface
+ */
+export interface ActiveSession {
+  token: string
+  userId: string
+  username: string
+  email: string
+  ipAddress?: string
+  userAgent?: string
+  createdAt: string
+  lastActivityAt: string
+  expiresAt: string
+}
+
+/**
+ * Activity Log Interface
+ */
+export interface ActivityLog {
+  _id: string
+  userId: string
+  username: string
+  action: string
+  resource: string
+  resourceId?: string
+  details?: Record<string, any>
+  ipAddress?: string
+  userAgent?: string
+  createdAt: string
+}
+
+// ============================================================================
+// Church Services Types
+// ============================================================================
+
+/**
+ * Church Service Type
+ */
+export type ServiceType = 
+  | 'worship'
+  | 'evangelism'
+  | 'social_service'
+  | 'education'
+  | 'youth'
+  | 'children'
+  | 'prayer'
+  | 'media'
+  | 'administration'
+  | 'other'
+
+/**
+ * Church Service Interface
+ */
+export interface ChurchService {
+  _id: string
+  serviceName: string
+  serviceDescription: string
+  type: ServiceType
+  service_logo?: string
+  leader: string | { _id: string; fullName?: string } // Member ID or populated member
+  secretary?: string | { _id: string; fullName?: string } // Member ID or populated member
+  leadership_start: string // ISO date string
+  leadership_end?: string // ISO date string
+  maximum_members_allowed?: number
+  meeting_schedule?: string
+  meeting_location?: string
+  status: boolean // true = active, false = inactive
+  currentMemberCount?: number // Added by service
+  availableSlots?: number | null // Added by service
+  created_at?: string
+  created_by?: string
+  last_updated_at?: string
+}
+
+/**
+ * Service Enrollment Interface
+ */
+export interface ServiceEnrollment {
+  _id: string
+  serviceId: string
+  memberId: string
+  enrollmentDate: string
+  exitDate?: string
+  status: 'active' | 'exited'
+  roleInService?: string
+  notes?: string
+  exitReason?: string
+  createdBy?: string
+  updatedBy?: string
+}

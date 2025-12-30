@@ -2,6 +2,7 @@
 
 import Link from "next/link"
 import { usePathname } from "next/navigation"
+import { useEffect, useState } from "react"
 import {
   Users,
   Home,
@@ -17,23 +18,36 @@ import {
   Lock,
 } from "lucide-react"
 import { useAuth } from "@/lib/auth-context"
+import { usePermissions } from "@/lib/use-permissions"
 import { Button } from "@/components/ui/button"
 import Image from "next/image"
+
 export function Sidebar() {
   const pathname = usePathname()
   const { logout, user } = useAuth()
+  const { checkPermission } = usePermissions()
+  const [canAccessSystemAdmin, setCanAccessSystemAdmin] = useState(false)
+
+  // Check if user has permission to access system admin (requires user:list permission)
+  useEffect(() => {
+    checkPermission({ user: ["list"] }).then(setCanAccessSystemAdmin)
+  }, [checkPermission])
 
   const navigation = [
     { name: "Dashboard", href: "/", icon: Home, section: "Main" },
     { name: "Members", href: "/members", icon: Users, section: "Main" },
     { name: "Family Relationships", href: "/families", icon: Heart, section: "Relationships" },
     { name: "Ministers & Leadership", href: "/ministers", icon: Shield, section: "Leadership" },
-    { name: "Services & Ministries", href: "/services", icon: Briefcase, section: "Ministry" },
+    { name: "Services & Ministries", href: "/church-services", icon: Briefcase, section: "Ministry" },
     { name: "Administrative Files", href: "/files", icon: FileText, section: "Admin" },
     { name: "Analytics", href: "/analytics", icon: BarChart3, section: "Reports" },
     { name: "Notifications", href: "/notifications", icon: Bell, section: "Communication" },
     { name: "User Management", href: "/users", icon: UserCog, section: "System" },
     { name: "Role Management", href: "/roles", icon: Lock, section: "System" },
+    // Conditionally add System Admin link based on permissions
+    ...(canAccessSystemAdmin
+      ? [{ name: "System Administration", href: "/system-admin/users", icon: UserCog, section: "System" }]
+      : []),
     { name: "Settings", href: "/settings", icon: Settings, section: "System" },
   ]
 

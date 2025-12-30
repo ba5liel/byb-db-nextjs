@@ -46,17 +46,20 @@ export default function EditMemberPage() {
   const [formData, setFormData] = useState<Partial<Member> | null>(null)
 
   useEffect(() => {
-    const member = getMember(memberId)
-    if (member) {
-      setFormData(member)
-    } else {
-      toast({
-        title: locale === "en" ? "Member not found" : "አባል አልተገኘም",
-        description: locale === "en" ? "The requested member could not be found" : "የተጠየቀው አባል አልተገኘም",
-        variant: "destructive",
-      })
-      router.push("/members")
+    async function loadMember() {
+      const member = await getMember(memberId)
+      if (member) {
+        setFormData(member)
+      } else {
+        toast({
+          title: locale === "en" ? "Member not found" : "አባል አልተገኘም",
+          description: locale === "en" ? "The requested member could not be found" : "የተጠየቀው አባል አልተገኘም",
+          variant: "destructive",
+        })
+        router.push("/members")
+      }
     }
+    loadMember()
   }, [memberId, getMember, router, locale, toast])
 
   // Auto-calculate age group when date of birth changes
@@ -164,7 +167,7 @@ export default function EditMemberPage() {
         updatedAt: new Date().toISOString(),
       }
 
-      updateMember(memberId, updatedData)
+      await updateMember(memberId, updatedData)
 
       toast({
         title: t.memberForm.updateSuccess,
