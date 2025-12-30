@@ -9,6 +9,7 @@ import { SystemAdminProvider } from "@/lib/system-admin-context"
 import { LanguageProvider } from "@/lib/language-context"
 import { Toaster } from "@/components/ui/toaster"
 import { ThemeProvider } from "@/components/theme-provider"
+import { QueryProvider } from "@/lib/api/query-provider"
 
 const geistSans = Geist({
   subsets: ["latin"],
@@ -34,20 +35,22 @@ export default function RootLayout({
   return (
     <html lang="en" suppressHydrationWarning>
       <body className={`${geistSans.variable} ${geistMono.variable} font-sans antialiased`}>
-        <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
-          <LanguageProvider>
-            <AuthProvider>
-              <MembersProvider>
+        <QueryProvider>
+          <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
+            <LanguageProvider>
+              <AuthProvider>
+                <MembersProvider>
+                <SystemAdminProvider>
                 <ChurchServicesProvider>
-                  <SystemAdminProvider>
-                    {children}
-                    <Toaster />
+                  {children}
+                  <Toaster />
+                  </ChurchServicesProvider>
                   </SystemAdminProvider>
-                </ChurchServicesProvider>
-              </MembersProvider>
-            </AuthProvider>
-          </LanguageProvider>
-        </ThemeProvider>
+                </MembersProvider>
+              </AuthProvider>
+            </LanguageProvider>
+          </ThemeProvider>
+        </QueryProvider>
       </body>
     </html>
   )

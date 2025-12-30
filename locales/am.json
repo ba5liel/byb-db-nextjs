@@ -289,6 +289,24 @@
     "baptismCertificate": "የጥምቀት ሰርተፊኬት",
     "idCardCopy": "መታወቂያ ቅጂ",
     "other": "ሌሎች ሰነዶች"
+  },
+  
+  "servicesPage": {
+    "title": "አገልግሎቶች እና ሚኒስትሪ",
+    "subtitle": "የአባላት የአገልግሎት ተግባራት እና የሚኒስትሪ ተሳትፎን አስተዳድር",
+    "cardTitle": "አገልግሎት እና ሚኒስትሪ",
+    "cardSubtitle": "የአገልግሎት እና የሚኒስትሪ ተሳትፎን ይምረጡ",
+    "currentServices": "የሚያገለግሉበት አገልግሎት ዘርፍ",
+    "currentServicesNote": "አባላት ከፍተኛው በ2 አገልግሎቶች ላይ መሳተፍ ይችላሉ",
+    "desiredServices": "ማገልገል የሚፈልጉብት አገልግሎት ዘርፍ",
+    "desiredServicesNote": "አባሉ ወደፊት ማገልገል የሚፈልጉባቸውን አገልግሎቶች ይምረጡ",
+    "mentorshipBy": "እረኝነት",
+    "mentorshipByNote": "እረኝነት የሚሰጡ የእረኛ ወይም መሪ ስም",
+    "mentorshipByPlaceholder": "የእረኛ ወይም መሪ ስም",
+    "save": "ለውጦችን አስቀምጥ",
+    "saved": "ለውጦች በተሳካ ሁኔታ ተቀምጠዋል",
+    "maxServicesReachedTitle": "ከፍተኛው አገልግሎቶች ደርሰዋል",
+    "maxServicesReached": "ከፍተኛው 2 አገልግሎቶች ደርሰዋል። ሌላ ለመምረጥ አገልግሎት ያጥፉ።"
   }
 }
 

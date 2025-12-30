@@ -1,6 +1,7 @@
 "use client"
 
-import { createContext, useContext, useState, useEffect, type ReactNode } from "react"
+import { createContext, useContext, type ReactNode } from "react"
+import { useSession, signIn, signUp, signOut } from "./auth-client"
 import type { User } from "./types"
 import { signIn, signUp, signOut, getSession } from "./auth-api"
 
@@ -9,6 +10,7 @@ interface AuthContextType {
   loading: boolean
   login: (email: string, password: string) => Promise<{ success: boolean; error?: string }>
   register: (name: string, email: string, password: string) => Promise<{ success: boolean; error?: string }>
+  logout: () => Promise<void>
   logout: () => Promise<void>
   isAuthenticated: boolean
 }
@@ -36,65 +38,53 @@ function mapBackendUserToUser(backendUser: any): User | null {
 }
 
 export function AuthProvider({ children }: { children: ReactNode }) {
-  const [user, setUser] = useState<User | null>(null)
-  const [loading, setLoading] = useState(true)
+  const { data: session, isPending } = useSession()
 
-  // Check for existing session on mount
-  useEffect(() => {
-    async function checkSession() {
-      try {
-        const sessionUser = await getSession()
-        if (sessionUser) {
-          const mappedUser = mapBackendUserToUser(sessionUser)
-          setUser(mappedUser)
-        }
-      } catch (error) {
-        console.error("Error checking session:", error)
-      } finally {
-        setLoading(false)
+  // Convert Better Auth session to User type
+  const user: User | null = session?.user
+    ? {
+        id: session.user.id,
+        email: session.user.email,
+        firstName: session.user.name?.split(" ")[0] || "",
+        lastName: session.user.name?.split(" ").slice(1).join(" ") || "",
+        role: session.user.role || "user",
       }
-    }
-
-    checkSession()
-  }, [])
+    : null
 
   const login = async (email: string, password: string) => {
     try {
-      const response = await signIn(email, password)
-      
-      // Better Auth returns user in response.user or response.data.user
-      const backendUser = response.user || response.data?.user || response
-      const mappedUser = mapBackendUserToUser(backendUser)
-      
-      if (mappedUser) {
-        setUser(mappedUser)
-        return { success: true }
+      const result = await signIn.email({
+        email,
+        password,
+      })
+
+      if (result.error) {
+        return { success: false, error: result.error.message || "Login failed" }
       }
-      
-      return { success: false, error: "Invalid response from server" }
+
+      return { success: true }
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : "Login failed"
-      return { success: false, error: errorMessage }
+      console.error("Login error:", error)
+      return { success: false, error: "An unexpected error occurred" }
     }
   }
 
   const register = async (name: string, email: string, password: string) => {
     try {
-      const response = await signUp(email, password, name)
-      
-      // Better Auth returns user in response.user or response.data.user
-      const backendUser = response.user || response.data?.user || response
-      const mappedUser = mapBackendUserToUser(backendUser)
-      
-      if (mappedUser) {
-        setUser(mappedUser)
-        return { success: true }
+      const result = await signUp.email({
+        name,
+        email,
+        password,
+      })
+
+      if (result.error) {
+        return { success: false, error: result.error.message || "Registration failed" }
       }
-      
-      return { success: false, error: "Invalid response from server" }
+
+      return { success: true }
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : "Registration failed"
-      return { success: false, error: errorMessage }
+      console.error("Registration error:", error)
+      return { success: false, error: "An unexpected error occurred" }
     }
   }
 
@@ -102,10 +92,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     try {
       await signOut()
     } catch (error) {
-      console.error("Error signing out:", error)
-    } finally {
-      // Always clear user state on client side
-      setUser(null)
+      console.error("Logout error:", error)
     }
   }
 
@@ -113,11 +100,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     <AuthContext.Provider
       value={{
         user,
-        loading,
+        loading: isPending,
         login,
         register,
         logout,
-        isAuthenticated: !!user,
+        isAuthenticated: !!session,
       }}
     >
       {children}
