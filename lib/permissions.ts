@@ -14,7 +14,7 @@ import { defaultStatements } from "better-auth/plugins/admin/access"
 export enum Resource {
   USER = "user",
   SESSION = "session",
-  MEMBER = "member",
+  CHURCH_MEMBER = "church_member",
   CHURCH_SERVICE = "church_service",
   MINISTER = "minister",
   ANALYTICS = "analytics",
