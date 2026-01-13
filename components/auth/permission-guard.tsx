@@ -1,92 +1,81 @@
 "use client"
 
 import type React from "react"
-import { useHasPermission, useHasRole } from "@/lib/api/hooks"
+import { useAuth } from "@/lib/auth-context"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { ShieldAlert } from "lucide-react"
+import { Resource, Action } from "@/lib/permissions"
 
 interface PermissionGuardProps {
   children: React.ReactNode
-  resource?: string
-  action?: string
-  roles?: string[]
+  resource?: Resource
+  action?: Action
   fallback?: React.ReactNode
+  showError?: boolean
 }
 
 /**
  * Permission Guard Component
- * Conditionally renders children based on user permissions or roles
+ * Conditionally renders children based on user permissions
+ * Uses session-based permissions for synchronous checks (no loading state!)
  */
 export function PermissionGuard({
   children,
   resource,
   action,
-  roles,
   fallback,
+  showError = true,
 }: PermissionGuardProps) {
-  const { hasPermission: permissionCheck, isLoading: permissionLoading } =
-    useHasPermission(resource || "", action || "")
-  const { hasRole: roleCheck, isLoading: roleLoading } = useHasRole(roles || [])
+  const { hasPermission, loading } = useAuth()
 
-  const isLoading = permissionLoading || roleLoading
+  // Show loading state only during initial session check
+  if (loading) {
+    return <div className="animate-pulse h-10 bg-muted rounded" />
+  }
 
-  // If checking permission (primary use case)
-  if (resource && action) {
-    if (isLoading) {
-      return <div className="animate-pulse h-10 bg-muted rounded" />
+  // If no resource/action specified, render children (no restriction)
+  if (!resource || !action) {
+    return <>{children}</>
+  }
+
+  // Check permission synchronously from session
+  const hasAccess = hasPermission(resource, action)
+
+  if (!hasAccess) {
+    // Use custom fallback if provided
+    if (fallback) {
+      return <>{fallback}</>
     }
 
-    if (!permissionCheck) {
-      return fallback ? (
-        <>{fallback}</>
-      ) : (
+    // Show error alert if showError is true
+    if (showError) {
+      return (
         <Alert variant="destructive" className="my-4">
           <ShieldAlert className="h-4 w-4" />
           <AlertTitle>Permission Denied</AlertTitle>
           <AlertDescription>
-            You don&apos;t have permission to {action} {resource}.
+            You don&apos;t have permission to perform the action &quot;{action}&quot; on resource &quot;{resource}&quot;.
           </AlertDescription>
         </Alert>
       )
     }
 
-    return <>{children}</>
+    // Don't render anything if showError is false
+    return null
   }
 
-  // If checking role
-  if (roles && roles.length > 0) {
-    if (isLoading) {
-      return <div className="animate-pulse h-10 bg-muted rounded" />
-    }
-
-    if (!roleCheck) {
-      return fallback ? (
-        <>{fallback}</>
-      ) : (
-        <Alert variant="destructive" className="my-4">
-          <ShieldAlert className="h-4 w-4" />
-          <AlertTitle>Access Denied</AlertTitle>
-          <AlertDescription>
-            You don&apos;t have the required role to access this feature.
-          </AlertDescription>
-        </Alert>
-      )
-    }
-
-    return <>{children}</>
-  }
-
-  // No restrictions, render children
+  // User has permission, render children
   return <>{children}</>
 }
 
 /**
  * HOC for permission-based rendering
+ * Wraps a component with permission check
  */
 export function withPermission<P extends object>(
   Component: React.ComponentType<P>,
-  resource: string,
-  action: string,
+  resource: Resource,
+  action: Action,
 ) {
   return function PermissionWrappedComponent(props: P) {
     return (
@@ -98,18 +87,35 @@ export function withPermission<P extends object>(
 }
 
 /**
- * HOC for role-based rendering
+ * Permission Button - Only shows button if user has permission
+ * Useful for action buttons like Create, Edit, Delete
  */
-export function withRole<P extends object>(
-  Component: React.ComponentType<P>,
-  roles: string[],
-) {
-  return function RoleWrappedComponent(props: P) {
-    return (
-      <PermissionGuard roles={roles}>
-        <Component {...props} />
-      </PermissionGuard>
-    )
-  }
+interface PermissionButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
+  resource: Resource
+  action: Action
+  children: React.ReactNode
 }
 
+export function PermissionButton({
+  resource,
+  action,
+  children,
+  ...buttonProps
+}: PermissionButtonProps) {
+  const { hasPermission } = useAuth()
+
+  if (!hasPermission(resource, action)) {
+    return null
+  }
+
+  return <button {...buttonProps}>{children}</button>
+}
+
+/**
+ * Hook to check if user has permission (using context)
+ * @deprecated Use useAuth().hasPermission() directly instead
+ */
+export function useHasPermissionGuard(resource: Resource, action: Action): boolean {
+  const { hasPermission } = useAuth()
+  return hasPermission(resource, action)
+}

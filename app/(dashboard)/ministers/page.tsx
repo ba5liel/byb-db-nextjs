@@ -17,6 +17,9 @@ import {
   AlertCircle,
   User,
 } from "lucide-react"
+import { PermissionGuard } from "@/components/auth/permission-guard"
+import { Resource, Action } from "@/lib/permissions"
+import { useAuth } from "@/lib/auth-context"
 import {
   Dialog,
   DialogContent,
@@ -60,6 +63,7 @@ const contractTypes: { value: ContractType; label: string }[] = [
 ]
 
 export default function MinistersPage() {
+  const { hasPermission } = useAuth()
   const [searchTerm, setSearchTerm] = useState("")
   const [roleFilter, setRoleFilter] = useState<string>("all")
   const [statusFilter, setStatusFilter] = useState<string>("all")
@@ -247,20 +251,22 @@ export default function MinistersPage() {
   }
 
   return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-4xl font-bold">Ministers & Leadership</h1>
-          <p className="text-muted-foreground text-lg">Manage church ministers and leadership</p>
-        </div>
-        <Dialog open={createDialogOpen} onOpenChange={setCreateDialogOpen}>
-          <DialogTrigger asChild>
-            <Button size="lg" className="gap-2 font-semibold">
-              <Plus className="w-5 h-5" />
-              Add Minister
-            </Button>
-          </DialogTrigger>
+    <PermissionGuard resource={Resource.MINISTER} action={Action.READ}>
+      <div className="space-y-6">
+        {/* Header */}
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-4xl font-bold">Ministers & Leadership</h1>
+            <p className="text-muted-foreground text-lg">Manage church ministers and leadership</p>
+          </div>
+          {hasPermission(Resource.MINISTER, Action.CREATE) && (
+            <Dialog open={createDialogOpen} onOpenChange={setCreateDialogOpen}>
+              <DialogTrigger asChild>
+                <Button size="lg" className="gap-2 font-semibold">
+                  <Plus className="w-5 h-5" />
+                  Add Minister
+                </Button>
+              </DialogTrigger>
           <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle>Create New Minister</DialogTitle>
@@ -438,7 +444,8 @@ export default function MinistersPage() {
               </Button>
             </DialogFooter>
           </DialogContent>
-        </Dialog>
+            </Dialog>
+          )}
       </div>
 
       {/* Filters */}
@@ -554,19 +561,23 @@ export default function MinistersPage() {
                   </div>
 
                   <div className="flex gap-2 pt-2">
-                    <Button variant="outline" size="sm" onClick={() => openEditDialog(minister)}>
-                      <Edit className="w-4 h-4 mr-1" />
-                      Edit
-                    </Button>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => openDeleteDialog(minister)}
-                      className="text-destructive hover:text-destructive"
-                    >
-                      <Trash2 className="w-4 h-4 mr-1" />
-                      Delete
-                    </Button>
+                    {hasPermission(Resource.MINISTER, Action.UPDATE) && (
+                      <Button variant="outline" size="sm" onClick={() => openEditDialog(minister)}>
+                        <Edit className="w-4 h-4 mr-1" />
+                        Edit
+                      </Button>
+                    )}
+                    {hasPermission(Resource.MINISTER, Action.DELETE) && (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => openDeleteDialog(minister)}
+                        className="text-destructive hover:text-destructive"
+                      >
+                        <Trash2 className="w-4 h-4 mr-1" />
+                        Delete
+                      </Button>
+                    )}
                   </div>
                 </div>
               </CardContent>
@@ -642,6 +653,7 @@ export default function MinistersPage() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-    </div>
+      </div>
+    </PermissionGuard>
   )
 }

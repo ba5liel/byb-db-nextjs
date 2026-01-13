@@ -48,6 +48,9 @@ import { useSystemAdmin } from "@/lib/system-admin-context"
 import { usePermissions } from "@/lib/use-permissions"
 import type { AdminUserRole, AdminUserStatus } from "@/lib/types"
 import { useToast } from "@/hooks/use-toast"
+import { PermissionGuard } from "@/components/auth/permission-guard"
+import { Resource, Action } from "@/lib/permissions"
+import { useAuth } from "@/lib/auth-context"
 
 // Role labels
 const ROLE_LABELS: Record<AdminUserRole, string> = {
@@ -73,12 +76,13 @@ export default function SystemAdminUsersPage() {
   const { toast } = useToast()
   const { users, loading, error, fetchUsers, deleteUser, lockAccount, unlockAccount } = useSystemAdmin()
   const { checkPermission } = usePermissions()
+  const { hasPermission } = useAuth()
 
-  // Permission states
-  const [canCreate, setCanCreate] = useState(false)
-  const [canUpdate, setCanUpdate] = useState(false)
-  const [canDelete, setCanDelete] = useState(false)
-  const [canBan, setCanBan] = useState(false)
+  // Permission checks (synchronous from session)
+  const canCreate = hasPermission(Resource.USER, Action.CREATE)
+  const canUpdate = hasPermission(Resource.USER, Action.UPDATE)
+  const canDelete = hasPermission(Resource.USER, Action.DELETE)
+  const canBan = hasPermission(Resource.USER, Action.DELETE) // Map ban to delete permission
 
   // Filter and search states
   const [searchTerm, setSearchTerm] = useState("")
@@ -92,17 +96,6 @@ export default function SystemAdminUsersPage() {
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
   const [lockDialogOpen, setLockDialogOpen] = useState(false)
   const [userToAction, setUserToAction] = useState<AdminUser | null>(null)
-
-  // Check permissions on mount
-  useEffect(() => {
-    const checkPermissions = async () => {
-      setCanCreate(await checkPermission({ user: ["create"] }))
-      setCanUpdate(await checkPermission({ user: ["update"] }))
-      setCanDelete(await checkPermission({ user: ["delete"] }))
-      setCanBan(await checkPermission({ user: ["ban"] }))
-    }
-    checkPermissions()
-  }, [checkPermission])
 
   // Fetch users on mount and when filters change
   useEffect(() => {
@@ -201,16 +194,17 @@ export default function SystemAdminUsersPage() {
   }
 
   return (
-    <div className="container mx-auto py-8 px-4">
-      {/* Header */}
-      <div className="flex items-center justify-between mb-6">
-        <div>
-          <h1 className="text-3xl font-bold">System Administration</h1>
-          <p className="text-muted-foreground mt-1">Manage admin users and system settings</p>
-        </div>
-        {canCreate && (
-          <Link href="/system-admin/users/new">
-            <Button>
+    <PermissionGuard resource={Resource.USER} action={Action.READ}>
+      <div className="container mx-auto py-8 px-4">
+        {/* Header */}
+        <div className="flex items-center justify-between mb-6">
+          <div>
+            <h1 className="text-3xl font-bold">System Administration</h1>
+            <p className="text-muted-foreground mt-1">Manage admin users and system settings</p>
+          </div>
+          {canCreate && (
+            <Link href="/system-admin/users/new">
+              <Button>
               <Plus className="mr-2 h-4 w-4" />
               New User
             </Button>
@@ -465,7 +459,8 @@ export default function SystemAdminUsersPage() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-    </div>
+      </div>
+    </PermissionGuard>
   )
 }
 

@@ -11,7 +11,7 @@ import {
 import { Badge } from "@/components/ui/badge"
 import { useRoles, usePermissions } from "@/lib/api/hooks"
 import { PermissionGuard } from "@/components/auth/permission-guard"
-import { getRoleBadgeColor } from "@/lib/permissions"
+import { getRoleBadgeColor, Resource, Action } from "@/lib/permissions"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import {
   Accordion,
@@ -29,7 +29,7 @@ export default function RolesPage() {
   const resources = permissionsData?.resources || {}
 
   return (
-    <PermissionGuard resource="role" action="read">
+    <PermissionGuard resource={Resource.ROLE} action={Action.READ}>
       <div className="flex flex-col gap-6 p-8">
         <div className="flex justify-between items-center">
           <div>

@@ -38,10 +38,14 @@ import { useLanguage } from "@/lib/language-context"
 import { getTranslation } from "@/lib/translations"
 import { toast } from "@/hooks/use-toast"
 import type { MemberDto } from "@/lib/api/types"
+import { PermissionGuard } from "@/components/auth/permission-guard"
+import { Resource, Action } from "@/lib/permissions"
+import { useAuth } from "@/lib/auth-context"
 
 export default function MembersPage() {
   const { locale } = useLanguage()
   const t = getTranslation(locale)
+  const { hasPermission } = useAuth()
 
   const [searchTerm, setSearchTerm] = useState("")
   const [showFilters, setShowFilters] = useState(false)
@@ -132,21 +136,24 @@ export default function MembersPage() {
   }
 
   return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-4xl font-bold">{t.members.title}</h1>
-          <p className="text-muted-foreground text-lg">{t.members.subtitle}</p>
-        </div>
-        <div className="flex gap-3">
-          <Link href="/members/new">
-            <Button size="lg" className="gap-2 font-semibold">
-              <Plus className="w-5 h-5" />
-              {t.members.addMember}
-            </Button>
-          </Link>
-          <Button
+    <PermissionGuard resource={Resource.CHURCH_MEMBER} action={Action.READ}>
+      <div className="space-y-6">
+        {/* Header */}
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-4xl font-bold">{t.members.title}</h1>
+            <p className="text-muted-foreground text-lg">{t.members.subtitle}</p>
+          </div>
+          <div className="flex gap-3">
+            <PermissionGuard resource={Resource.CHURCH_MEMBER} action={Action.CREATE} showError={false}>
+              <Link href="/members/new">
+                <Button size="lg" className="gap-2 font-semibold">
+                  <Plus className="w-5 h-5" />
+                  {t.members.addMember}
+                </Button>
+              </Link>
+            </PermissionGuard>
+            <Button
             variant="outline"
             size="lg"
             className="gap-2"
@@ -439,20 +446,26 @@ export default function MembersPage() {
                             View Details
                           </Link>
                         </DropdownMenuItem>
-                        <DropdownMenuItem asChild>
-                          <Link href={`/members/${member._id}/edit`}>
-                            <Edit className="w-4 h-4 mr-2" />
-                            Edit Member
-                          </Link>
-                        </DropdownMenuItem>
-                        <DropdownMenuSeparator />
-                        <DropdownMenuItem
-                          className="text-destructive"
-                          onClick={() => handleDeleteClick(member._id)}
-                        >
-                          <Trash2 className="w-4 h-4 mr-2" />
-                          Delete Member
-                        </DropdownMenuItem>
+                        {hasPermission(Resource.CHURCH_MEMBER, Action.UPDATE) && (
+                          <DropdownMenuItem asChild>
+                            <Link href={`/members/${member._id}/edit`}>
+                              <Edit className="w-4 h-4 mr-2" />
+                              Edit Member
+                            </Link>
+                          </DropdownMenuItem>
+                        )}
+                        {hasPermission(Resource.CHURCH_MEMBER, Action.DELETE) && (
+                          <>
+                            <DropdownMenuSeparator />
+                            <DropdownMenuItem
+                              className="text-destructive"
+                              onClick={() => handleDeleteClick(member._id)}
+                            >
+                              <Trash2 className="w-4 h-4 mr-2" />
+                              Delete Member
+                            </DropdownMenuItem>
+                          </>
+                        )}
                       </DropdownMenuContent>
                     </DropdownMenu>
                   </div>
@@ -512,6 +525,7 @@ export default function MembersPage() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-    </div>
+      </div>
+    </PermissionGuard>
   )
 }

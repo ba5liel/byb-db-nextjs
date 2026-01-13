@@ -14,6 +14,7 @@ import { defaultStatements } from "better-auth/plugins/admin/access"
 export enum Resource {
   USER = "user",
   SESSION = "session",
+  CONFIG = "config",
   CHURCH_MEMBER = "church_member",
   CHURCH_SERVICE = "church_service",
   MINISTER = "minister",
@@ -38,6 +39,9 @@ export enum Action {
  */
 export const statement = {
   ...defaultStatements,
+
+  // Config resource permissions - System configuration
+  [Resource.CONFIG]: [Action.CREATE, Action.READ, Action.UPDATE, Action.DELETE],
 
   // Member resource permissions - CRUD only
   [Resource.CHURCH_MEMBER]: [Action.CREATE, Action.READ, Action.UPDATE, Action.DELETE],

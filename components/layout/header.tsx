@@ -15,7 +15,6 @@ import {
 import { LanguageSwitcher } from "@/components/language-switcher"
 import { useLanguage } from "@/lib/language-context"
 import { getTranslation } from "@/lib/translations"
-import { useCurrentUserRole } from "@/lib/api/hooks"
 import { useAuth } from "@/lib/auth-context"
 import { useRouter } from "next/navigation"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
@@ -24,7 +23,7 @@ import { getRoleDisplayNameAmharic, getRoleDisplayName, getRoleBadgeColor } from
 export function Header() {
   const { locale } = useLanguage()
   const t = getTranslation(locale)
-  const { data: currentUserRole } = useCurrentUserRole()
+  const { user: currentUser } = useAuth()
   const { logout } = useAuth()
   const router = useRouter()
 
@@ -33,8 +32,8 @@ export function Header() {
     router.push("/login")
   }
 
-  const userInitials = currentUserRole?.name
-    ? currentUserRole.name
+  const userInitials = currentUser?.name
+    ? currentUser.name
         .split(" ")
         .map((n) => n[0])
         .join("")
@@ -66,22 +65,22 @@ export function Header() {
           <DropdownMenuTrigger asChild>
             <Button variant="ghost" className="gap-2 hover:bg-accent/50">
               <Avatar className="h-8 w-8">
-                <AvatarImage src={currentUserRole?.userId || undefined} />
+                <AvatarImage src={currentUser?.image || undefined} />
                 <AvatarFallback className="text-xs font-bold bg-gradient-to-br from-primary/20 to-accent/20">
                   {userInitials}
                 </AvatarFallback>
               </Avatar>
               <div className="flex flex-col items-start">
-                <span className="text-sm font-semibold">{currentUserRole?.name || "Loading..."}</span>
-                {currentUserRole?.role && (
+                <span className="text-sm font-semibold">{currentUser?.name || "Loading..."}</span>
+                {currentUser?.role && (
                   <Badge 
                     variant="outline" 
-                    className={`${getRoleBadgeColor(currentUserRole.role)} text-white border-none text-[10px] px-1.5 py-0`}
+                    className={`${getRoleBadgeColor(currentUser.role)} text-white border-none text-[10px] px-1.5 py-0`}
                   >
                     <Shield className="h-3 w-3 mr-1" />
                     {locale === "am" 
-                      ? getRoleDisplayNameAmharic(currentUserRole.role)
-                      : getRoleDisplayName(currentUserRole.role)
+                      ? getRoleDisplayNameAmharic(currentUser.role)
+                      : getRoleDisplayName(currentUser.role)
                     }
                   </Badge>
                 )}
@@ -91,9 +90,9 @@ export function Header() {
           <DropdownMenuContent align="end" className="w-56 glass-card border-white/10">
             <DropdownMenuLabel>
               <div className="flex flex-col space-y-1">
-                <p className="text-sm font-medium leading-none">{currentUserRole?.name}</p>
+                <p className="text-sm font-medium leading-none">{currentUser?.name}</p>
                 <p className="text-xs leading-none text-muted-foreground">
-                  {currentUserRole?.email}
+                  {currentUser?.email}
                 </p>
               </div>
             </DropdownMenuLabel>
