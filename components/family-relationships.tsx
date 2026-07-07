@@ -1,64 +1,159 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useRef, useEffect } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Badge } from "@/components/ui/badge"
-import { Users, Plus, Trash2, UserPlus } from "lucide-react"
+import { Users, Plus, Trash2, Search, Loader2 } from "lucide-react"
 import { useLanguage } from "@/lib/language-context"
 import { getTranslation } from "@/lib/translations"
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
-import type { FamilyRelationship } from "@/lib/types"
+import { useSearchMembers } from "@/lib/api/hooks"
 
-interface FamilyRelationshipsProps {
-  relationships?: FamilyRelationship[]
-  onAddRelationship?: (relationship: FamilyRelationship) => void
-  onDeleteRelationship?: (relationshipId: string) => void
+export interface FamilyData {
+  spouseId?: string
+  spouseName?: string
+  motherId?: string
+  motherName?: string
+  fatherId?: string
+  fatherName?: string
+  siblingIds: Array<{ id: string; name: string }>
+  childrenIds: Array<{ id: string; name: string }>
 }
 
-export function FamilyRelationships({ relationships = [], onAddRelationship, onDeleteRelationship }: FamilyRelationshipsProps) {
-  const { locale } = useLanguage()
-  const t = getTranslation(locale)
-  
-  const [isDialogOpen, setIsDialogOpen] = useState(false)
-  const [newRelationship, setNewRelationship] = useState<Partial<FamilyRelationship>>({
-    relationshipType: "Child",
-    relatedMemberName: "",
-    relatedMemberId: "",
-  })
+export const emptyFamilyData = (): FamilyData => ({
+  siblingIds: [],
+  childrenIds: [],
+})
 
-  const handleAddRelationship = () => {
-    if (onAddRelationship && newRelationship.relatedMemberName && newRelationship.relationshipType) {
-      onAddRelationship({
-        id: `rel-${Date.now()}`,
-        relationshipType: newRelationship.relationshipType as FamilyRelationship["relationshipType"],
-        relatedMemberName: newRelationship.relatedMemberName,
-        relatedMemberId: newRelationship.relatedMemberId || `member-${Date.now()}`,
-      })
-      
-      setNewRelationship({ relationshipType: "Child", relatedMemberName: "", relatedMemberId: "" })
-      setIsDialogOpen(false)
+interface FamilyRelationshipsProps {
+  value: FamilyData
+  onChange?: (updated: FamilyData) => void
+  readOnly?: boolean
+}
+
+type RelType = "spouse" | "mother" | "father" | "sibling" | "child"
+
+export function FamilyRelationships({ value, onChange, readOnly = false }: FamilyRelationshipsProps) {
+  const { locale } = useLanguage()
+  const tr = getTranslation(locale)
+  const t = tr.family
+
+  const [relType, setRelType] = useState<RelType>("spouse")
+  const [query, setQuery] = useState("")
+  const [selectedId, setSelectedId] = useState("")
+  const [selectedName, setSelectedName] = useState("")
+  const [showDropdown, setShowDropdown] = useState(false)
+  const searchRef = useRef<HTMLDivElement>(null)
+
+  const { data: searchData, isLoading: searching } = useSearchMembers(query, 8)
+  const results = searchData?.data ?? []
+
+  // Close dropdown on outside click
+  useEffect(() => {
+    function handler(e: MouseEvent) {
+      if (searchRef.current && !searchRef.current.contains(e.target as Node)) {
+        setShowDropdown(false)
+      }
     }
+    document.addEventListener("mousedown", handler)
+    return () => document.removeEventListener("mousedown", handler)
+  }, [])
+
+  function selectMember(id: string, name: string) {
+    setSelectedId(id)
+    setSelectedName(name)
+    setQuery(name)
+    setShowDropdown(false)
   }
 
-  const relationshipTypes = [
-    { value: "Parent", label: locale === "en" ? "Parent" : "ወላጅ" },
-    { value: "Child", label: locale === "en" ? "Child" : "ልጅ" },
-    { value: "Spouse", label: locale === "en" ? "Spouse" : "የትዳር ጓደኛ" },
-    { value: "Sibling", label: locale === "en" ? "Sibling" : "ወንድም/እህት" },
-  ]
+  function clearSelection() {
+    setSelectedId("")
+    setSelectedName("")
+    setQuery("")
+  }
 
-  const getRelationshipBadgeVariant = (type: string) => {
-    switch (type) {
-      case "Parent": return "default"
-      case "Child": return "secondary"
-      case "Spouse": return "destructive"
-      case "Sibling": return "outline"
-      default: return "outline"
+  function handleAdd() {
+    if (!selectedId || !selectedName) return
+    const updated = { ...value }
+
+    switch (relType) {
+      case "spouse":
+        updated.spouseId = selectedId
+        updated.spouseName = selectedName
+        break
+      case "mother":
+        updated.motherId = selectedId
+        updated.motherName = selectedName
+        break
+      case "father":
+        updated.fatherId = selectedId
+        updated.fatherName = selectedName
+        break
+      case "sibling":
+        if (!updated.siblingIds.find((s) => s.id === selectedId)) {
+          updated.siblingIds = [...updated.siblingIds, { id: selectedId, name: selectedName }]
+        }
+        break
+      case "child":
+        if (!updated.childrenIds.find((c) => c.id === selectedId)) {
+          updated.childrenIds = [...updated.childrenIds, { id: selectedId, name: selectedName }]
+        }
+        break
     }
+
+    onChange?.(updated)
+    clearSelection()
+    setRelType("spouse")
+  }
+
+  function handleRemove(type: RelType, id?: string) {
+    const updated = { ...value }
+    switch (type) {
+      case "spouse":
+        updated.spouseId = undefined
+        updated.spouseName = undefined
+        break
+      case "mother":
+        updated.motherId = undefined
+        updated.motherName = undefined
+        break
+      case "father":
+        updated.fatherId = undefined
+        updated.fatherName = undefined
+        break
+      case "sibling":
+        updated.siblingIds = updated.siblingIds.filter((s) => s.id !== id)
+        break
+      case "child":
+        updated.childrenIds = updated.childrenIds.filter((c) => c.id !== id)
+        break
+    }
+    onChange?.(updated)
+  }
+
+  // Collect all linked relationships for display
+  const linked: Array<{ type: RelType; id: string; name: string; label: string }> = []
+  if (value.spouseId && value.spouseName) linked.push({ type: "spouse", id: value.spouseId, name: value.spouseName, label: t.spouse })
+  if (value.motherId && value.motherName) linked.push({ type: "mother", id: value.motherId, name: value.motherName, label: t.mother })
+  if (value.fatherId && value.fatherName) linked.push({ type: "father", id: value.fatherId, name: value.fatherName, label: t.father })
+  value.siblingIds.forEach((s) => linked.push({ type: "sibling", id: s.id, name: s.name, label: t.sibling }))
+  value.childrenIds.forEach((c) => linked.push({ type: "child", id: c.id, name: c.name, label: t.child }))
+
+  const badgeVariant: Record<RelType, "default" | "secondary" | "destructive" | "outline"> = {
+    spouse: "destructive",
+    mother: "default",
+    father: "default",
+    sibling: "secondary",
+    child: "outline",
+  }
+
+  const singularFilled = {
+    spouse: !!value.spouseId,
+    mother: !!value.motherId,
+    father: !!value.fatherId,
   }
 
   return (
@@ -68,126 +163,121 @@ export function FamilyRelationships({ relationships = [], onAddRelationship, onD
           <div>
             <CardTitle className="flex items-center gap-2">
               <Users className="w-5 h-5" />
-              {locale === "en" ? "Family Relationships" : "የቤተሰብ ግንኙነቶች"}
+              {t.relationships}
             </CardTitle>
-            <CardDescription>
-              {locale === "en" 
-                ? "Manage family connections and relationships" 
-                : "የቤተሰብ ግንኙነቶችን እና ግንኙነቶችን ያስተዳድሩ"}
-            </CardDescription>
+            <CardDescription>{t.manageConnections}</CardDescription>
           </div>
-          <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-            <DialogTrigger asChild>
-              <Button className="gap-2">
-                <Plus className="w-4 h-4" />
-                {locale === "en" ? "Add Relationship" : "ግንኙነት ጨምር"}
-              </Button>
-            </DialogTrigger>
-            <DialogContent className="sm:max-w-[500px]">
-              <DialogHeader>
-                <DialogTitle>{locale === "en" ? "Add Family Relationship" : "የቤተሰብ ግንኙነት ጨምር"}</DialogTitle>
-                <DialogDescription>
-                  {locale === "en" 
-                    ? "Link this member to another family member" 
-                    : "ይህን አባል ከሌላ የቤተሰብ አባል ጋር ያገናኙ"}
-                </DialogDescription>
-              </DialogHeader>
-              <div className="space-y-4 py-4">
-                <div>
-                  <Label htmlFor="relType">{locale === "en" ? "Relationship Type" : "የግንኙነት አይነት"}</Label>
-                  <Select 
-                    value={newRelationship.relationshipType} 
-                    onValueChange={(value) => setNewRelationship(prev => ({ ...prev, relationshipType: value as FamilyRelationship["relationshipType"] }))}
-                  >
-                    <SelectTrigger className="mt-1">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {relationshipTypes.map(type => (
-                        <SelectItem key={type.value} value={type.value}>{type.label}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div>
-                  <Label htmlFor="relName">
-                    {locale === "en" ? "Related Member Name" : "ተዛማጅ አባል ስም"}
-                  </Label>
-                  <Input 
-                    id="relName" 
-                    value={newRelationship.relatedMemberName}
-                    onChange={(e) => setNewRelationship(prev => ({ ...prev, relatedMemberName: e.target.value }))}
-                    className="mt-1"
-                    placeholder={locale === "en" ? "Enter name" : "ስም ያስገቡ"}
-                  />
-                  <p className="text-xs text-muted-foreground mt-1">
-                    {locale === "en" 
-                      ? "If member exists in system, you can link to their profile" 
-                      : "አባሉ በስርዓቱ ውስጥ ካለ ወደ መገለጫቸው ማገናኘት ይችላሉ"}
-                  </p>
-                </div>
-                <div>
-                  <Label htmlFor="relId">
-                    {locale === "en" ? "Member ID (Optional)" : "የአባል መለያ (አማራጭ)"}
-                  </Label>
-                  <Input 
-                    id="relId" 
-                    value={newRelationship.relatedMemberId}
-                    onChange={(e) => setNewRelationship(prev => ({ ...prev, relatedMemberId: e.target.value }))}
-                    className="mt-1"
-                    placeholder="MEM-XXXXX"
-                  />
-                </div>
-              </div>
-              <DialogFooter>
-                <Button variant="outline" onClick={() => setIsDialogOpen(false)}>
-                  {t.common.cancel}
-                </Button>
-                <Button onClick={handleAddRelationship} disabled={!newRelationship.relatedMemberName}>
-                  <UserPlus className="w-4 h-4 mr-2" />
-                  {t.common.add}
-                </Button>
-              </DialogFooter>
-            </DialogContent>
-          </Dialog>
         </div>
       </CardHeader>
-      <CardContent>
-        {relationships.length === 0 ? (
-          <div className="text-center py-12 text-muted-foreground">
-            <Users className="w-12 h-12 mx-auto mb-4 opacity-50" />
-            <p>{locale === "en" ? "No family relationships added yet" : "ገና ምንም የቤተሰብ ግንኙነቶች አልተጨመሩም"}</p>
+      <CardContent className="space-y-4">
+        {/* Add relationship UI (hidden in readOnly) */}
+        {!readOnly && (
+          <div className="space-y-3 p-4 bg-muted/30 rounded-lg border">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              {/* Relationship type */}
+              <div>
+                <Label className="text-xs text-muted-foreground mb-1 block">{locale === "en" ? "Relationship" : "ግንኙነት"}</Label>
+                <Select value={relType} onValueChange={(v) => { setRelType(v as RelType); clearSelection() }}>
+                  <SelectTrigger>
+                    <SelectValue placeholder={t.selectRelationship} />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="spouse" disabled={singularFilled.spouse}>{t.spouse}</SelectItem>
+                    <SelectItem value="mother" disabled={singularFilled.mother}>{t.mother}</SelectItem>
+                    <SelectItem value="father" disabled={singularFilled.father}>{t.father}</SelectItem>
+                    <SelectItem value="sibling">{t.sibling}</SelectItem>
+                    <SelectItem value="child">{t.child}</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {/* Member search */}
+              <div className="relative" ref={searchRef}>
+                <Label className="text-xs text-muted-foreground mb-1 block">{locale === "en" ? "Member" : "አባል"}</Label>
+                <div className="relative">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" />
+                  <Input
+                    className="pl-9"
+                    placeholder={t.searchMember}
+                    value={query}
+                    onChange={(e) => {
+                      setQuery(e.target.value)
+                      setSelectedId("")
+                      setSelectedName("")
+                      setShowDropdown(true)
+                    }}
+                    onFocus={() => setShowDropdown(true)}
+                  />
+                  {searching && (
+                    <Loader2 className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 animate-spin text-muted-foreground" />
+                  )}
+                </div>
+
+                {showDropdown && query.length > 0 && (
+                  <div className="absolute z-50 w-full mt-1 bg-popover border rounded-md shadow-md max-h-48 overflow-auto">
+                    {results.length === 0 && !searching ? (
+                      <p className="text-sm text-muted-foreground p-3">{t.noResults}</p>
+                    ) : (
+                      results.map((m) => (
+                        <button
+                          key={m._id}
+                          type="button"
+                          className="w-full text-left px-3 py-2 text-sm hover:bg-muted transition-colors"
+                          onMouseDown={() => selectMember(m._id, m.fullName)}
+                        >
+                          <span className="font-medium">{m.fullName}</span>
+                          <span className="ml-2 text-xs text-muted-foreground">{m.membershipNumber}</span>
+                        </button>
+                      ))
+                    )}
+                  </div>
+                )}
+              </div>
+            </div>
+
+            <Button
+              type="button"
+              size="sm"
+              onClick={handleAdd}
+              disabled={!selectedId}
+              className="gap-2"
+            >
+              <Plus className="w-4 h-4" />
+              {t.addRelationship}
+            </Button>
+          </div>
+        )}
+
+        {/* Linked relationships */}
+        {linked.length === 0 ? (
+          <div className="text-center py-8 text-muted-foreground">
+            <Users className="w-10 h-10 mx-auto mb-3 opacity-40" />
+            <p className="text-sm">{t.noRelationships}</p>
           </div>
         ) : (
-          <div className="space-y-3">
-            {relationships.map((rel) => (
+          <div className="space-y-2">
+            {linked.map((rel) => (
               <div
-                key={rel.id}
-                className="flex items-center justify-between p-4 border rounded-lg hover:bg-muted/50 transition-colors"
+                key={`${rel.type}-${rel.id}`}
+                className="flex items-center justify-between p-3 border rounded-lg hover:bg-muted/30 transition-colors"
               >
-                <div className="flex items-center gap-3 flex-1">
-                  <div className="flex-1">
-                    <p className="font-medium text-foreground">{rel.relatedMemberName}</p>
-                    <div className="flex items-center gap-2 mt-1">
-                      <Badge variant={getRelationshipBadgeVariant(rel.relationshipType)} className="text-xs">
-                        {relationshipTypes.find(t => t.value === rel.relationshipType)?.label || rel.relationshipType}
-                      </Badge>
-                      {rel.relatedMemberId && (
-                        <span className="text-xs text-muted-foreground font-mono">
-                          ID: {rel.relatedMemberId}
-                        </span>
-                      )}
-                    </div>
-                  </div>
+                <div className="flex items-center gap-3">
+                  <Badge variant={badgeVariant[rel.type]} className="text-xs shrink-0">
+                    {rel.label}
+                  </Badge>
+                  <span className="font-medium text-sm">{rel.name}</span>
                 </div>
-                <Button 
-                  variant="ghost" 
-                  size="sm" 
-                  className="h-8 w-8 p-0 text-destructive hover:text-destructive"
-                  onClick={() => onDeleteRelationship?.(rel.id)}
-                >
-                  <Trash2 className="w-4 h-4" />
-                </Button>
+                {!readOnly && (
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    className="h-7 w-7 p-0 text-destructive hover:text-destructive"
+                    onClick={() => handleRemove(rel.type, rel.id)}
+                  >
+                    <Trash2 className="w-3.5 h-3.5" />
+                  </Button>
+                )}
               </div>
             ))}
           </div>
@@ -196,4 +286,3 @@ export function FamilyRelationships({ relationships = [], onAddRelationship, onD
     </Card>
   )
 }
-

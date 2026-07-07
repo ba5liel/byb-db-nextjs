@@ -21,6 +21,8 @@ import { useSystemAdmin } from "@/lib/system-admin-context"
 import { usePermissions } from "@/lib/use-permissions"
 import { useToast } from "@/hooks/use-toast"
 import type { CreateAdminUserDto, AdminUserRole } from "@/lib/types"
+import { useLanguage } from "@/lib/language-context"
+import { getTranslation } from "@/lib/translations"
 
 const ROLES: { value: AdminUserRole; label: string }[] = [
   { value: "superAdmin", label: "Super Admin" },
@@ -35,6 +37,9 @@ const ROLES: { value: AdminUserRole; label: string }[] = [
 export default function NewAdminUserPage() {
   const router = useRouter()
   const { toast } = useToast()
+  const { locale } = useLanguage()
+  const tr = getTranslation(locale)
+  const t = tr.systemAdminUsers
   const { createUser, loading, error } = useSystemAdmin()
   const { checkPermission } = usePermissions()
   const [hasPermission, setHasPermission] = useState(false)
@@ -84,8 +89,8 @@ export default function NewAdminUserPage() {
 
       const newUser = await createUser(userData)
       toast({
-        title: "Success",
-        description: "User created successfully",
+        title: t.success,
+        description: t.userCreated,
       })
       router.push(`/system-admin/users/${newUser._id}`)
     } catch (err) {
@@ -98,9 +103,9 @@ export default function NewAdminUserPage() {
       <div className="container mx-auto py-8 px-4 max-w-4xl">
         <Card className="border-destructive">
           <CardContent className="pt-6">
-            <p className="text-destructive">You do not have permission to create users.</p>
+            <p className="text-destructive">{t.noPermissionCreate}</p>
             <Link href="/system-admin/users" className="mt-4 inline-block">
-              <Button variant="outline">Back to Users</Button>
+              <Button variant="outline">{t.backToUsers}</Button>
             </Link>
           </CardContent>
         </Card>
@@ -118,8 +123,8 @@ export default function NewAdminUserPage() {
           </Button>
         </Link>
         <div>
-          <h1 className="text-3xl font-bold">New Admin User</h1>
-          <p className="text-muted-foreground mt-1">Create a new system administrator</p>
+          <h1 className="text-3xl font-bold">{t.newAdminUser}</h1>
+          <p className="text-muted-foreground mt-1">{t.newAdminUserDesc}</p>
         </div>
       </div>
 
@@ -136,14 +141,14 @@ export default function NewAdminUserPage() {
       <form onSubmit={handleSubmit}>
         <Card>
           <CardHeader>
-            <CardTitle>User Information</CardTitle>
-            <CardDescription>Basic information about the admin user</CardDescription>
+            <CardTitle>{t.userInformation}</CardTitle>
+            <CardDescription>{t.basicInfoDesc}</CardDescription>
           </CardHeader>
           <CardContent className="space-y-6">
             {/* Username */}
             <div className="space-y-2">
               <Label htmlFor="username">
-                Username <span className="text-destructive">*</span>
+                {t.username} <span className="text-destructive">*</span>
               </Label>
               <Input
                 id="username"
@@ -154,15 +159,13 @@ export default function NewAdminUserPage() {
                 minLength={3}
                 maxLength={50}
               />
-              <p className="text-sm text-muted-foreground">
-                Only letters, numbers, dots, underscores, and hyphens
-              </p>
+              <p className="text-sm text-muted-foreground">{t.usernameHint}</p>
             </div>
 
             {/* Full Name */}
             <div className="space-y-2">
               <Label htmlFor="fullName">
-                Full Name <span className="text-destructive">*</span>
+                {t.fullName} <span className="text-destructive">*</span>
               </Label>
               <Input
                 id="fullName"
@@ -178,7 +181,7 @@ export default function NewAdminUserPage() {
             {/* Email */}
             <div className="space-y-2">
               <Label htmlFor="email">
-                Email <span className="text-destructive">*</span>
+                {t.email} <span className="text-destructive">*</span>
               </Label>
               <Input
                 id="email"
@@ -192,7 +195,7 @@ export default function NewAdminUserPage() {
 
             {/* Phone Number */}
             <div className="space-y-2">
-              <Label htmlFor="phoneNumber">Phone Number (Optional)</Label>
+              <Label htmlFor="phoneNumber">{t.phoneOptional}</Label>
               <Input
                 id="phoneNumber"
                 value={formData.phoneNumber || ""}
@@ -204,27 +207,25 @@ export default function NewAdminUserPage() {
             {/* Password */}
             <div className="space-y-2">
               <Label htmlFor="password">
-                Temporary Password <span className="text-destructive">*</span>
+                {t.tempPassword} <span className="text-destructive">*</span>
               </Label>
               <Input
                 id="password"
                 type="password"
                 value={formData.password}
                 onChange={(e) => handleChange("password", e.target.value)}
-                placeholder="Minimum 8 characters"
+                placeholder={t.minChars}
                 required
                 minLength={8}
                 maxLength={128}
               />
-              <p className="text-sm text-muted-foreground">
-                User will be required to change password on first login
-              </p>
+              <p className="text-sm text-muted-foreground">{t.passwordFirstLoginHint}</p>
             </div>
 
             {/* Role */}
             <div className="space-y-2">
               <Label htmlFor="role">
-                Role <span className="text-destructive">*</span>
+                {t.role} <span className="text-destructive">*</span>
               </Label>
               <Select
                 value={formData.role}
@@ -236,7 +237,7 @@ export default function NewAdminUserPage() {
                 <SelectContent>
                   {ROLES.map((role) => (
                     <SelectItem key={role.value} value={role.value}>
-                      {role.label}
+                      {t.roleLabels[role.value] ?? role.label}
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -251,7 +252,7 @@ export default function NewAdminUserPage() {
                   checked={formData.sendCredentialsEmail}
                   onCheckedChange={(checked) => handleChange("sendCredentialsEmail", checked)}
                 />
-                <Label htmlFor="sendCredentialsEmail">Send credentials via Email</Label>
+                <Label htmlFor="sendCredentialsEmail">{t.sendCredentialsEmail}</Label>
               </div>
               {formData.phoneNumber && (
                 <div className="flex items-center space-x-2">
@@ -260,7 +261,7 @@ export default function NewAdminUserPage() {
                     checked={formData.sendCredentialsSms}
                     onCheckedChange={(checked) => handleChange("sendCredentialsSms", checked)}
                   />
-                  <Label htmlFor="sendCredentialsSms">Send credentials via SMS</Label>
+                  <Label htmlFor="sendCredentialsSms">{t.sendCredentialsSms}</Label>
                 </div>
               )}
             </div>
@@ -271,12 +272,12 @@ export default function NewAdminUserPage() {
         <div className="flex gap-4 mt-6">
           <Link href="/system-admin/users" className="flex-1">
             <Button type="button" variant="outline" className="w-full">
-              Cancel
+              {tr.common.cancel}
             </Button>
           </Link>
           <Button type="submit" disabled={loading} className="flex-1">
             <Save className="mr-2 h-4 w-4" />
-            {loading ? "Creating..." : "Create User"}
+            {loading ? t.creating : t.createUser}
           </Button>
         </div>
       </form>

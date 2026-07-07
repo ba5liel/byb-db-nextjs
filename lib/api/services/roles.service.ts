@@ -21,7 +21,7 @@ const ROLES_BASE_URL = '/api/roles'
 export async function getRoles(): Promise<RolesListResponse> {
   const response = await apiClient.get<ApiResponse<RolesListResponse>>(ROLES_BASE_URL)
   console.log('response', response)
-  return response.data.data
+  return response.data.data!
 }
 
 /**
@@ -29,7 +29,7 @@ export async function getRoles(): Promise<RolesListResponse> {
  */
 export async function getPermissions(): Promise<PermissionsResponse> {
   const response = await apiClient.get<ApiResponse<PermissionsResponse>>(`${ROLES_BASE_URL}/permissions`)
-  return response.data.data
+  return response.data.data!
 }
 
 /**
@@ -37,7 +37,7 @@ export async function getPermissions(): Promise<PermissionsResponse> {
  */
 export async function getCurrentUserRole(): Promise<CurrentUserRole> {
   const response = await apiClient.get<ApiResponse<CurrentUserRole>>(`${ROLES_BASE_URL}/me`)
-  return response.data.data
+  return response.data.data!
 }
 
 /**
@@ -45,6 +45,6 @@ export async function getCurrentUserRole(): Promise<CurrentUserRole> {
  */
 export async function getRoleConstants(): Promise<RoleConstantsResponse> {
   const response = await apiClient.get<ApiResponse<RoleConstantsResponse>>(`${ROLES_BASE_URL}/constants`)
-  return response.data.data
+  return response.data.data!
 }
 

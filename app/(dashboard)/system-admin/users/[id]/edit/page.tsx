@@ -22,6 +22,8 @@ import { useSystemAdmin } from "@/lib/system-admin-context"
 import { usePermissions } from "@/lib/use-permissions"
 import { useToast } from "@/hooks/use-toast"
 import type { UpdateAdminUserDto, AdminUserRole } from "@/lib/types"
+import { useLanguage } from "@/lib/language-context"
+import { getTranslation } from "@/lib/translations"
 
 const ROLES: { value: AdminUserRole; label: string }[] = [
   { value: "superAdmin", label: "Super Admin" },
@@ -41,6 +43,9 @@ export default function EditAdminUserPage() {
   const { getUser, updateUser, loading, error } = useSystemAdmin()
   const { checkPermission } = usePermissions()
   const { toast } = useToast()
+  const { locale } = useLanguage()
+  const tr = getTranslation(locale)
+  const t = tr.systemAdminUsers
   const [hasPermission, setHasPermission] = useState(false)
   const [user, setUser] = useState<any>(null)
   const [submitError, setSubmitError] = useState<string | null>(null)
@@ -103,8 +108,8 @@ export default function EditAdminUserPage() {
 
       const updatedUser = await updateUser(userId, updateData)
       toast({
-        title: "Success",
-        description: "User updated successfully",
+        title: t.success,
+        description: t.userUpdated,
       })
       router.push(`/system-admin/users/${updatedUser._id}`)
     } catch (err) {
@@ -117,9 +122,9 @@ export default function EditAdminUserPage() {
       <div className="container mx-auto py-8 px-4 max-w-4xl">
         <Card className="border-destructive">
           <CardContent className="pt-6">
-            <p className="text-destructive">You do not have permission to update users.</p>
+            <p className="text-destructive">{t.noPermissionUpdate}</p>
             <Link href="/system-admin/users" className="mt-4 inline-block">
-              <Button variant="outline">Back to Users</Button>
+              <Button variant="outline">{t.backToUsers}</Button>
             </Link>
           </CardContent>
         </Card>
@@ -151,7 +156,7 @@ export default function EditAdminUserPage() {
           <CardContent className="pt-6">
             <p className="text-destructive">{error}</p>
             <Link href="/system-admin/users" className="mt-4 inline-block">
-              <Button variant="outline">Back to Users</Button>
+              <Button variant="outline">{t.backToUsers}</Button>
             </Link>
           </CardContent>
         </Card>
@@ -164,9 +169,9 @@ export default function EditAdminUserPage() {
       <div className="container mx-auto py-8 px-4 max-w-4xl">
         <Card>
           <CardContent className="pt-6 text-center">
-            <p className="text-muted-foreground">User not found</p>
+            <p className="text-muted-foreground">{t.userNotFound}</p>
             <Link href="/system-admin/users" className="mt-4 inline-block">
-              <Button variant="outline">Back to Users</Button>
+              <Button variant="outline">{t.backToUsers}</Button>
             </Link>
           </CardContent>
         </Card>
@@ -184,7 +189,7 @@ export default function EditAdminUserPage() {
           </Button>
         </Link>
         <div>
-          <h1 className="text-3xl font-bold">Edit Admin User</h1>
+          <h1 className="text-3xl font-bold">{t.editAdminUser}</h1>
           <p className="text-muted-foreground mt-1">{user.fullName}</p>
         </div>
       </div>
@@ -202,13 +207,13 @@ export default function EditAdminUserPage() {
       <form onSubmit={handleSubmit}>
         <Card>
           <CardHeader>
-            <CardTitle>User Information</CardTitle>
-            <CardDescription>Update the admin user information</CardDescription>
+            <CardTitle>{t.userInformation}</CardTitle>
+            <CardDescription>{t.updateInfoDesc}</CardDescription>
           </CardHeader>
           <CardContent className="space-y-6">
             {/* Full Name */}
             <div className="space-y-2">
-              <Label htmlFor="fullName">Full Name</Label>
+              <Label htmlFor="fullName">{t.fullName}</Label>
               <Input
                 id="fullName"
                 value={formData.fullName}
@@ -221,7 +226,7 @@ export default function EditAdminUserPage() {
 
             {/* Email */}
             <div className="space-y-2">
-              <Label htmlFor="email">Email</Label>
+              <Label htmlFor="email">{t.email}</Label>
               <Input
                 id="email"
                 type="email"
@@ -233,7 +238,7 @@ export default function EditAdminUserPage() {
 
             {/* Phone Number */}
             <div className="space-y-2">
-              <Label htmlFor="phoneNumber">Phone Number (Optional)</Label>
+              <Label htmlFor="phoneNumber">{t.phoneOptional}</Label>
               <Input
                 id="phoneNumber"
                 value={formData.phoneNumber || ""}
@@ -244,7 +249,7 @@ export default function EditAdminUserPage() {
 
             {/* Role */}
             <div className="space-y-2">
-              <Label htmlFor="role">Role</Label>
+              <Label htmlFor="role">{t.role}</Label>
               <Select
                 value={formData.role}
                 onValueChange={(value) => handleChange("role", value)}
@@ -255,7 +260,7 @@ export default function EditAdminUserPage() {
                 <SelectContent>
                   {ROLES.map((role) => (
                     <SelectItem key={role.value} value={role.value}>
-                      {role.label}
+                      {t.roleLabels[role.value] ?? role.label}
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -270,7 +275,7 @@ export default function EditAdminUserPage() {
                   checked={formData.notifyOnPasswordChange ?? true}
                   onCheckedChange={(checked) => handleChange("notifyOnPasswordChange", checked)}
                 />
-                <Label htmlFor="notifyOnPasswordChange">Notify on password change</Label>
+                <Label htmlFor="notifyOnPasswordChange">{t.notifyOnPasswordChange}</Label>
               </div>
               <div className="flex items-center space-x-2">
                 <Switch
@@ -278,7 +283,7 @@ export default function EditAdminUserPage() {
                   checked={formData.notifyOnLogin ?? true}
                   onCheckedChange={(checked) => handleChange("notifyOnLogin", checked)}
                 />
-                <Label htmlFor="notifyOnLogin">Notify on login</Label>
+                <Label htmlFor="notifyOnLogin">{t.notifyOnLogin}</Label>
               </div>
             </div>
           </CardContent>
@@ -288,12 +293,12 @@ export default function EditAdminUserPage() {
         <div className="flex gap-4 mt-6">
           <Link href={`/system-admin/users/${userId}`} className="flex-1">
             <Button type="button" variant="outline" className="w-full">
-              Cancel
+              {tr.common.cancel}
             </Button>
           </Link>
           <Button type="submit" disabled={loading} className="flex-1">
             <Save className="mr-2 h-4 w-4" />
-            {loading ? "Saving..." : "Save Changes"}
+            {loading ? t.saving : t.saveChanges}
           </Button>
         </div>
       </form>

@@ -12,10 +12,14 @@ import { PasswordInput } from "@/components/ui/password-input"
 import { Label } from "@/components/ui/label"
 import { AlertCircle } from "lucide-react"
 import { useAuth } from "@/lib/auth-context"
+import { useLanguage } from "@/lib/language-context"
+import { getTranslation } from "@/lib/translations"
 
 export default function LoginPage() {
   const router = useRouter()
   const { login, isAuthenticated } = useAuth()
+  const { locale } = useLanguage()
+  const tr = getTranslation(locale)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState("")
   const [formData, setFormData] = useState({
@@ -44,20 +48,20 @@ export default function LoginPage() {
     if (result.success) {
       router.push("/")
     } else {
-      setError(result.error || "Login failed")
+      setError(result.error || tr.auth.loginFailed)
     }
 
     setLoading(false)
   }
 
   return (
-    <main className="min-h-screen gradient-bg flex items-center justify-center px-4">
+    <main className="min-h-screen bg-background flex items-center justify-center px-4">
       <Card variant="glass-strong" className="w-full max-w-md">
         <CardHeader className="text-center space-y-2">
           <CardTitle className="text-4xl font-bold bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">
-            Church Management
+            {tr.auth.loginTitle}
           </CardTitle>
-          <CardDescription className="text-base">Sign in to your account</CardDescription>
+          <CardDescription className="text-base">{tr.auth.loginSubtitle}</CardDescription>
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-6">
@@ -69,7 +73,7 @@ export default function LoginPage() {
             )}
 
             <div className="space-y-2">
-              <Label htmlFor="email" className="text-sm font-semibold">Email</Label>
+              <Label htmlFor="email" className="text-sm font-semibold">{tr.auth.email}</Label>
               <Input
                 id="email"
                 name="email"
@@ -83,7 +87,7 @@ export default function LoginPage() {
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="password" className="text-sm font-semibold">Password</Label>
+              <Label htmlFor="password" className="text-sm font-semibold">{tr.auth.password}</Label>
               <PasswordInput
                 id="password"
                 name="password"
@@ -96,13 +100,13 @@ export default function LoginPage() {
             </div>
 
             <Button type="submit" disabled={loading} size="lg" className="w-full font-bold">
-              {loading ? "Signing in..." : "Sign In"}
+              {loading ? tr.auth.signingIn : tr.auth.signIn}
             </Button>
 
             <div className="text-center text-sm pt-2">
-              <span className="text-muted-foreground">Don&apos;t have an account? </span>
+              <span className="text-muted-foreground">{tr.auth.noAccount} </span>
               <Link href="/register" className="text-primary hover:text-primary/80 font-semibold transition-colors">
-                Sign up
+                {tr.auth.signUp}
               </Link>
             </div>
           </form>

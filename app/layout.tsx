@@ -3,7 +3,6 @@ import type { Metadata } from "next"
 import { Geist, Geist_Mono } from "next/font/google"
 import "./globals.css"
 import { AuthProvider } from "@/lib/auth-context"
-import { MembersProvider } from "@/lib/members-context"
 import { ChurchServicesProvider } from "@/lib/church-services-context"
 import { SystemAdminProvider } from "@/lib/system-admin-context"
 import { LanguageProvider } from "@/lib/language-context"
@@ -36,17 +35,15 @@ export default function RootLayout({
     <html lang="en" suppressHydrationWarning>
       <body className={`${geistSans.variable} ${geistMono.variable} font-sans antialiased`}>
         <QueryProvider>
-          <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
+          <ThemeProvider attribute="class" defaultTheme="light" enableSystem={false}>
             <LanguageProvider>
               <AuthProvider>
-                <MembersProvider>
                 <SystemAdminProvider>
-                <ChurchServicesProvider>
-                  {children}
-                  <Toaster />
+                  <ChurchServicesProvider>
+                    {children}
+                    <Toaster />
                   </ChurchServicesProvider>
-                  </SystemAdminProvider>
-                </MembersProvider>
+                </SystemAdminProvider>
               </AuthProvider>
             </LanguageProvider>
           </ThemeProvider>

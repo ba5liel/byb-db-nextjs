@@ -98,5 +98,50 @@ export const membersService = {
     const response = await apiClient.get<ApiResponse<MemberStatistics>>("/api/members/statistics")
     return response.data
   },
+
+  /**
+   * Bulk create members (import). Duplicates matched by phone number.
+   */
+  async bulkCreate(payload: {
+    members: Partial<CreateMemberDto>[]
+    duplicateStrategy?: "skip" | "update"
+  }): Promise<ApiResponse<BulkImportSummary>> {
+    const response = await apiClient.post<ApiResponse<BulkImportSummary>>(
+      "/api/members/bulk",
+      payload
+    )
+    return response.data
+  },
+
+  /**
+   * Fetch every member across all pages (for exports)
+   */
+  async getAllForExport(filters?: MemberFilters): Promise<MemberDto[]> {
+    const all: MemberDto[] = []
+    let page = 1
+    const limit = 200
+    // Page through until the server reports no more pages
+    for (;;) {
+      const res = await this.getMembers({ ...filters, page, limit })
+      all.push(...(res.data || []))
+      const pages = res.pagination?.pages ?? 1
+      if (page >= pages) break
+      page++
+    }
+    return all
+  },
+}
+
+export interface BulkImportSummary {
+  total: number
+  inserted: number
+  updated: number
+  skippedDuplicates: number
+  failed: {
+    row: number
+    fullName?: string
+    phoneNumber?: string
+    reason: string
+  }[]
 }
 

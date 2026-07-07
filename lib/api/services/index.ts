@@ -8,4 +8,7 @@ export * from "./analytics.service"
 export * from "./ministers.service"
 export * from "./users.service"
 export * from "./roles.service"
+export * from "./cell-groups.service"
+export * from "./system-config.service"
+export * from "./families.service"
 

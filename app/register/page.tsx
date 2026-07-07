@@ -12,10 +12,14 @@ import { PasswordInput } from "@/components/ui/password-input"
 import { Label } from "@/components/ui/label"
 import { AlertCircle } from "lucide-react"
 import { useAuth } from "@/lib/auth-context"
+import { useLanguage } from "@/lib/language-context"
+import { getTranslation } from "@/lib/translations"
 
 export default function RegisterPage() {
   const router = useRouter()
   const { register, isAuthenticated } = useAuth()
+  const { locale } = useLanguage()
+  const tr = getTranslation(locale)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState("")
   const [formData, setFormData] = useState({
@@ -57,7 +61,7 @@ export default function RegisterPage() {
     if (result.success) {
       router.push("/")
     } else {
-      setError(result.error || "Registration failed")
+      setError(result.error || tr.auth.registrationFailed)
     }
 
     setLoading(false)
@@ -68,9 +72,9 @@ export default function RegisterPage() {
       <Card variant="glass-strong" className="w-full max-w-md">
         <CardHeader className="text-center space-y-2">
           <CardTitle className="text-4xl font-bold bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">
-            Create Account
+            {tr.auth.registerTitle}
           </CardTitle>
-          <CardDescription className="text-base">Sign up for Church Management</CardDescription>
+          <CardDescription className="text-base">{tr.auth.registerSubtitle}</CardDescription>
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-5">
@@ -82,7 +86,7 @@ export default function RegisterPage() {
             )}
 
             <div className="space-y-2">
-              <Label htmlFor="name" className="text-sm font-semibold">Full Name</Label>
+              <Label htmlFor="name" className="text-sm font-semibold">{tr.auth.fullName}</Label>
               <Input
                 id="name"
                 name="name"
@@ -95,7 +99,7 @@ export default function RegisterPage() {
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="email" className="text-sm font-semibold">Email</Label>
+              <Label htmlFor="email" className="text-sm font-semibold">{tr.auth.email}</Label>
               <Input
                 id="email"
                 name="email"
@@ -109,7 +113,7 @@ export default function RegisterPage() {
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="password" className="text-sm font-semibold">Password</Label>
+              <Label htmlFor="password" className="text-sm font-semibold">{tr.auth.password}</Label>
               <PasswordInput
                 id="password"
                 name="password"
@@ -122,7 +126,7 @@ export default function RegisterPage() {
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="confirmPassword" className="text-sm font-semibold">Confirm Password</Label>
+              <Label htmlFor="confirmPassword" className="text-sm font-semibold">{tr.auth.confirmPassword}</Label>
               <PasswordInput
                 id="confirmPassword"
                 name="confirmPassword"
@@ -135,13 +139,13 @@ export default function RegisterPage() {
             </div>
 
             <Button type="submit" disabled={loading} size="lg" className="w-full font-bold mt-6">
-              {loading ? "Creating account..." : "Sign Up"}
+              {loading ? tr.auth.registering : tr.auth.register}
             </Button>
 
             <div className="text-center text-sm pt-2">
-              <span className="text-muted-foreground">Already have an account? </span>
+              <span className="text-muted-foreground">{tr.auth.hasAccount} </span>
               <Link href="/login" className="text-primary hover:text-primary/80 font-semibold transition-colors">
-                Sign in
+                {tr.auth.signIn2}
               </Link>
             </div>
           </form>

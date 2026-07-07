@@ -3,14 +3,12 @@
 import { createContext, useContext, type ReactNode } from "react"
 import { useSession, signIn, signUp, signOut } from "./auth-client"
 import type { User } from "./types"
-import { signIn, signUp, signOut, getSession } from "./auth-api"
 
 interface AuthContextType {
   user: User | null
   loading: boolean
   login: (email: string, password: string) => Promise<{ success: boolean; error?: string }>
   register: (name: string, email: string, password: string) => Promise<{ success: boolean; error?: string }>
-  logout: () => Promise<void>
   logout: () => Promise<void>
   isAuthenticated: boolean
 }

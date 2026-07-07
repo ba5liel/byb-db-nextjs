@@ -10,4 +10,7 @@ export * from "./auth.dto"
 export * from "./minister.dto"
 export * from "./user.dto"
 export * from "./role.dto"
+export * from "./cell-group.dto"
+export * from "./system-config.dto"
+export * from "./family.dto"
 

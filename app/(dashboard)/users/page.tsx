@@ -73,6 +73,8 @@ import {
 import { getRoleDisplayName, getRoleBadgeColor } from "@/lib/permissions"
 import { PermissionGuard } from "@/components/auth/permission-guard"
 import { PasswordInput } from "@/components/ui/password-input"
+import { useLanguage } from "@/lib/language-context"
+import { getTranslation } from "@/lib/translations"
 
 // Form schemas
 const createUserSchema = z.object({
@@ -97,6 +99,8 @@ const banUserSchema = z.object({
 })
 
 export default function UsersPage() {
+  const { locale } = useLanguage()
+  const tr = getTranslation(locale)
   const [searchQuery, setSearchQuery] = useState("")
   const [createDialogOpen, setCreateDialogOpen] = useState(false)
   const [editDialogOpen, setEditDialogOpen] = useState(false)
@@ -259,10 +263,10 @@ export default function UsersPage() {
         <div className="flex justify-between items-center">
           <div>
             <h1 className="text-4xl font-bold tracking-tight">
-              User Management
+              {tr.users.title}
             </h1>
             <p className="text-muted-foreground mt-2">
-              የተጠቃሚዎች አስተዳደር - Manage system users and their access
+              {tr.users.subtitle}
             </p>
           </div>
 
@@ -271,15 +275,13 @@ export default function UsersPage() {
               <DialogTrigger asChild>
                 <Button className="gap-2">
                   <Plus className="h-4 w-4" />
-                  Create User
+                  {tr.users.createUser}
                 </Button>
               </DialogTrigger>
               <DialogContent className="max-w-md">
                 <DialogHeader>
-                  <DialogTitle>Create New User</DialogTitle>
-                  <DialogDescription>
-                    Add a new user to the system with assigned role
-                  </DialogDescription>
+                  <DialogTitle>{tr.users.createDialogTitle}</DialogTitle>
+                  <DialogDescription>{tr.users.createDialogDesc}</DialogDescription>
                 </DialogHeader>
                 <Form {...createForm}>
                   <form onSubmit={createForm.handleSubmit(handleCreateUser)} className="space-y-4">
@@ -288,7 +290,7 @@ export default function UsersPage() {
                       name="name"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel>Full Name</FormLabel>
+                          <FormLabel>{tr.users.fullName}</FormLabel>
                           <FormControl>
                             <Input placeholder="John Doe" {...field} />
                           </FormControl>
@@ -301,7 +303,7 @@ export default function UsersPage() {
                       name="email"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel>Email</FormLabel>
+                          <FormLabel>{tr.users.email}</FormLabel>
                           <FormControl>
                             <Input type="email" placeholder="john@example.com" {...field} />
                           </FormControl>
@@ -314,13 +316,11 @@ export default function UsersPage() {
                       name="password"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel>Temporary Password</FormLabel>
+                          <FormLabel>{tr.users.tempPassword}</FormLabel>
                           <FormControl>
                             <PasswordInput placeholder="••••••••" {...field} />
                           </FormControl>
-                          <FormDescription>
-                            User will be required to change this on first login
-                          </FormDescription>
+                          <FormDescription>{tr.users.tempPasswordDesc}</FormDescription>
                           <FormMessage />
                         </FormItem>
                       )}
@@ -330,11 +330,11 @@ export default function UsersPage() {
                       name="role"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel>Role</FormLabel>
+                          <FormLabel>{tr.users.role}</FormLabel>
                           <Select onValueChange={field.onChange} defaultValue={field.value}>
                             <FormControl>
                               <SelectTrigger>
-                                <SelectValue placeholder="Select a role" />
+                                <SelectValue placeholder={tr.users.selectRole} />
                               </SelectTrigger>
                             </FormControl>
                             <SelectContent>
@@ -351,7 +351,7 @@ export default function UsersPage() {
                     />
                     <DialogFooter>
                       <Button type="submit" disabled={createUser.isPending}>
-                        {createUser.isPending ? "Creating..." : "Create User"}
+                        {createUser.isPending ? tr.users.creating : tr.users.createBtn}
                       </Button>
                     </DialogFooter>
                   </form>
@@ -366,7 +366,7 @@ export default function UsersPage() {
           <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
           <Input
             type="search"
-            placeholder="Search users..."
+            placeholder={tr.users.searchPlaceholder}
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             className="pl-10"
@@ -376,10 +376,8 @@ export default function UsersPage() {
         {/* Users Table */}
         <Card className="glass-card border-white/10">
           <CardHeader>
-            <CardTitle>System Users</CardTitle>
-            <CardDescription>
-              Total: {filteredUsers.length} users
-            </CardDescription>
+            <CardTitle>{tr.users.systemUsers}</CardTitle>
+            <CardDescription>{tr.users.totalUsers.replace("{count}", String(filteredUsers.length))}</CardDescription>
           </CardHeader>
           <CardContent>
             {isLoading ? (
@@ -390,11 +388,11 @@ export default function UsersPage() {
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>User</TableHead>
-                    <TableHead>Email</TableHead>
-                    <TableHead>Role</TableHead>
-                    <TableHead>Status</TableHead>
-                    <TableHead className="text-right">Actions</TableHead>
+                    <TableHead>{tr.users.name}</TableHead>
+                    <TableHead>{tr.users.email}</TableHead>
+                    <TableHead>{tr.users.role}</TableHead>
+                    <TableHead>{tr.common.status}</TableHead>
+                    <TableHead className="text-right">{tr.users.actions}</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -429,11 +427,11 @@ export default function UsersPage() {
                         {user.banned ? (
                           <Badge variant="destructive">
                             <Ban className="h-3 w-3 mr-1" />
-                            Banned
+                            {tr.users.banned}
                           </Badge>
                         ) : (
                           <Badge variant="outline" className="bg-green-500/20 text-green-500 border-green-500/50">
-                            Active
+                            {tr.status.active}
                           </Badge>
                         )}
                       </TableCell>
@@ -445,30 +443,30 @@ export default function UsersPage() {
                             </Button>
                           </DropdownMenuTrigger>
                           <DropdownMenuContent align="end" className="glass-card border-white/10">
-                            <DropdownMenuLabel>Actions</DropdownMenuLabel>
+                            <DropdownMenuLabel>{tr.users.actions}</DropdownMenuLabel>
                             <DropdownMenuSeparator className="bg-white/10" />
                             <PermissionGuard resource="user" action="create" fallback={<div />}>
                               <DropdownMenuItem onClick={() => openEditDialog(user)}>
                                 <Edit className="mr-2 h-4 w-4" />
-                                Edit User
+                                {tr.common.edit}
                               </DropdownMenuItem>
                             </PermissionGuard>
                             <PermissionGuard resource="role" action="assign" fallback={<div />}>
                               <DropdownMenuItem onClick={() => openRoleDialog(user)}>
                                 <Shield className="mr-2 h-4 w-4" />
-                                Assign Role
+                                {tr.users.assignRole}
                               </DropdownMenuItem>
                             </PermissionGuard>
                             <PermissionGuard resource="user" action="set-password" fallback={<div />}>
                               <DropdownMenuItem onClick={() => openPasswordDialog(user)}>
                                 <Key className="mr-2 h-4 w-4" />
-                                Reset Password
+                                {tr.users.resetPassword}
                               </DropdownMenuItem>
                             </PermissionGuard>
                             <PermissionGuard resource="session" action="revoke" fallback={<div />}>
                               <DropdownMenuItem onClick={() => handleRevokeSessions(user.id)}>
                                 <LogOut className="mr-2 h-4 w-4" />
-                                Revoke Sessions
+                                {tr.users.revokeSessions}
                               </DropdownMenuItem>
                             </PermissionGuard>
                             <DropdownMenuSeparator className="bg-white/10" />
@@ -476,12 +474,12 @@ export default function UsersPage() {
                               {user.banned ? (
                                 <DropdownMenuItem onClick={() => handleUnbanUser(user.id)}>
                                   <Ban className="mr-2 h-4 w-4" />
-                                  Unban User
+                                  {tr.users.unbanUser}
                                 </DropdownMenuItem>
                               ) : (
                                 <DropdownMenuItem onClick={() => openBanDialog(user)}>
                                   <Ban className="mr-2 h-4 w-4" />
-                                  Ban User
+                                  {tr.users.banUser}
                                 </DropdownMenuItem>
                               )}
                             </PermissionGuard>
@@ -491,7 +489,7 @@ export default function UsersPage() {
                                 className="text-red-500 focus:text-red-500"
                               >
                                 <Trash2 className="mr-2 h-4 w-4" />
-                                Delete User
+                                {tr.users.deleteUser}
                               </DropdownMenuItem>
                             </PermissionGuard>
                           </DropdownMenuContent>
@@ -509,10 +507,8 @@ export default function UsersPage() {
         <Dialog open={editDialogOpen} onOpenChange={setEditDialogOpen}>
           <DialogContent className="max-w-md">
             <DialogHeader>
-              <DialogTitle>Edit User</DialogTitle>
-              <DialogDescription>
-                Update user information
-              </DialogDescription>
+              <DialogTitle>{tr.users.editDialogTitle}</DialogTitle>
+              <DialogDescription>{tr.users.editDialogDesc}</DialogDescription>
             </DialogHeader>
             <Form {...updateForm}>
               <form onSubmit={updateForm.handleSubmit(handleUpdateUser)} className="space-y-4">
@@ -521,7 +517,7 @@ export default function UsersPage() {
                   name="name"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Full Name</FormLabel>
+                      <FormLabel>{tr.users.fullName}</FormLabel>
                       <FormControl>
                         <Input {...field} />
                       </FormControl>
@@ -534,7 +530,7 @@ export default function UsersPage() {
                   name="email"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Email</FormLabel>
+                      <FormLabel>{tr.users.email}</FormLabel>
                       <FormControl>
                         <Input type="email" {...field} />
                       </FormControl>
@@ -544,7 +540,7 @@ export default function UsersPage() {
                 />
                 <DialogFooter>
                   <Button type="submit" disabled={updateUser.isPending}>
-                    {updateUser.isPending ? "Updating..." : "Update User"}
+                    {updateUser.isPending ? tr.users.updating : tr.users.updateBtn}
                   </Button>
                 </DialogFooter>
               </form>
@@ -556,10 +552,8 @@ export default function UsersPage() {
         <Dialog open={roleDialogOpen} onOpenChange={setRoleDialogOpen}>
           <DialogContent className="max-w-md">
             <DialogHeader>
-              <DialogTitle>Assign Role</DialogTitle>
-              <DialogDescription>
-                Select a new role for {selectedUser?.name}
-              </DialogDescription>
+              <DialogTitle>{tr.users.assignRole}</DialogTitle>
+              <DialogDescription>{tr.users.assignRoleDesc.replace("{name}", selectedUser?.name ?? "")}</DialogDescription>
             </DialogHeader>
             <div className="space-y-4">
               {rolesData?.roles.map((role) => (
@@ -588,10 +582,8 @@ export default function UsersPage() {
         <Dialog open={passwordDialogOpen} onOpenChange={setPasswordDialogOpen}>
           <DialogContent className="max-w-md">
             <DialogHeader>
-              <DialogTitle>Reset Password</DialogTitle>
-              <DialogDescription>
-                Set a new temporary password for {selectedUser?.name}
-              </DialogDescription>
+              <DialogTitle>{tr.users.resetPassword}</DialogTitle>
+              <DialogDescription>{tr.users.resetPasswordDesc.replace("{name}", selectedUser?.name ?? "")}</DialogDescription>
             </DialogHeader>
             <Form {...passwordForm}>
               <form onSubmit={passwordForm.handleSubmit(handleResetPassword)} className="space-y-4">
@@ -600,13 +592,11 @@ export default function UsersPage() {
                   name="newPassword"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>New Password</FormLabel>
+                      <FormLabel>{tr.users.newPassword}</FormLabel>
                       <FormControl>
                         <PasswordInput placeholder="••••••••" {...field} />
                       </FormControl>
-                      <FormDescription>
-                        User will be required to change this password on next login
-                      </FormDescription>
+                      <FormDescription>{tr.users.newPasswordDesc}</FormDescription>
                       <FormMessage />
                     </FormItem>
                   )}
@@ -617,10 +607,8 @@ export default function UsersPage() {
                   render={({ field }) => (
                     <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
                       <div className="space-y-0.5">
-                        <FormLabel className="text-base">Send Email</FormLabel>
-                        <FormDescription>
-                          Notify user via email with new password
-                        </FormDescription>
+                        <FormLabel className="text-base">{tr.users.sendEmail}</FormLabel>
+                        <FormDescription>{tr.users.sendEmailDesc}</FormDescription>
                       </div>
                       <FormControl>
                         <input
@@ -635,7 +623,7 @@ export default function UsersPage() {
                 />
                 <DialogFooter>
                   <Button type="submit" disabled={resetPassword.isPending}>
-                    {resetPassword.isPending ? "Resetting..." : "Reset Password"}
+                    {resetPassword.isPending ? tr.users.resetting : tr.users.resetPassword}
                   </Button>
                 </DialogFooter>
               </form>
@@ -647,10 +635,8 @@ export default function UsersPage() {
         <Dialog open={banDialogOpen} onOpenChange={setBanDialogOpen}>
           <DialogContent className="max-w-md">
             <DialogHeader>
-              <DialogTitle>Ban User</DialogTitle>
-              <DialogDescription>
-                Provide a reason for banning {selectedUser?.name}
-              </DialogDescription>
+              <DialogTitle>{tr.users.banUser}</DialogTitle>
+              <DialogDescription>{tr.users.banDialogDesc.replace("{name}", selectedUser?.name ?? "")}</DialogDescription>
             </DialogHeader>
             <Form {...banForm}>
               <form onSubmit={banForm.handleSubmit(handleBanUser)} className="space-y-4">
@@ -659,7 +645,7 @@ export default function UsersPage() {
                   name="reason"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Reason</FormLabel>
+                      <FormLabel>{tr.users.reason}</FormLabel>
                       <FormControl>
                         <Input placeholder="e.g., Violation of terms" {...field} />
                       </FormControl>
@@ -669,7 +655,7 @@ export default function UsersPage() {
                 />
                 <DialogFooter>
                   <Button type="submit" variant="destructive" disabled={banUserMutation.isPending}>
-                    {banUserMutation.isPending ? "Banning..." : "Ban User"}
+                    {banUserMutation.isPending ? tr.users.banning : tr.users.banUser}
                   </Button>
                 </DialogFooter>
               </form>

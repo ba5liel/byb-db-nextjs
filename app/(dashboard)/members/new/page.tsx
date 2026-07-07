@@ -26,7 +26,10 @@ import {
   DollarSign,
   Check,
 } from "lucide-react"
-import { useMembers } from "@/lib/members-context"
+import { useCreateMember, useServices } from "@/lib/api/hooks"
+import { mapMemberToBackendFormat } from "@/lib/member-mapper"
+import { FamilyRelationships, emptyFamilyData } from "@/components/family-relationships"
+import type { FamilyData } from "@/components/family-relationships"
 import { useToast } from "@/hooks/use-toast"
 import { useLanguage } from "@/lib/language-context"
 import { getTranslation } from "@/lib/translations"
@@ -34,13 +37,14 @@ import type { Member } from "@/lib/types"
 
 export default function NewMemberPage() {
   const router = useRouter()
-  const { addMember } = useMembers()
+  const createMutation = useCreateMember()
+  const { data: servicesData } = useServices({ status: "true", limit: 100 })
   const { toast } = useToast()
   const { locale } = useLanguage()
   const t = getTranslation(locale)
-  
-  const [loading, setLoading] = useState(false)
+
   const [currentStep, setCurrentStep] = useState(1)
+  const [familyData, setFamilyData] = useState<FamilyData>(emptyFamilyData())
   const totalSteps = 8
 
   const [formData, setFormData] = useState<Partial<Member>>({
@@ -241,31 +245,20 @@ export default function NewMemberPage() {
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
 
-    if (!validateStep(currentStep)) {
-      return
-    }
-
-    setLoading(true)
+    if (!validateStep(currentStep)) return
 
     try {
-      const memberData = {
-        ...formData,
-        firstName: formData.firstName!,
-        lastName: formData.lastName!,
-        phone: formData.phone!,
-        gender: formData.gender!,
-        maritalStatus: formData.maritalStatus!,
-        isTransfer: formData.isTransfer!,
-        currentServices: formData.currentServices || [],
-        desiredServices: formData.desiredServices || [],
-        numberOfChildren: formData.numberOfChildren || 0,
-        paysTithe: formData.paysTithe!,
-        joinDate: formData.joinDate!,
-        membershipStatus: formData.membershipStatus!,
-        membershipType: formData.membershipType!,
-      } as Omit<Member, "id" | "createdAt" | "updatedAt">
+      const backendData = {
+        ...mapMemberToBackendFormat(formData as Partial<Member>),
+        // Family relationship IDs
+        spouseId: familyData.spouseId,
+        motherId: familyData.motherId,
+        fatherId: familyData.fatherId,
+        siblingIds: familyData.siblingIds.map((s) => s.id),
+        childrenIds: familyData.childrenIds.map((c) => c.id),
+      }
 
-      await addMember(memberData)
+      await createMutation.mutateAsync(backendData as any)
 
       toast({
         title: t.memberForm.createSuccess,
@@ -280,8 +273,6 @@ export default function NewMemberPage() {
         description: locale === "en" ? "Please try again" : "እባክዎ እንደገና ይሞክሩ",
         variant: "destructive",
       })
-    } finally {
-      setLoading(false)
     }
   }
 
@@ -298,16 +289,10 @@ export default function NewMemberPage() {
     { number: 8, title: t.memberSteps.financial, icon: DollarSign },
   ]
 
-  const serviceOptions = [
-    { value: "Choir", label: t.services.choir },
-    { value: "Youth Ministry", label: t.services.youthMinistry },
-    { value: "Sunday School", label: t.services.sundaySchool },
-    { value: "Media Team", label: t.services.mediaTeam },
-    { value: "Ushering", label: t.services.ushering },
-    { value: "Prayer Team", label: t.services.prayerTeam },
-    { value: "Worship", label: t.services.worship },
-    { value: "Teaching", label: t.services.teaching },
-  ]
+  const serviceOptions = (servicesData?.data ?? []).map((s) => ({
+    value: s.serviceName,
+    label: s.serviceName,
+  }))
 
   return (
     <main className="min-h-screen bg-gradient-to-br from-background via-background to-secondary/20">
@@ -1129,37 +1114,25 @@ export default function NewMemberPage() {
               {/* Step 6: Family Information */}
               {currentStep === 6 && (
                 <div className="space-y-4">
-                  {formData.maritalStatus === "Married" && (
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
-                      <Label htmlFor="spouseName">{t.family.spouseName}</Label>
+                      <Label htmlFor="numberOfChildren">{t.family.numberOfChildren}</Label>
                       <Input
-                        id="spouseName"
-                        name="spouseName"
-                        value={formData.spouseName}
+                        id="numberOfChildren"
+                        name="numberOfChildren"
+                        type="number"
+                        min="0"
+                        value={formData.numberOfChildren}
                         onChange={handleChange}
                         className="mt-1"
-                        placeholder={locale === "en" ? "Enter spouse name" : "የትዳር ጓደኛ ስም ያስገቡ"}
                       />
-                      <p className="text-xs text-muted-foreground mt-1">
-                        {locale === "en"
-                          ? "If spouse is also a member, they can be linked from the member list"
-                          : "የትዳር ጓደኛ አባልም ከሆነ ከአባላት ዝርዝር ሊገናኙ ይችላሉ"}
-                      </p>
                     </div>
-                  )}
-
-                  <div>
-                    <Label htmlFor="numberOfChildren">{t.family.numberOfChildren}</Label>
-                    <Input
-                      id="numberOfChildren"
-                      name="numberOfChildren"
-                      type="number"
-                      min="0"
-                      value={formData.numberOfChildren}
-                      onChange={handleChange}
-                      className="mt-1"
-                    />
                   </div>
+
+                  <FamilyRelationships
+                    value={familyData}
+                    onChange={setFamilyData}
+                  />
 
                   <div>
                     <Label htmlFor="notes">{t.family.additionalNotes}</Label>
@@ -1169,11 +1142,11 @@ export default function NewMemberPage() {
                       value={formData.notes}
                       onChange={handleChange}
                       className="mt-1"
-                      rows={4}
+                      rows={3}
                       placeholder={
                         locale === "en"
-                          ? "Any additional information about family relationships, children, etc."
-                          : "ስለ ቤተሰብ ግንኙነቶች፣ ልጆች፣ ወዘተ ማንኛውም ተጨማሪ መረጃ"
+                          ? "Any additional notes about family..."
+                          : "ስለ ቤተሰብ ተጨማሪ ማስታወሻዎች..."
                       }
                     />
                   </div>
@@ -1313,8 +1286,8 @@ export default function NewMemberPage() {
                     <ArrowRight className="w-4 h-4" />
                   </Button>
                 ) : (
-                  <Button type="submit" disabled={loading} className="gap-2 w-full sm:w-auto sm:ml-auto">
-                    {loading
+                  <Button type="submit" disabled={createMutation.isPending} className="gap-2 w-full sm:w-auto sm:ml-auto">
+                    {createMutation.isPending
                       ? t.common.saving
                       : locale === "en"
                         ? "Create Member"

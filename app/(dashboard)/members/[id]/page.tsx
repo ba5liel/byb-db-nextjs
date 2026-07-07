@@ -1,12 +1,12 @@
 "use client"
 
-import { useEffect, useState } from "react"
 import { useParams, useRouter } from "next/navigation"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Separator } from "@/components/ui/separator"
+import { Skeleton } from "@/components/ui/skeleton"
 import {
   ArrowLeft,
   Edit,
@@ -23,46 +23,61 @@ import {
   Home,
   AlertCircle,
 } from "lucide-react"
-import { useMembers } from "@/lib/members-context"
-import type { Member } from "@/lib/types"
+import { useMember } from "@/lib/api/hooks"
+import { mapBackendMemberToMember } from "@/lib/member-mapper"
+import { FamilyRelationships, emptyFamilyData } from "@/components/family-relationships"
+import type { FamilyData } from "@/components/family-relationships"
+import { useLanguage } from "@/lib/language-context"
+import { getTranslation } from "@/lib/translations"
 
 export default function MemberDetailPage() {
   const params = useParams()
   const router = useRouter()
   const memberId = params.id as string
-  const { getMember } = useMembers()
-  const [member, setMember] = useState<Member | null>(null)
-  const [loading, setLoading] = useState(true)
+  const { locale } = useLanguage()
+  const tr = getTranslation(locale)
+  const t = tr.memberDetail
 
-  useEffect(() => {
-    async function loadMember() {
-      if (memberId === "new") {
-        router.push("/members/new")
-        return
-      }
+  if (memberId === "new") {
+    router.push("/members/new")
+    return null
+  }
 
-      const foundMember = await getMember(memberId)
-      setMember(foundMember || null)
-      setLoading(false)
-    }
-    loadMember()
-  }, [memberId, getMember, router])
+  const { data: rawData, isLoading, error } = useMember(memberId)
+  const raw = rawData?.data
+  const member = raw ? mapBackendMemberToMember(raw) : null
 
-  if (loading) {
+  if (isLoading) {
     return (
       <main className="min-h-screen bg-gradient-to-br from-background to-secondary">
-        <div className="container mx-auto px-4 py-12">
-          <div className="text-center text-muted-foreground">Loading member...</div>
+        <div className="container mx-auto px-4 py-12 space-y-6">
+          <Skeleton className="h-10 w-48" />
+          <div className="flex gap-6">
+            <Skeleton className="w-24 h-24 rounded-full" />
+            <div className="space-y-2 flex-1">
+              <Skeleton className="h-8 w-64" />
+              <Skeleton className="h-5 w-40" />
+            </div>
+          </div>
+          <Skeleton className="h-48 w-full" />
         </div>
       </main>
     )
   }
 
-  if (!member) {
+  if (error || !member) {
     return (
       <main className="min-h-screen bg-gradient-to-br from-background to-secondary">
         <div className="container mx-auto px-4 py-12">
-          <div className="text-center text-muted-foreground">Member not found</div>
+          <Link href="/members">
+            <Button variant="ghost" className="gap-2 mb-4">
+              <ArrowLeft className="w-4 h-4" />
+              {t.backToMembers}
+            </Button>
+          </Link>
+          <div className="text-center text-muted-foreground">
+            {error ? t.failedToLoad : t.notFound}
+          </div>
         </div>
       </main>
     )
@@ -73,11 +88,34 @@ export default function MemberDetailPage() {
     const today = new Date()
     let age = today.getFullYear() - birthDate.getFullYear()
     const monthDiff = today.getMonth() - birthDate.getMonth()
-    if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) {
-      age--
-    }
+    if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) age--
     return age
   }
+
+  // Build family display data from populated API fields
+  const familyDisplayData: FamilyData = {
+    spouseId: (raw as any).spouseId?._id ?? (typeof (raw as any).spouseId === "string" ? (raw as any).spouseId : undefined),
+    spouseName: (raw as any).spouseId?.fullName,
+    motherId: (raw as any).motherId?._id ?? (typeof (raw as any).motherId === "string" ? (raw as any).motherId : undefined),
+    motherName: (raw as any).motherId?.fullName,
+    fatherId: (raw as any).fatherId?._id ?? (typeof (raw as any).fatherId === "string" ? (raw as any).fatherId : undefined),
+    fatherName: (raw as any).fatherId?.fullName,
+    siblingIds: ((raw as any).siblingIds ?? []).map((s: any) => ({
+      id: s._id ?? s,
+      name: s.fullName ?? "",
+    })),
+    childrenIds: ((raw as any).childrenIds ?? []).map((c: any) => ({
+      id: c._id ?? c,
+      name: c.fullName ?? "",
+    })),
+  }
+
+  const hasFamilyLinks =
+    familyDisplayData.spouseId ||
+    familyDisplayData.motherId ||
+    familyDisplayData.fatherId ||
+    familyDisplayData.siblingIds.length > 0 ||
+    familyDisplayData.childrenIds.length > 0
 
   return (
     <main className="min-h-screen bg-gradient-to-br from-background to-secondary">
@@ -87,19 +125,17 @@ export default function MemberDetailPage() {
           <Link href="/members">
             <Button variant="ghost" className="gap-2 mb-4">
               <ArrowLeft className="w-4 h-4" />
-              Back to Members
+              {t.backToMembers}
             </Button>
           </Link>
           <div className="flex items-start justify-between">
             <div className="flex gap-6">
-              {/* Profile Photo Placeholder */}
               <div className="w-24 h-24 rounded-full bg-primary/10 flex items-center justify-center">
                 <User className="w-12 h-12 text-primary" />
               </div>
               <div>
                 <h1 className="text-4xl font-bold text-foreground mb-2">
-                  {member.firstName} {member.middleName && `${member.middleName} `}
-                  {member.lastName}
+                  {member.firstName} {member.middleName && `${member.middleName} `}{member.lastName}
                 </h1>
                 <div className="flex items-center gap-3 mb-2">
                   <Badge
@@ -138,7 +174,7 @@ export default function MemberDetailPage() {
               <Link href={`/members/${memberId}/edit`}>
                 <Button className="gap-2">
                   <Edit className="w-4 h-4" />
-                  Edit Profile
+                  {t.editProfile}
                 </Button>
               </Link>
             </div>
@@ -147,48 +183,47 @@ export default function MemberDetailPage() {
 
         {/* Profile Content */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          {/* Left Column - Main Info */}
+          {/* Left Column */}
           <div className="lg:col-span-2 space-y-6">
             {/* Personal Information */}
             <Card className="border-0 shadow-lg">
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                   <User className="w-5 h-5" />
-                  Personal Information
+                  {t.personalInfo}
                 </CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   {member.dateOfBirth && (
                     <div>
-                      <p className="text-sm text-muted-foreground mb-1">Date of Birth</p>
+                      <p className="text-sm text-muted-foreground mb-1">{t.dateOfBirth}</p>
                       <p className="text-foreground font-medium">
-                        {new Date(member.dateOfBirth).toLocaleDateString()} ({calculateAge(member.dateOfBirth)} years
-                        old)
+                        {new Date(member.dateOfBirth).toLocaleDateString()} ({calculateAge(member.dateOfBirth)} {t.yearsOld})
                       </p>
                     </div>
                   )}
                   {member.gender && (
                     <div>
-                      <p className="text-sm text-muted-foreground mb-1">Gender</p>
+                      <p className="text-sm text-muted-foreground mb-1">{t.gender}</p>
                       <p className="text-foreground font-medium">{member.gender}</p>
                     </div>
                   )}
                   {member.maritalStatus && (
                     <div>
-                      <p className="text-sm text-muted-foreground mb-1">Marital Status</p>
+                      <p className="text-sm text-muted-foreground mb-1">{t.maritalStatus}</p>
                       <p className="text-foreground font-medium">{member.maritalStatus}</p>
                     </div>
                   )}
                   {member.nationality && (
                     <div>
-                      <p className="text-sm text-muted-foreground mb-1">Nationality</p>
+                      <p className="text-sm text-muted-foreground mb-1">{t.nationality}</p>
                       <p className="text-foreground font-medium">{member.nationality}</p>
                     </div>
                   )}
                   {member.occupation && (
                     <div>
-                      <p className="text-sm text-muted-foreground mb-1">Occupation</p>
+                      <p className="text-sm text-muted-foreground mb-1">{t.occupation}</p>
                       <p className="text-foreground font-medium">{member.occupation}</p>
                     </div>
                   )}
@@ -202,39 +237,39 @@ export default function MemberDetailPage() {
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">
                     <MapPin className="w-5 h-5" />
-                    Address Information
+                    {t.addressInfo}
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
                   <div className="space-y-4">
                     {member.address && (
                       <div>
-                        <p className="text-sm text-muted-foreground mb-1">Street Address</p>
+                        <p className="text-sm text-muted-foreground mb-1">{t.streetAddress}</p>
                         <p className="text-foreground font-medium">{member.address}</p>
                       </div>
                     )}
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       {member.city && (
                         <div>
-                          <p className="text-sm text-muted-foreground mb-1">City</p>
+                          <p className="text-sm text-muted-foreground mb-1">{t.city}</p>
                           <p className="text-foreground font-medium">{member.city}</p>
                         </div>
                       )}
                       {member.subCity && (
                         <div>
-                          <p className="text-sm text-muted-foreground mb-1">Sub-City</p>
+                          <p className="text-sm text-muted-foreground mb-1">{t.subCity}</p>
                           <p className="text-foreground font-medium">{member.subCity}</p>
                         </div>
                       )}
                       {member.woreda && (
                         <div>
-                          <p className="text-sm text-muted-foreground mb-1">Woreda</p>
+                          <p className="text-sm text-muted-foreground mb-1">{t.woreda}</p>
                           <p className="text-foreground font-medium">{member.woreda}</p>
                         </div>
                       )}
                       {member.kebele && (
                         <div>
-                          <p className="text-sm text-muted-foreground mb-1">Kebele</p>
+                          <p className="text-sm text-muted-foreground mb-1">{t.kebele}</p>
                           <p className="text-foreground font-medium">{member.kebele}</p>
                         </div>
                       )}
@@ -249,20 +284,20 @@ export default function MemberDetailPage() {
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                   <Heart className="w-5 h-5" />
-                  Spiritual Journey (መንፈሳዊ ጉዞ)
+                  {t.spiritualJourney}
                 </CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   {member.salvationYearEthiopian && (
                     <div>
-                      <p className="text-sm text-muted-foreground mb-1">ጌታን ያገኙበት አመት (ዓ.ም)</p>
+                      <p className="text-sm text-muted-foreground mb-1">{t.salvationYearEth}</p>
                       <p className="text-foreground font-medium">{member.salvationYearEthiopian}</p>
                     </div>
                   )}
                   {member.salvationDate && (
                     <div>
-                      <p className="text-sm text-muted-foreground mb-1">Salvation Date (Gregorian)</p>
+                      <p className="text-sm text-muted-foreground mb-1">{t.salvationDateGreg}</p>
                       <p className="text-foreground font-medium">
                         {new Date(member.salvationDate).toLocaleDateString()}
                       </p>
@@ -270,27 +305,21 @@ export default function MemberDetailPage() {
                   )}
                   {member.baptismYearEthiopian && (
                     <div>
-                      <p className="text-sm text-muted-foreground mb-1">የተጠመቁበት አመት (ዓ.ም)</p>
+                      <p className="text-sm text-muted-foreground mb-1">{t.baptismYearEth}</p>
                       <p className="text-foreground font-medium">{member.baptismYearEthiopian}</p>
                     </div>
                   )}
                   {member.baptismDate && (
                     <div>
-                      <p className="text-sm text-muted-foreground mb-1">Baptism Date (Gregorian)</p>
-                      <p className="text-foreground font-medium">{new Date(member.baptismDate).toLocaleDateString()}</p>
-                    </div>
-                  )}
-                  {member.confirmationDate && (
-                    <div>
-                      <p className="text-sm text-muted-foreground mb-1">Confirmation Date</p>
+                      <p className="text-sm text-muted-foreground mb-1">{t.baptismDateGreg}</p>
                       <p className="text-foreground font-medium">
-                        {new Date(member.confirmationDate).toLocaleDateString()}
+                        {new Date(member.baptismDate).toLocaleDateString()}
                       </p>
                     </div>
                   )}
                   {member.catechesisStatus && (
                     <div>
-                      <p className="text-sm text-muted-foreground mb-1">የካቴኬሲስ ሁኔታ - Catechesis Status</p>
+                      <p className="text-sm text-muted-foreground mb-1">{t.catechesisStatus}</p>
                       <Badge variant={member.catechesisStatus === "Completed" ? "default" : "secondary"}>
                         {member.catechesisStatus}
                       </Badge>
@@ -298,19 +327,13 @@ export default function MemberDetailPage() {
                   )}
                   {member.discipleshipProgram && (
                     <div>
-                      <p className="text-sm text-muted-foreground mb-1">የደቀመዝሙርነት ፕሮግራም - Discipleship Program</p>
+                      <p className="text-sm text-muted-foreground mb-1">{t.discipleshipProgram}</p>
                       <p className="text-foreground font-medium">{member.discipleshipProgram}</p>
-                    </div>
-                  )}
-                  {member.discipleshipLevel && (
-                    <div>
-                      <p className="text-sm text-muted-foreground mb-1">Discipleship Level</p>
-                      <p className="text-foreground font-medium">{member.discipleshipLevel}</p>
                     </div>
                   )}
                   {member.mentor && (
                     <div>
-                      <p className="text-sm text-muted-foreground mb-1">Mentor/Pastor</p>
+                      <p className="text-sm text-muted-foreground mb-1">{t.mentor}</p>
                       <p className="text-foreground font-medium">{member.mentor}</p>
                     </div>
                   )}
@@ -319,7 +342,7 @@ export default function MemberDetailPage() {
                   <>
                     <Separator className="my-4" />
                     <div>
-                      <p className="text-sm text-muted-foreground mb-2">Testimony</p>
+                      <p className="text-sm text-muted-foreground mb-2">{t.testimony}</p>
                       <p className="text-foreground whitespace-pre-wrap">{member.testimony}</p>
                     </div>
                   </>
@@ -328,7 +351,7 @@ export default function MemberDetailPage() {
                   <>
                     <Separator className="my-4" />
                     <div>
-                      <p className="text-sm text-muted-foreground mb-2">Faith Journey Notes</p>
+                      <p className="text-sm text-muted-foreground mb-2">{t.faithJourneyNotes}</p>
                       <p className="text-foreground whitespace-pre-wrap">{member.faithJourneyNotes}</p>
                     </div>
                   </>
@@ -342,37 +365,29 @@ export default function MemberDetailPage() {
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">
                     <Briefcase className="w-5 h-5" />
-                    Service & Ministry
+                    {t.serviceMinistry}
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-4">
                   {member.currentServices && member.currentServices.length > 0 && (
                     <div>
-                      <p className="text-sm text-muted-foreground mb-2">Current Services</p>
+                      <p className="text-sm text-muted-foreground mb-2">{t.currentServices}</p>
                       <div className="flex flex-wrap gap-2">
-                        {member.currentServices.map((service) => (
-                          <Badge key={service} variant="default">
-                            {service}
-                          </Badge>
-                        ))}
+                        {member.currentServices.map((s) => <Badge key={s} variant="default">{s}</Badge>)}
                       </div>
                     </div>
                   )}
                   {member.desiredServices && member.desiredServices.length > 0 && (
                     <div>
-                      <p className="text-sm text-muted-foreground mb-2">Desired Services</p>
+                      <p className="text-sm text-muted-foreground mb-2">{t.desiredServices}</p>
                       <div className="flex flex-wrap gap-2">
-                        {member.desiredServices.map((service) => (
-                          <Badge key={service} variant="outline">
-                            {service}
-                          </Badge>
-                        ))}
+                        {member.desiredServices.map((s) => <Badge key={s} variant="outline">{s}</Badge>)}
                       </div>
                     </div>
                   )}
                   {member.mentorshipBy && (
                     <div>
-                      <p className="text-sm text-muted-foreground mb-1">Mentorship By</p>
+                      <p className="text-sm text-muted-foreground mb-1">{t.mentorshipBy}</p>
                       <p className="text-foreground font-medium">{member.mentorshipBy}</p>
                     </div>
                   )}
@@ -386,26 +401,26 @@ export default function MemberDetailPage() {
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">
                     <GraduationCap className="w-5 h-5" />
-                    Education & Profession
+                    {t.educationProfession}
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     {member.educationLevel && (
                       <div>
-                        <p className="text-sm text-muted-foreground mb-1">Education Level</p>
+                        <p className="text-sm text-muted-foreground mb-1">{t.educationLevel}</p>
                         <p className="text-foreground font-medium">{member.educationLevel}</p>
                       </div>
                     )}
                     {member.jobType && (
                       <div>
-                        <p className="text-sm text-muted-foreground mb-1">Job Type</p>
+                        <p className="text-sm text-muted-foreground mb-1">{t.jobType}</p>
                         <p className="text-foreground font-medium">{member.jobType}</p>
                       </div>
                     )}
                     {member.profession && (
                       <div className="md:col-span-2">
-                        <p className="text-sm text-muted-foreground mb-1">Profession</p>
+                        <p className="text-sm text-muted-foreground mb-1">{t.profession}</p>
                         <p className="text-foreground font-medium">{member.profession}</p>
                       </div>
                     )}
@@ -413,25 +428,30 @@ export default function MemberDetailPage() {
                 </CardContent>
               </Card>
             )}
+
+            {/* Family Relationships */}
+            <FamilyRelationships value={hasFamilyLinks ? familyDisplayData : emptyFamilyData()} readOnly />
           </div>
 
-          {/* Right Column - Sidebar Info */}
+          {/* Right Column */}
           <div className="space-y-6">
             {/* Membership Details */}
             <Card className="border-0 shadow-lg">
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                   <Calendar className="w-5 h-5" />
-                  Membership
+                  {t.membership}
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
                 <div>
-                  <p className="text-sm text-muted-foreground mb-1">Join Date</p>
-                  <p className="text-foreground font-medium">{new Date(member.joinDate).toLocaleDateString()}</p>
+                  <p className="text-sm text-muted-foreground mb-1">{t.joinDate}</p>
+                  <p className="text-foreground font-medium">
+                    {member.joinDate ? new Date(member.joinDate).toLocaleDateString() : "—"}
+                  </p>
                 </div>
                 <div>
-                  <p className="text-sm text-muted-foreground mb-1">Status</p>
+                  <p className="text-sm text-muted-foreground mb-1">{t.status}</p>
                   <Badge
                     variant={
                       member.membershipStatus === "Active"
@@ -446,7 +466,7 @@ export default function MemberDetailPage() {
                 </div>
                 {member.membershipType && (
                   <div>
-                    <p className="text-sm text-muted-foreground mb-1">Type</p>
+                    <p className="text-sm text-muted-foreground mb-1">{t.type}</p>
                     <p className="text-foreground font-medium">{member.membershipType}</p>
                   </div>
                 )}
@@ -459,31 +479,31 @@ export default function MemberDetailPage() {
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">
                     <Users className="w-5 h-5" />
-                    Church Grouping
+                    {t.churchGrouping}
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-4">
                   {member.subCommunity && (
                     <div>
-                      <p className="text-sm text-muted-foreground mb-1">Sub-Community</p>
+                      <p className="text-sm text-muted-foreground mb-1">{t.subCommunity}</p>
                       <p className="text-foreground font-medium">{member.subCommunity}</p>
                     </div>
                   )}
                   {member.cellGroupType && (
                     <div>
-                      <p className="text-sm text-muted-foreground mb-1">Cell Group Type</p>
+                      <p className="text-sm text-muted-foreground mb-1">{t.groupType}</p>
                       <p className="text-foreground font-medium">{member.cellGroupType}</p>
                     </div>
                   )}
                   {member.cellGroupNumber && (
                     <div>
-                      <p className="text-sm text-muted-foreground mb-1">Cell Group Number</p>
+                      <p className="text-sm text-muted-foreground mb-1">{t.cellGroupNumber}</p>
                       <p className="text-foreground font-medium">{member.cellGroupNumber}</p>
                     </div>
                   )}
                   {member.cellGroupName && (
                     <div>
-                      <p className="text-sm text-muted-foreground mb-1">Cell Group Name</p>
+                      <p className="text-sm text-muted-foreground mb-1">{t.cellGroupName}</p>
                       <p className="text-foreground font-medium">{member.cellGroupName}</p>
                     </div>
                   )}
@@ -497,19 +517,19 @@ export default function MemberDetailPage() {
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">
                     <AlertCircle className="w-5 h-5" />
-                    Transfer Information
+                    {t.transferInfo}
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-4">
                   {member.transferFromChurch && (
                     <div>
-                      <p className="text-sm text-muted-foreground mb-1">From Church</p>
+                      <p className="text-sm text-muted-foreground mb-1">{t.fromChurch}</p>
                       <p className="text-foreground font-medium">{member.transferFromChurch}</p>
                     </div>
                   )}
                   {member.transferDate && (
                     <div>
-                      <p className="text-sm text-muted-foreground mb-1">Transfer Date</p>
+                      <p className="text-sm text-muted-foreground mb-1">{t.transferDate}</p>
                       <p className="text-foreground font-medium">
                         {new Date(member.transferDate).toLocaleDateString()}
                       </p>
@@ -519,55 +539,29 @@ export default function MemberDetailPage() {
               </Card>
             )}
 
-            {/* Family Information */}
-            {(member.spouseName || member.numberOfChildren) && (
-              <Card className="border-0 shadow-lg">
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <Home className="w-5 h-5" />
-                    Family
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  {member.spouseName && (
-                    <div>
-                      <p className="text-sm text-muted-foreground mb-1">Spouse</p>
-                      <p className="text-foreground font-medium">{member.spouseName}</p>
-                    </div>
-                  )}
-                  {member.numberOfChildren !== undefined && (
-                    <div>
-                      <p className="text-sm text-muted-foreground mb-1">Number of Children</p>
-                      <p className="text-foreground font-medium">{member.numberOfChildren}</p>
-                    </div>
-                  )}
-                </CardContent>
-              </Card>
-            )}
-
-            {/* Financial Contribution */}
+            {/* Financial */}
             {member.paysTithe && (
               <Card className="border-0 shadow-lg">
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">
                     <DollarSign className="w-5 h-5" />
-                    Financial Contribution
+                    {t.financial}
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-4">
                   <div>
-                    <p className="text-sm text-muted-foreground mb-1">Tithe Status</p>
-                    <Badge variant="default">Active</Badge>
+                    <p className="text-sm text-muted-foreground mb-1">{t.titheStatus}</p>
+                    <Badge variant="default">{t.activeLabel}</Badge>
                   </div>
                   {member.titheAmount && (
                     <div>
-                      <p className="text-sm text-muted-foreground mb-1">Amount</p>
-                      <p className="text-foreground font-medium">{member.titheAmount} Birr</p>
+                      <p className="text-sm text-muted-foreground mb-1">{t.amount}</p>
+                      <p className="text-foreground font-medium">{member.titheAmount} {t.birr}</p>
                     </div>
                   )}
                   {member.titheFrequency && (
                     <div>
-                      <p className="text-sm text-muted-foreground mb-1">Frequency</p>
+                      <p className="text-sm text-muted-foreground mb-1">{t.frequency}</p>
                       <p className="text-foreground font-medium">{member.titheFrequency}</p>
                     </div>
                   )}
@@ -581,25 +575,25 @@ export default function MemberDetailPage() {
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">
                     <AlertCircle className="w-5 h-5" />
-                    Emergency Contact
+                    {t.emergencyContact}
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-4">
                   {member.emergencyContactName && (
                     <div>
-                      <p className="text-sm text-muted-foreground mb-1">Name</p>
+                      <p className="text-sm text-muted-foreground mb-1">{t.name}</p>
                       <p className="text-foreground font-medium">{member.emergencyContactName}</p>
                     </div>
                   )}
                   {member.emergencyContactRelation && (
                     <div>
-                      <p className="text-sm text-muted-foreground mb-1">Relationship</p>
+                      <p className="text-sm text-muted-foreground mb-1">{t.relationship}</p>
                       <p className="text-foreground font-medium">{member.emergencyContactRelation}</p>
                     </div>
                   )}
                   {member.emergencyContactPhone && (
                     <div>
-                      <p className="text-sm text-muted-foreground mb-1">Phone</p>
+                      <p className="text-sm text-muted-foreground mb-1">{t.phone}</p>
                       <p className="text-foreground font-medium">{member.emergencyContactPhone}</p>
                     </div>
                   )}
@@ -607,11 +601,11 @@ export default function MemberDetailPage() {
               </Card>
             )}
 
-            {/* Additional Notes */}
+            {/* Notes */}
             {member.notes && (
               <Card className="border-0 shadow-lg">
                 <CardHeader>
-                  <CardTitle>Notes</CardTitle>
+                  <CardTitle>{t.notes}</CardTitle>
                 </CardHeader>
                 <CardContent>
                   <p className="text-foreground whitespace-pre-wrap">{member.notes}</p>

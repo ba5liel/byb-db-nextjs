@@ -17,6 +17,8 @@ import { Badge } from "@/components/ui/badge"
 import { Skeleton } from "@/components/ui/skeleton"
 import { Plus, Search, Edit, Eye } from "lucide-react"
 import { useChurchServices } from "@/lib/church-services-context"
+import { useLanguage } from "@/lib/language-context"
+import { getTranslation } from "@/lib/translations"
 import type { ServiceType } from "@/lib/types"
 
 // Service type labels
@@ -34,6 +36,8 @@ const SERVICE_TYPE_LABELS: Record<ServiceType, { en: string; am: string }> = {
 }
 
 export default function ChurchServicesPage() {
+  const { locale } = useLanguage()
+  const tr = getTranslation(locale)
   const { services, loading, error, fetchServices } = useChurchServices()
   
   // Filter and search states
@@ -72,15 +76,15 @@ export default function ChurchServicesPage() {
       {/* Header */}
       <div className="flex items-center justify-between mb-6">
         <div>
-          <h1 className="text-3xl font-bold">Church Services</h1>
+          <h1 className="text-3xl font-bold">{tr.churchServices.title}</h1>
           <p className="text-muted-foreground mt-1">
-            Manage church services and ministries
+            {tr.churchServices.subtitle}
           </p>
         </div>
         <Link href="/church-services/new">
           <Button>
             <Plus className="mr-2 h-4 w-4" />
-            New Service
+            {tr.churchServices.newService}
           </Button>
         </Link>
       </div>
@@ -96,7 +100,7 @@ export default function ChurchServicesPage() {
             <div className="relative">
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <Input
-                placeholder="Search services..."
+                placeholder={tr.churchServices.searchPlaceholder}
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 className="pl-10"
@@ -109,10 +113,10 @@ export default function ChurchServicesPage() {
                 <SelectValue placeholder="All Types" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="all">All Types</SelectItem>
-                {Object.entries(SERVICE_TYPE_LABELS).map(([key, label]) => (
+                <SelectItem value="all">{tr.churchServices.allTypes}</SelectItem>
+                {Object.entries(SERVICE_TYPE_LABELS).map(([key]) => (
                   <SelectItem key={key} value={key}>
-                    {label.en}
+                    {tr.churchServices.typeLabels[key as keyof typeof tr.churchServices.typeLabels] ?? key}
                   </SelectItem>
                 ))}
               </SelectContent>
@@ -124,9 +128,9 @@ export default function ChurchServicesPage() {
                 <SelectValue placeholder="All Status" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="all">All Status</SelectItem>
-                <SelectItem value="active">Active</SelectItem>
-                <SelectItem value="inactive">Inactive</SelectItem>
+                <SelectItem value="all">{tr.churchServices.allStatus}</SelectItem>
+                <SelectItem value="active">{tr.status.active}</SelectItem>
+                <SelectItem value="inactive">{tr.status.inactive}</SelectItem>
               </SelectContent>
             </Select>
           </div>

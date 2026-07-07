@@ -40,7 +40,7 @@ export const statement = {
   ...defaultStatements,
 
   // Member resource permissions - CRUD only
-  [Resource.CHURCH_MEMBER]: [Action.CREATE, Action.READ, Action.UPDATE, Action.DELETE],
+  [Resource.MEMBER]: [Action.CREATE, Action.READ, Action.UPDATE, Action.DELETE],
 
   // Church service resource permissions - CRUD only
   [Resource.CHURCH_SERVICE]: [
@@ -97,6 +97,39 @@ export const ROLES = {
  * Type for role names
  */
 export type RoleName = (typeof ROLES)[keyof typeof ROLES]
+
+// Object-style exports for the role-management UI (key → string value)
+export const RESOURCES = {
+  MEMBER: Resource.MEMBER,
+  CHURCH_SERVICE: Resource.CHURCH_SERVICE,
+  MINISTER: Resource.MINISTER,
+  ANALYTICS: Resource.ANALYTICS,
+  ROLE: Resource.ROLE,
+  USER: Resource.USER,
+  SESSION: Resource.SESSION,
+} as const
+
+export const ACTIONS = {
+  CREATE: Action.CREATE,
+  READ: Action.READ,
+  UPDATE: Action.UPDATE,
+  DELETE: Action.DELETE,
+  LIST: "list",
+  APPROVE: "approve",
+  SUSPEND: "suspend",
+  ENROLL: "enroll",
+  EXIT: "exit",
+  MANAGE_ACCESS: "manage_access",
+  VIEW_REPORTS: "view_reports",
+  VIEW_DASHBOARD: "view_dashboard",
+  EXPORT_DATA: "export_data",
+  ASSIGN: "assign",
+  BAN: "ban",
+  IMPERSONATE: "impersonate",
+  SET_PASSWORD: "set_password",
+  SET_ROLE: "set_role",
+  REVOKE: "revoke",
+} as const
 
 /**
  * Get role badge color based on role

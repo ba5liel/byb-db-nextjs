@@ -1,6 +1,6 @@
 "use client"
 
-import { Bell, Search, User, Shield } from "lucide-react"
+import { Bell, Search, User, Shield, Sun, Moon } from "lucide-react"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -12,6 +12,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
+import { useTheme } from "next-themes"
 import { LanguageSwitcher } from "@/components/language-switcher"
 import { useLanguage } from "@/lib/language-context"
 import { getTranslation } from "@/lib/translations"
@@ -22,6 +23,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { getRoleDisplayNameAmharic, getRoleDisplayName, getRoleBadgeColor } from "@/lib/permissions"
 
 export function Header() {
+  const { theme, setTheme } = useTheme()
   const { locale } = useLanguage()
   const t = getTranslation(locale)
   const { data: currentUserRole } = useCurrentUserRole()
@@ -56,7 +58,16 @@ export function Header() {
 
       <div className="flex items-center gap-3">
         <LanguageSwitcher />
-        
+
+        <Button
+          variant="ghost"
+          size="icon"
+          className="hover:bg-accent/50"
+          onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
+        >
+          {theme === "dark" ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />}
+        </Button>
+
         <Button variant="ghost" size="icon" className="hover:bg-accent/50">
           <Bell className="h-5 w-5" />
         </Button>

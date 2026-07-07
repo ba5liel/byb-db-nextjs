@@ -9,8 +9,11 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Textarea } from "@/components/ui/textarea"
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
+import { Checkbox } from "@/components/ui/checkbox"
 import { Progress } from "@/components/ui/progress"
 import { Separator } from "@/components/ui/separator"
+import { Skeleton } from "@/components/ui/skeleton"
 import {
   ArrowLeft,
   ArrowRight,
@@ -25,7 +28,10 @@ import {
   Check,
   Save,
 } from "lucide-react"
-import { useMembers } from "@/lib/members-context"
+import { useMember, useUpdateMember, useServices } from "@/lib/api/hooks"
+import { mapBackendMemberToMember, mapMemberToBackendFormat } from "@/lib/member-mapper"
+import { FamilyRelationships, emptyFamilyData } from "@/components/family-relationships"
+import type { FamilyData } from "@/components/family-relationships"
 import { useToast } from "@/hooks/use-toast"
 import { useLanguage } from "@/lib/language-context"
 import { getTranslation } from "@/lib/translations"
@@ -35,32 +41,39 @@ export default function EditMemberPage() {
   const params = useParams()
   const router = useRouter()
   const memberId = params.id as string
-  const { getMember, updateMember } = useMembers()
+  const updateMutation = useUpdateMember()
+  const { data: servicesData } = useServices({ status: "true", limit: 100 })
   const { toast } = useToast()
   const { locale } = useLanguage()
   const t = getTranslation(locale)
-  
-  const [loading, setLoading] = useState(false)
+
   const [currentStep, setCurrentStep] = useState(1)
   const totalSteps = 8
   const [formData, setFormData] = useState<Partial<Member> | null>(null)
+  const [familyData, setFamilyData] = useState<FamilyData>(emptyFamilyData())
 
+  const { data: rawData, isLoading, error } = useMember(memberId)
+
+  // Pre-fill form from API response
   useEffect(() => {
-    async function loadMember() {
-      const member = await getMember(memberId)
-      if (member) {
-        setFormData(member)
-      } else {
-        toast({
-          title: locale === "en" ? "Member not found" : "አባል አልተገኘም",
-          description: locale === "en" ? "The requested member could not be found" : "የተጠየቀው አባል አልተገኘም",
-          variant: "destructive",
-        })
-        router.push("/members")
-      }
+    if (rawData?.data) {
+      const mapped = mapBackendMemberToMember(rawData.data)
+      setFormData(mapped)
+
+      // Pre-fill family data from populated backend fields
+      const raw = rawData.data as any
+      setFamilyData({
+        spouseId: raw.spouseId?._id ?? (typeof raw.spouseId === "string" ? raw.spouseId : undefined),
+        spouseName: raw.spouseId?.fullName,
+        motherId: raw.motherId?._id ?? (typeof raw.motherId === "string" ? raw.motherId : undefined),
+        motherName: raw.motherId?.fullName,
+        fatherId: raw.fatherId?._id ?? (typeof raw.fatherId === "string" ? raw.fatherId : undefined),
+        fatherName: raw.fatherId?.fullName,
+        siblingIds: (raw.siblingIds ?? []).map((s: any) => ({ id: s._id ?? s, name: s.fullName ?? "" })),
+        childrenIds: (raw.childrenIds ?? []).map((c: any) => ({ id: c._id ?? c, name: c.fullName ?? "" })),
+      })
     }
-    loadMember()
-  }, [memberId, getMember, router, locale, toast])
+  }, [rawData])
 
   // Auto-calculate age group when date of birth changes
   useEffect(() => {
@@ -72,7 +85,6 @@ export default function EditMemberPage() {
       else if (age <= 35) ageGroup = "Youth"
       else if (age <= 65) ageGroup = "Adults"
       else ageGroup = "Seniors"
-      
       setFormData((prev) => prev ? { ...prev, ageGroup } : null)
     }
   }, [formData?.dateOfBirth])
@@ -82,116 +94,110 @@ export default function EditMemberPage() {
     const today = new Date()
     let age = today.getFullYear() - birthDate.getFullYear()
     const monthDiff = today.getMonth() - birthDate.getMonth()
-    if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) {
-      age--
-    }
+    if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) age--
     return age
   }
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     if (!formData) return
     const { name, value, type } = e.target
-    if (type === "number") {
-      setFormData((prev) => prev ? { ...prev, [name]: Number(value) } : null)
-    } else {
-      setFormData((prev) => prev ? { ...prev, [name]: value } : null)
-    }
+    setFormData((prev) => prev
+      ? { ...prev, [name]: type === "number" ? Number(value) : value }
+      : null)
   }
 
   const handleSelectChange = (name: string, value: string) => {
     setFormData((prev) => prev ? { ...prev, [name]: value } : null)
   }
 
+  const handleCheckboxChange = (name: string, checked: boolean) => {
+    setFormData((prev) => prev ? { ...prev, [name]: checked } : null)
+  }
+
+  const handleMultiSelectChange = (name: string, value: string, checked: boolean) => {
+    setFormData((prev) => {
+      if (!prev) return null
+      const currentArray = (prev[name as keyof typeof prev] as string[]) || []
+      if (checked) {
+        if (name === "currentServices" && currentArray.length >= 2) {
+          toast({ title: t.serviceMinistry.maxServicesReached, variant: "destructive" })
+          return prev
+        }
+        return { ...prev, [name]: [...currentArray, value] }
+      }
+      return { ...prev, [name]: currentArray.filter((i) => i !== value) }
+    })
+  }
+
   const validateStep = (step: number): boolean => {
     if (!formData) return false
-
-    switch (step) {
-      case 1:
-        if (!formData.firstName || !formData.lastName || !formData.phone) {
-          toast({
-            title: locale === "en" ? "Required fields missing" : "አስፈላጊ መስኮች ይጎድላሉ",
-            description: t.memberForm.requiredFields,
-            variant: "destructive",
-          })
+    if (step === 1) {
+      if (!formData.firstName || !formData.lastName || !formData.phone) {
+        toast({ title: t.memberForm.requiredFields, variant: "destructive" })
+        return false
+      }
+      if (formData.phone && formData.phone.length < 9) {
+        toast({ title: locale === "en" ? "Invalid phone number" : "ልክ ያልሆነ ስልክ ቁጥር", variant: "destructive" })
+        return false
+      }
+      if (formData.email) {
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+        if (!emailRegex.test(formData.email)) {
+          toast({ title: locale === "en" ? "Invalid email" : "ልክ ያልሆነ ኢሜይል", variant: "destructive" })
           return false
         }
-        // Phone validation
-        if (formData.phone && formData.phone.length < 9) {
-          toast({
-            title: locale === "en" ? "Invalid phone number" : "ልክ ያልሆነ ስልክ ቁጥር",
-            description: locale === "en" ? "Please enter a valid phone number" : "እባክዎ ልክ ያለ ስልክ ቁጥር ያስገቡ",
-            variant: "destructive",
-          })
-          return false
-        }
-        // Email validation if provided
-        if (formData.email) {
-          const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
-          if (!emailRegex.test(formData.email)) {
-            toast({
-              title: locale === "en" ? "Invalid email" : "ልክ ያልሆነ ኢሜይል",
-              description: locale === "en" ? "Please enter a valid email address" : "እባክዎ ልክ ያለ ኢሜይል አድራሻ ያስገቡ",
-              variant: "destructive",
-            })
-            return false
-          }
-        }
-        return true
-      default:
-        return true
+      }
     }
+    return true
   }
 
-  const nextStep = () => {
-    if (validateStep(currentStep)) {
-      setCurrentStep((prev) => Math.min(prev + 1, totalSteps))
-    }
-  }
-
-  const prevStep = () => {
-    setCurrentStep((prev) => Math.max(prev - 1, 1))
-  }
+  const nextStep = () => { if (validateStep(currentStep)) setCurrentStep((p) => Math.min(p + 1, totalSteps)) }
+  const prevStep = () => setCurrentStep((p) => Math.max(p - 1, 1))
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
-
-    if (!formData || !validateStep(currentStep)) {
-      return
-    }
-
-    setLoading(true)
+    if (!formData || !validateStep(currentStep)) return
 
     try {
-      const updatedData: Partial<Member> = {
-        ...formData,
-        updatedAt: new Date().toISOString(),
+      const backendData = {
+        ...mapMemberToBackendFormat(formData as Partial<Member>),
+        spouseId: familyData.spouseId,
+        motherId: familyData.motherId,
+        fatherId: familyData.fatherId,
+        siblingIds: familyData.siblingIds.map((s) => s.id),
+        childrenIds: familyData.childrenIds.map((c) => c.id),
       }
 
-      await updateMember(memberId, updatedData)
+      await updateMutation.mutateAsync({ id: memberId, data: backendData as any })
 
       toast({
         title: t.memberForm.updateSuccess,
         description: `${formData.firstName} ${formData.lastName} ${locale === "en" ? "has been updated" : "ተዘምኗል"}`,
       })
-
       router.push(`/members/${memberId}`)
-    } catch (error) {
-      console.error("Error updating member:", error)
-      toast({
-        title: t.memberForm.updateError,
-        description: locale === "en" ? "Please try again" : "እባክዎ እንደገና ይሞክሩ",
-        variant: "destructive",
-      })
-    } finally {
-      setLoading(false)
+    } catch (err) {
+      console.error("Error updating member:", err)
+      toast({ title: t.memberForm.updateError, description: locale === "en" ? "Please try again" : "እባክዎ እንደገና ይሞክሩ", variant: "destructive" })
     }
   }
 
-  if (!formData) {
+  if (isLoading || !formData) {
     return (
       <main className="min-h-screen bg-gradient-to-br from-background via-background to-secondary/20">
-        <div className="container mx-auto px-4 py-12">
-          <div className="text-center text-muted-foreground">{t.common.loading}</div>
+        <div className="container mx-auto px-4 py-12 space-y-6">
+          <Skeleton className="h-10 w-48" />
+          <Skeleton className="h-4 w-full" />
+          <Skeleton className="h-96 w-full" />
+        </div>
+      </main>
+    )
+  }
+
+  if (error) {
+    return (
+      <main className="min-h-screen bg-gradient-to-br from-background via-background to-secondary/20">
+        <div className="container mx-auto px-4 py-12 text-center text-muted-foreground">
+          Failed to load member.
         </div>
       </main>
     )
@@ -209,6 +215,11 @@ export default function EditMemberPage() {
     { number: 7, title: t.memberSteps.education, icon: GraduationCap },
     { number: 8, title: t.memberSteps.financial, icon: DollarSign },
   ]
+
+  const serviceOptions = (servicesData?.data ?? []).map((s) => ({
+    value: s.serviceName,
+    label: s.serviceName,
+  }))
 
   return (
     <main className="min-h-screen bg-gradient-to-br from-background via-background to-secondary/20">
@@ -228,7 +239,7 @@ export default function EditMemberPage() {
         {/* Progress Bar */}
         <div className="mb-8">
           <div className="flex items-center justify-between mb-2">
-            <span className="text-sm font-medium text-foreground">
+            <span className="text-sm font-medium">
               {t.memberForm.stepProgress.replace("{current}", String(currentStep)).replace("{total}", String(totalSteps))}
             </span>
             <span className="text-sm text-muted-foreground">
@@ -245,7 +256,6 @@ export default function EditMemberPage() {
               const StepIcon = step.icon
               const isCompleted = currentStep > step.number
               const isCurrent = currentStep === step.number
-
               return (
                 <button
                   key={step.number}
@@ -267,7 +277,6 @@ export default function EditMemberPage() {
           </div>
         </div>
 
-        {/* Form - Same structure as new member form, but with pre-filled data */}
         <form onSubmit={handleSubmit}>
           <Card className="border-0 shadow-lg">
             <CardHeader>
@@ -287,9 +296,7 @@ export default function EditMemberPage() {
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
-              {/* The form steps are identical to new member form but with pre-filled data */}
-              {/* For brevity, I'll include just step 1 here - the rest follow the same pattern */}
-              
+
               {/* Step 1: Basic Information */}
               {currentStep === 1 && (
                 <>
@@ -297,100 +304,43 @@ export default function EditMemberPage() {
                     <h3 className="text-lg font-semibold">{t.basicInfo.personalInfo}</h3>
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                       <div>
-                        <Label htmlFor="firstName">
-                          {t.basicInfo.firstName} <span className="text-destructive">*</span>
-                        </Label>
-                        <Input
-                          id="firstName"
-                          name="firstName"
-                          value={formData.firstName}
-                          onChange={handleChange}
-                          required
-                          className="mt-1"
-                        />
+                        <Label htmlFor="firstName">{t.basicInfo.firstName} <span className="text-destructive">*</span></Label>
+                        <Input id="firstName" name="firstName" value={formData.firstName ?? ""} onChange={handleChange} required className="mt-1" />
                       </div>
                       <div>
                         <Label htmlFor="middleName">{t.basicInfo.middleName}</Label>
-                        <Input
-                          id="middleName"
-                          name="middleName"
-                          value={formData.middleName || ""}
-                          onChange={handleChange}
-                          className="mt-1"
-                        />
+                        <Input id="middleName" name="middleName" value={formData.middleName ?? ""} onChange={handleChange} className="mt-1" />
                       </div>
                       <div>
-                        <Label htmlFor="lastName">
-                          {t.basicInfo.lastName} <span className="text-destructive">*</span>
-                        </Label>
-                        <Input
-                          id="lastName"
-                          name="lastName"
-                          value={formData.lastName}
-                          onChange={handleChange}
-                          required
-                          className="mt-1"
-                        />
+                        <Label htmlFor="lastName">{t.basicInfo.lastName} <span className="text-destructive">*</span></Label>
+                        <Input id="lastName" name="lastName" value={formData.lastName ?? ""} onChange={handleChange} required className="mt-1" />
                       </div>
                     </div>
 
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       <div>
-                        <Label htmlFor="phone">
-                          {t.basicInfo.phoneNumber} <span className="text-destructive">*</span>
-                        </Label>
-                        <Input
-                          id="phone"
-                          name="phone"
-                          value={formData.phone}
-                          onChange={handleChange}
-                          required
-                          className="mt-1"
-                        />
+                        <Label htmlFor="phone">{t.basicInfo.phoneNumber} <span className="text-destructive">*</span></Label>
+                        <Input id="phone" name="phone" value={formData.phone ?? ""} onChange={handleChange} required className="mt-1" />
                       </div>
                       <div>
-                        <Label htmlFor="email">
-                          {t.basicInfo.email} <span className="text-muted-foreground text-xs">({t.common.optional})</span>
-                        </Label>
-                        <Input
-                          id="email"
-                          name="email"
-                          type="email"
-                          value={formData.email || ""}
-                          onChange={handleChange}
-                          className="mt-1"
-                        />
+                        <Label htmlFor="email">{t.basicInfo.email} <span className="text-muted-foreground text-xs">({t.common.optional})</span></Label>
+                        <Input id="email" name="email" type="email" value={formData.email ?? ""} onChange={handleChange} className="mt-1" />
                       </div>
                     </div>
 
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                       <div>
                         <Label htmlFor="yearOfBirthEthiopian">{t.basicInfo.yearOfBirthEthiopian}</Label>
-                        <Input
-                          id="yearOfBirthEthiopian"
-                          name="yearOfBirthEthiopian"
-                          value={formData.yearOfBirthEthiopian || ""}
-                          onChange={handleChange}
-                          className="mt-1"
-                        />
+                        <Input id="yearOfBirthEthiopian" name="yearOfBirthEthiopian" value={formData.yearOfBirthEthiopian ?? ""} onChange={handleChange} className="mt-1" />
                       </div>
                       <div>
                         <Label htmlFor="dateOfBirth">{t.basicInfo.dateOfBirth}</Label>
-                        <Input
-                          id="dateOfBirth"
-                          name="dateOfBirth"
-                          type="date"
-                          value={formData.dateOfBirth || ""}
-                          onChange={handleChange}
-                          className="mt-1"
-                        />
+                        <Input id="dateOfBirth" name="dateOfBirth" type="date" value={formData.dateOfBirth ?? ""} onChange={handleChange} className="mt-1" />
                       </div>
                       <div>
                         <Label htmlFor="gender">{t.basicInfo.gender}</Label>
-                        <Select value={formData.gender} onValueChange={(value) => handleSelectChange("gender", value)}>
-                          <SelectTrigger className="mt-1">
-                            <SelectValue />
-                          </SelectTrigger>
+                        <Select value={formData.gender} onValueChange={(v) => handleSelectChange("gender", v)}>
+                          <SelectTrigger className="mt-1"><SelectValue /></SelectTrigger>
                           <SelectContent>
                             <SelectItem value="Male">{t.common.male}</SelectItem>
                             <SelectItem value="Female">{t.common.female}</SelectItem>
@@ -417,13 +367,8 @@ export default function EditMemberPage() {
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       <div>
                         <Label htmlFor="maritalStatus">{t.basicInfo.maritalStatus}</Label>
-                        <Select
-                          value={formData.maritalStatus}
-                          onValueChange={(value) => handleSelectChange("maritalStatus", value)}
-                        >
-                          <SelectTrigger className="mt-1">
-                            <SelectValue />
-                          </SelectTrigger>
+                        <Select value={formData.maritalStatus} onValueChange={(v) => handleSelectChange("maritalStatus", v)}>
+                          <SelectTrigger className="mt-1"><SelectValue /></SelectTrigger>
                           <SelectContent>
                             <SelectItem value="Unmarried">{t.maritalStatus.unmarried}</SelectItem>
                             <SelectItem value="Married">{t.maritalStatus.married}</SelectItem>
@@ -434,13 +379,7 @@ export default function EditMemberPage() {
                       </div>
                       <div>
                         <Label htmlFor="nationality">{t.basicInfo.nationality}</Label>
-                        <Input
-                          id="nationality"
-                          name="nationality"
-                          value={formData.nationality || ""}
-                          onChange={handleChange}
-                          className="mt-1"
-                        />
+                        <Input id="nationality" name="nationality" value={formData.nationality ?? ""} onChange={handleChange} className="mt-1" />
                       </div>
                     </div>
                   </div>
@@ -451,69 +390,30 @@ export default function EditMemberPage() {
                     <h3 className="text-lg font-semibold">{t.basicInfo.addressInfo}</h3>
                     <div>
                       <Label htmlFor="physicalAddress">{t.basicInfo.physicalAddress}</Label>
-                      <Textarea
-                        id="physicalAddress"
-                        name="physicalAddress"
-                        value={formData.physicalAddress || ""}
-                        onChange={handleChange}
-                        className="mt-1"
-                        rows={2}
-                      />
+                      <Textarea id="physicalAddress" name="physicalAddress" value={formData.physicalAddress ?? ""} onChange={handleChange} className="mt-1" rows={2} />
                     </div>
-
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       <div>
                         <Label htmlFor="city">{t.basicInfo.city}</Label>
-                        <Input
-                          id="city"
-                          name="city"
-                          value={formData.city || ""}
-                          onChange={handleChange}
-                          className="mt-1"
-                        />
+                        <Input id="city" name="city" value={formData.city ?? ""} onChange={handleChange} className="mt-1" />
                       </div>
                       <div>
                         <Label htmlFor="subCity">{t.basicInfo.subCity}</Label>
-                        <Input
-                          id="subCity"
-                          name="subCity"
-                          value={formData.subCity || ""}
-                          onChange={handleChange}
-                          className="mt-1"
-                        />
+                        <Input id="subCity" name="subCity" value={formData.subCity ?? ""} onChange={handleChange} className="mt-1" />
                       </div>
                     </div>
-
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                       <div>
                         <Label htmlFor="woreda">{t.basicInfo.woreda}</Label>
-                        <Input
-                          id="woreda"
-                          name="woreda"
-                          value={formData.woreda || ""}
-                          onChange={handleChange}
-                          className="mt-1"
-                        />
+                        <Input id="woreda" name="woreda" value={formData.woreda ?? ""} onChange={handleChange} className="mt-1" />
                       </div>
                       <div>
                         <Label htmlFor="kebele">{t.basicInfo.kebele}</Label>
-                        <Input
-                          id="kebele"
-                          name="kebele"
-                          value={formData.kebele || ""}
-                          onChange={handleChange}
-                          className="mt-1"
-                        />
+                        <Input id="kebele" name="kebele" value={formData.kebele ?? ""} onChange={handleChange} className="mt-1" />
                       </div>
                       <div>
                         <Label htmlFor="zipCode">{t.basicInfo.zipCode}</Label>
-                        <Input
-                          id="zipCode"
-                          name="zipCode"
-                          value={formData.zipCode || ""}
-                          onChange={handleChange}
-                          className="mt-1"
-                        />
+                        <Input id="zipCode" name="zipCode" value={formData.zipCode ?? ""} onChange={handleChange} className="mt-1" />
                       </div>
                     </div>
                   </div>
@@ -525,33 +425,15 @@ export default function EditMemberPage() {
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                       <div>
                         <Label htmlFor="emergencyContactName">{t.basicInfo.emergencyContactName}</Label>
-                        <Input
-                          id="emergencyContactName"
-                          name="emergencyContactName"
-                          value={formData.emergencyContactName || ""}
-                          onChange={handleChange}
-                          className="mt-1"
-                        />
+                        <Input id="emergencyContactName" name="emergencyContactName" value={formData.emergencyContactName ?? ""} onChange={handleChange} className="mt-1" />
                       </div>
                       <div>
                         <Label htmlFor="emergencyContactRelation">{t.basicInfo.emergencyContactRelation}</Label>
-                        <Input
-                          id="emergencyContactRelation"
-                          name="emergencyContactRelation"
-                          value={formData.emergencyContactRelation || ""}
-                          onChange={handleChange}
-                          className="mt-1"
-                        />
+                        <Input id="emergencyContactRelation" name="emergencyContactRelation" value={formData.emergencyContactRelation ?? ""} onChange={handleChange} className="mt-1" />
                       </div>
                       <div>
                         <Label htmlFor="emergencyContactPhone">{t.basicInfo.emergencyContactPhone}</Label>
-                        <Input
-                          id="emergencyContactPhone"
-                          name="emergencyContactPhone"
-                          value={formData.emergencyContactPhone || ""}
-                          onChange={handleChange}
-                          className="mt-1"
-                        />
+                        <Input id="emergencyContactPhone" name="emergencyContactPhone" value={formData.emergencyContactPhone ?? ""} onChange={handleChange} className="mt-1" />
                       </div>
                     </div>
                   </div>
@@ -563,24 +445,12 @@ export default function EditMemberPage() {
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                       <div>
                         <Label htmlFor="joinDate">{t.basicInfo.joinDate}</Label>
-                        <Input
-                          id="joinDate"
-                          name="joinDate"
-                          type="date"
-                          value={formData.joinDate}
-                          onChange={handleChange}
-                          className="mt-1"
-                        />
+                        <Input id="joinDate" name="joinDate" type="date" value={formData.joinDate ?? ""} onChange={handleChange} className="mt-1" />
                       </div>
                       <div>
                         <Label htmlFor="membershipStatus">{t.basicInfo.membershipStatus}</Label>
-                        <Select
-                          value={formData.membershipStatus}
-                          onValueChange={(value) => handleSelectChange("membershipStatus", value)}
-                        >
-                          <SelectTrigger className="mt-1">
-                            <SelectValue />
-                          </SelectTrigger>
+                        <Select value={formData.membershipStatus} onValueChange={(v) => handleSelectChange("membershipStatus", v)}>
+                          <SelectTrigger className="mt-1"><SelectValue /></SelectTrigger>
                           <SelectContent>
                             <SelectItem value="Active">{t.status.active}</SelectItem>
                             <SelectItem value="Inactive">{t.status.inactive}</SelectItem>
@@ -592,28 +462,16 @@ export default function EditMemberPage() {
                       </div>
                       <div>
                         <Label htmlFor="membershipType">{t.basicInfo.membershipType}</Label>
-                        <Select
-                          value={formData.membershipType}
-                          onValueChange={(value) => handleSelectChange("membershipType", value)}
-                        >
-                          <SelectTrigger className="mt-1">
-                            <SelectValue />
-                          </SelectTrigger>
+                        <Select value={formData.membershipType} onValueChange={(v) => handleSelectChange("membershipType", v)}>
+                          <SelectTrigger className="mt-1"><SelectValue /></SelectTrigger>
                           <SelectContent>
-                            <SelectItem value="Regular">
-                              {locale === "en" ? "Regular" : "መደበኛ"}
-                            </SelectItem>
-                            <SelectItem value="Guest">
-                              {locale === "en" ? "Guest" : "እንግዳ"}
-                            </SelectItem>
-                            <SelectItem value="Transferred">
-                              {locale === "en" ? "Transferred" : "የተዛወረ"}
-                            </SelectItem>
+                            <SelectItem value="Regular">{locale === "en" ? "Regular" : "መደበኛ"}</SelectItem>
+                            <SelectItem value="Guest">{locale === "en" ? "Guest" : "እንግዳ"}</SelectItem>
+                            <SelectItem value="Transferred">{locale === "en" ? "Transferred" : "የተዛወረ"}</SelectItem>
                           </SelectContent>
                         </Select>
                       </div>
                     </div>
-
                     <div className="p-4 bg-muted/50 rounded-lg">
                       <p className="text-sm">
                         <span className="font-medium">{t.basicInfo.membershipNumber}:</span>{" "}
@@ -624,24 +482,304 @@ export default function EditMemberPage() {
                 </>
               )}
 
-              {/* Steps 2-8 would follow the same pattern as the new member form */}
-              {/* Due to file length, I'm including a simplified version */}
-              {currentStep >= 2 && (
-                <div className="text-center py-12">
-                  <p className="text-muted-foreground">
-                    {locale === "en" 
-                      ? `Step ${currentStep} content (same structure as new member form)`
-                      : `ደረጃ ${currentStep} ይዘት (ከአዲስ አባል ፎርም ጋር ተመሳሳይ መዋቅር)`}
-                  </p>
-                  <p className="text-xs text-muted-foreground mt-2">
-                    {locale === "en"
-                      ? "For full implementation, copy the corresponding step from new member form"
-                      : "ሙሉ አፈጻጸም ለማግኘት፣ ተዛማጅ ደረጃውን ከአዲስ አባል ፎርም ይቅዱ"}
-                  </p>
+              {/* Step 2: Spiritual Journey */}
+              {currentStep === 2 && (
+                <div className="space-y-6">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <Label htmlFor="salvationYearEthiopian">{t.spiritualJourney.salvationYearEthiopian}</Label>
+                      <Input id="salvationYearEthiopian" name="salvationYearEthiopian" value={formData.salvationYearEthiopian ?? ""} onChange={handleChange} className="mt-1" />
+                    </div>
+                    <div>
+                      <Label htmlFor="salvationDate">{t.spiritualJourney.salvationDate}</Label>
+                      <Input id="salvationDate" name="salvationDate" type="date" value={formData.salvationDate ?? ""} onChange={handleChange} className="mt-1" />
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <Label htmlFor="baptismYearEthiopian">{t.spiritualJourney.baptismYearEthiopian}</Label>
+                      <Input id="baptismYearEthiopian" name="baptismYearEthiopian" value={formData.baptismYearEthiopian ?? ""} onChange={handleChange} className="mt-1" />
+                    </div>
+                    <div>
+                      <Label htmlFor="baptismDate">{t.spiritualJourney.baptismDate}</Label>
+                      <Input id="baptismDate" name="baptismDate" type="date" value={formData.baptismDate ?? ""} onChange={handleChange} className="mt-1" />
+                    </div>
+                  </div>
+                  <div>
+                    <Label htmlFor="confirmationDate">{t.spiritualJourney.confirmationDate}</Label>
+                    <Input id="confirmationDate" name="confirmationDate" type="date" value={formData.confirmationDate ?? ""} onChange={handleChange} className="mt-1" />
+                  </div>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <Label htmlFor="catechesisStatus">{t.spiritualJourney.catechesisStatus}</Label>
+                      <Select value={formData.catechesisStatus} onValueChange={(v) => handleSelectChange("catechesisStatus", v)}>
+                        <SelectTrigger className="mt-1"><SelectValue /></SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="Not Started">{t.catechesisStatus.notStarted}</SelectItem>
+                          <SelectItem value="In Progress">{t.catechesisStatus.inProgress}</SelectItem>
+                          <SelectItem value="Completed">{t.catechesisStatus.completed}</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div>
+                      <Label htmlFor="discipleshipProgram">{t.spiritualJourney.discipleshipProgram}</Label>
+                      <Input id="discipleshipProgram" name="discipleshipProgram" value={formData.discipleshipProgram ?? ""} onChange={handleChange} className="mt-1" />
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <Label htmlFor="discipleshipLevel">{t.spiritualJourney.discipleshipLevel}</Label>
+                      <Input id="discipleshipLevel" name="discipleshipLevel" value={formData.discipleshipLevel ?? ""} onChange={handleChange} className="mt-1" />
+                    </div>
+                    <div>
+                      <Label htmlFor="mentor">{t.spiritualJourney.mentor}</Label>
+                      <Input id="mentor" name="mentor" value={formData.mentor ?? ""} onChange={handleChange} className="mt-1" />
+                    </div>
+                  </div>
+                  <div>
+                    <Label htmlFor="testimony">{t.spiritualJourney.testimony}</Label>
+                    <Textarea id="testimony" name="testimony" value={formData.testimony ?? ""} onChange={handleChange} className="mt-1" rows={4} />
+                  </div>
+                  <div>
+                    <Label htmlFor="faithJourneyNotes">{t.spiritualJourney.faithJourneyNotes}</Label>
+                    <Textarea id="faithJourneyNotes" name="faithJourneyNotes" value={formData.faithJourneyNotes ?? ""} onChange={handleChange} className="mt-1" rows={4} />
+                  </div>
                 </div>
               )}
 
-              {/* Navigation Buttons */}
+              {/* Step 3: Church Grouping */}
+              {currentStep === 3 && (
+                <div className="space-y-4">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <Label htmlFor="subCommunity">{t.churchGrouping.subCommunity}</Label>
+                      <Select value={formData.subCommunity} onValueChange={(v) => handleSelectChange("subCommunity", v)}>
+                        <SelectTrigger className="mt-1"><SelectValue placeholder={locale === "en" ? "Select sub-community" : "መንደር/ክፍል ይምረጡ"} /></SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="Jemmo">{t.subCommunity.jemmo}</SelectItem>
+                          <SelectItem value="Bethel">{t.subCommunity.bethel}</SelectItem>
+                          <SelectItem value="Weyira">{t.subCommunity.weyira}</SelectItem>
+                          <SelectItem value="Alfa">{t.subCommunity.alfa}</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div>
+                      <Label htmlFor="currentGroupType">{t.churchGrouping.currentGroupType}</Label>
+                      <Select value={formData.currentGroupType} onValueChange={(v) => handleSelectChange("currentGroupType", v)}>
+                        <SelectTrigger className="mt-1"><SelectValue placeholder={locale === "en" ? "Select group type" : "የቡድን አይነት ይምረጡ"} /></SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="Cell Group">{t.groupType.cellGroup}</SelectItem>
+                          <SelectItem value="Youth Group">{t.groupType.youthGroup}</SelectItem>
+                          <SelectItem value="Bible Study">{t.groupType.bibleStudy}</SelectItem>
+                          <SelectItem value="Prayer Group">{t.groupType.prayerGroup}</SelectItem>
+                          <SelectItem value="None">{t.groupType.none}</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+                  {formData.currentGroupType && formData.currentGroupType !== "None" && (
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div>
+                        <Label htmlFor="cellGroupNumber">{t.churchGrouping.cellGroupNumber}</Label>
+                        <Input id="cellGroupNumber" name="cellGroupNumber" value={formData.cellGroupNumber ?? ""} onChange={handleChange} className="mt-1" />
+                      </div>
+                      <div>
+                        <Label htmlFor="cellGroupName">{t.churchGrouping.cellGroupName}</Label>
+                        <Input id="cellGroupName" name="cellGroupName" value={formData.cellGroupName ?? ""} onChange={handleChange} className="mt-1" />
+                      </div>
+                    </div>
+                  )}
+                  {formData.currentGroupType === "None" && (
+                    <div>
+                      <Label htmlFor="reasonForNoGroup">{t.churchGrouping.reasonForNoGroup}</Label>
+                      <Textarea id="reasonForNoGroup" name="reasonForNoGroup" value={formData.reasonForNoGroup ?? ""} onChange={handleChange} className="mt-1" rows={3} />
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* Step 4: Transfer Information */}
+              {currentStep === 4 && (
+                <div className="space-y-4">
+                  <div>
+                    <Label>{t.transferInfo.isTransfer}</Label>
+                    <RadioGroup value={formData.isTransfer ? "yes" : "no"} onValueChange={(v) => handleCheckboxChange("isTransfer", v === "yes")} className="mt-2">
+                      <div className="flex items-center space-x-2">
+                        <RadioGroupItem value="yes" id="transfer-yes" />
+                        <Label htmlFor="transfer-yes">{t.common.yes}</Label>
+                      </div>
+                      <div className="flex items-center space-x-2">
+                        <RadioGroupItem value="no" id="transfer-no" />
+                        <Label htmlFor="transfer-no">{t.common.no}</Label>
+                      </div>
+                    </RadioGroup>
+                  </div>
+                  {formData.isTransfer && (
+                    <>
+                      <div>
+                        <Label htmlFor="transferFromChurch">{t.transferInfo.transferFromChurch}</Label>
+                        <Input id="transferFromChurch" name="transferFromChurch" value={formData.transferFromChurch ?? ""} onChange={handleChange} className="mt-1" />
+                      </div>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                          <Label htmlFor="transferYearEthiopian">{t.transferInfo.transferYearEthiopian}</Label>
+                          <Input id="transferYearEthiopian" name="transferYearEthiopian" value={formData.transferYearEthiopian ?? ""} onChange={handleChange} className="mt-1" />
+                        </div>
+                        <div>
+                          <Label htmlFor="transferDate">{t.transferInfo.transferDate}</Label>
+                          <Input id="transferDate" name="transferDate" type="date" value={formData.transferDate ?? ""} onChange={handleChange} className="mt-1" />
+                        </div>
+                      </div>
+                    </>
+                  )}
+                </div>
+              )}
+
+              {/* Step 5: Service & Ministry */}
+              {currentStep === 5 && (
+                <div className="space-y-6">
+                  <div>
+                    <Label className="text-base font-semibold">{t.serviceMinistry.currentServices}</Label>
+                    <p className="text-sm text-muted-foreground mb-3">{t.serviceMinistry.currentServicesNote}</p>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                      {serviceOptions.map((service) => (
+                        <div key={service.value} className="flex items-center space-x-2">
+                          <Checkbox
+                            id={`current-${service.value}`}
+                            checked={formData.currentServices?.includes(service.value)}
+                            onCheckedChange={(checked) => handleMultiSelectChange("currentServices", service.value, checked as boolean)}
+                            disabled={!formData.currentServices?.includes(service.value) && (formData.currentServices?.length || 0) >= 2}
+                          />
+                          <Label htmlFor={`current-${service.value}`} className="font-normal cursor-pointer">{service.label}</Label>
+                        </div>
+                      ))}
+                    </div>
+                    {(formData.currentServices?.length || 0) >= 2 && (
+                      <p className="text-sm text-amber-600 mt-2 p-2 bg-amber-50 dark:bg-amber-950/20 rounded">{t.serviceMinistry.maxServicesReached}</p>
+                    )}
+                  </div>
+                  <Separator />
+                  <div>
+                    <Label className="text-base font-semibold">{t.serviceMinistry.desiredServices}</Label>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-3">
+                      {serviceOptions.map((service) => (
+                        <div key={service.value} className="flex items-center space-x-2">
+                          <Checkbox
+                            id={`desired-${service.value}`}
+                            checked={formData.desiredServices?.includes(service.value)}
+                            onCheckedChange={(checked) => handleMultiSelectChange("desiredServices", service.value, checked as boolean)}
+                          />
+                          <Label htmlFor={`desired-${service.value}`} className="font-normal cursor-pointer">{service.label}</Label>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                  <Separator />
+                  <div>
+                    <Label htmlFor="mentorshipBy">{t.serviceMinistry.mentorshipBy}</Label>
+                    <Input id="mentorshipBy" name="mentorshipBy" value={formData.mentorshipBy ?? ""} onChange={handleChange} className="mt-1" />
+                  </div>
+                </div>
+              )}
+
+              {/* Step 6: Family */}
+              {currentStep === 6 && (
+                <div className="space-y-4">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <Label htmlFor="numberOfChildren">{t.family.numberOfChildren}</Label>
+                      <Input id="numberOfChildren" name="numberOfChildren" type="number" min="0" value={formData.numberOfChildren ?? 0} onChange={handleChange} className="mt-1" />
+                    </div>
+                  </div>
+
+                  <FamilyRelationships value={familyData} onChange={setFamilyData} />
+
+                  <div>
+                    <Label htmlFor="notes">{t.family.additionalNotes}</Label>
+                    <Textarea id="notes" name="notes" value={formData.notes ?? ""} onChange={handleChange} className="mt-1" rows={3} />
+                  </div>
+                </div>
+              )}
+
+              {/* Step 7: Education */}
+              {currentStep === 7 && (
+                <div className="space-y-4">
+                  <div>
+                    <Label htmlFor="educationLevel">{t.education.educationLevel}</Label>
+                    <Select value={formData.educationLevel} onValueChange={(v) => handleSelectChange("educationLevel", v)}>
+                      <SelectTrigger className="mt-1"><SelectValue placeholder={locale === "en" ? "Select education level" : "የትምህርት ደረጃ ይምረጡ"} /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="Uneducated">{t.educationLevel.uneducated}</SelectItem>
+                        <SelectItem value="1-8">{t.educationLevel.level1_8}</SelectItem>
+                        <SelectItem value="9-12">{t.educationLevel.level9_12}</SelectItem>
+                        <SelectItem value="Finished 12">{t.educationLevel.finished12}</SelectItem>
+                        <SelectItem value="Diploma">{t.educationLevel.diploma}</SelectItem>
+                        <SelectItem value="Degree">{t.educationLevel.degree}</SelectItem>
+                        <SelectItem value="Masters">{t.educationLevel.masters}</SelectItem>
+                        <SelectItem value="PhD">{t.educationLevel.phd}</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div>
+                    <Label htmlFor="jobType">{t.education.jobType}</Label>
+                    <Select value={formData.jobType} onValueChange={(v) => handleSelectChange("jobType", v)}>
+                      <SelectTrigger className="mt-1"><SelectValue placeholder={locale === "en" ? "Select job type" : "የስራ አይነት ይምረጡ"} /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="Personal">{t.jobType.personal}</SelectItem>
+                        <SelectItem value="Government">{t.jobType.government}</SelectItem>
+                        <SelectItem value="Private">{t.jobType.private}</SelectItem>
+                        <SelectItem value="Unemployed">{t.jobType.unemployed}</SelectItem>
+                        <SelectItem value="Student">{t.jobType.student}</SelectItem>
+                        <SelectItem value="Retired">{t.jobType.retired}</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div>
+                    <Label htmlFor="profession">{t.education.profession}</Label>
+                    <Input id="profession" name="profession" value={formData.profession ?? ""} onChange={handleChange} className="mt-1" />
+                  </div>
+                </div>
+              )}
+
+              {/* Step 8: Financial */}
+              {currentStep === 8 && (
+                <div className="space-y-4">
+                  <div>
+                    <Label>{t.financial.paysTithe}</Label>
+                    <RadioGroup value={formData.paysTithe ? "yes" : "no"} onValueChange={(v) => handleCheckboxChange("paysTithe", v === "yes")} className="mt-2">
+                      <div className="flex items-center space-x-2">
+                        <RadioGroupItem value="yes" id="tithe-yes" />
+                        <Label htmlFor="tithe-yes">{t.common.yes}</Label>
+                      </div>
+                      <div className="flex items-center space-x-2">
+                        <RadioGroupItem value="no" id="tithe-no" />
+                        <Label htmlFor="tithe-no">{t.common.no}</Label>
+                      </div>
+                    </RadioGroup>
+                  </div>
+                  {formData.paysTithe && (
+                    <>
+                      <div>
+                        <Label htmlFor="titheAmount">{t.financial.titheAmountInBirr}</Label>
+                        <Input id="titheAmount" name="titheAmount" type="number" min="0" value={formData.titheAmount ?? 0} onChange={handleChange} className="mt-1" />
+                      </div>
+                      <div>
+                        <Label htmlFor="titheFrequency">{t.financial.titheFrequency}</Label>
+                        <Select value={formData.titheFrequency} onValueChange={(v) => handleSelectChange("titheFrequency", v)}>
+                          <SelectTrigger className="mt-1"><SelectValue /></SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="Weekly">{t.frequency.weekly}</SelectItem>
+                            <SelectItem value="Monthly">{t.frequency.monthly}</SelectItem>
+                            <SelectItem value="Occasionally">{t.frequency.occasionally}</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    </>
+                  )}
+                </div>
+              )}
+
+              {/* Navigation */}
               <div className="flex flex-col-reverse sm:flex-row gap-4 pt-6 mt-6 border-t">
                 {currentStep > 1 && (
                   <Button type="button" variant="outline" onClick={prevStep} className="gap-2 w-full sm:w-auto">
@@ -649,18 +787,18 @@ export default function EditMemberPage() {
                     {t.common.previous}
                   </Button>
                 )}
-
-                {currentStep < totalSteps ? (
-                  <Button type="button" onClick={nextStep} className="gap-2 w-full sm:w-auto sm:ml-auto">
-                    {t.common.next}
-                    <ArrowRight className="w-4 h-4" />
-                  </Button>
-                ) : (
-                  <Button type="submit" disabled={loading} className="gap-2 w-full sm:w-auto sm:ml-auto">
-                    {loading ? t.common.saving : t.common.save}
+                <div className="flex gap-3 sm:ml-auto">
+                  <Button type="submit" variant="outline" disabled={updateMutation.isPending} className="gap-2">
                     <Save className="w-4 h-4" />
+                    {updateMutation.isPending ? t.common.saving : t.common.save}
                   </Button>
-                )}
+                  {currentStep < totalSteps && (
+                    <Button type="button" onClick={nextStep} className="gap-2">
+                      {t.common.next}
+                      <ArrowRight className="w-4 h-4" />
+                    </Button>
+                  )}
+                </div>
               </div>
             </CardContent>
           </Card>

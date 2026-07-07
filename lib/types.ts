@@ -285,3 +285,102 @@ export interface ServiceEnrollment {
   createdBy?: string
   updatedBy?: string
 }
+
+// ============================================================================
+// DTO Types — request shapes for API calls
+// ============================================================================
+
+export interface PaginatedResponse<T> {
+  success?: boolean
+  data: T[]
+  pagination: {
+    total: number
+    page: number
+    limit: number
+    pages: number
+  }
+}
+
+export interface ServiceFilterDto {
+  search?: string
+  type?: ServiceType
+  status?: boolean
+  page?: number
+  limit?: number
+}
+
+export interface CreateChurchServiceDto {
+  serviceName: string
+  serviceDescription: string
+  type: ServiceType
+  service_logo?: string
+  leader: string
+  secretary?: string
+  leadership_start: string
+  leadership_end?: string
+  maximum_members_allowed?: number
+  meeting_schedule?: string
+  meeting_location?: string
+  status?: boolean
+}
+
+export type UpdateChurchServiceDto = Partial<CreateChurchServiceDto>
+
+export interface QueryAdminUsersDto {
+  page?: number
+  limit?: number
+  search?: string
+  role?: AdminUserRole
+  status?: AdminUserStatus
+}
+
+export interface CreateAdminUserDto {
+  username: string
+  email: string
+  password: string
+  fullName: string
+  phoneNumber?: string
+  role: AdminUserRole
+  mustChangePassword?: boolean
+  notifyOnPasswordChange?: boolean
+  notifyOnLogin?: boolean
+  sendCredentialsEmail?: boolean
+  sendCredentialsSms?: boolean
+  ministerId?: string
+  memberId?: string
+}
+
+export type UpdateAdminUserDto = Partial<Omit<CreateAdminUserDto, 'password'>>
+
+export interface UpdateUserStatusDto {
+  status: AdminUserStatus
+  reason?: string
+}
+
+export interface ResetPasswordDto {
+  newPassword: string
+  confirmPassword?: string
+  forcePasswordChange?: boolean
+  sendViaEmail?: boolean
+}
+
+export interface LockAccountDto {
+  reason: string
+  lockUntil?: string
+}
+
+export interface QueryActiveSessionsDto {
+  userId?: string
+  page?: number
+  limit?: number
+}
+
+export interface QueryActivityLogsDto {
+  userId?: string
+  action?: string
+  resource?: string
+  page?: number
+  limit?: number
+  startDate?: string
+  endDate?: string
+}

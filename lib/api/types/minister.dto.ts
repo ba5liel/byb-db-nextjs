@@ -34,16 +34,34 @@ export type UpdateMinisterDto = Partial<CreateMinisterDto> & {
   statusChangeReason?: string
 }
 
+/** Shape of a populated member reference returned by the backend */
+export interface PopulatedMemberRef {
+  _id: string
+  fullName: string
+  membershipNumber?: string
+  phoneNumber?: string
+  email?: string
+  memberPicture?: string
+}
+
 /**
  * Minister response DTO
+ * `memberId` is a populated member object in API responses (string when sending).
  */
-export interface MinisterDto extends CreateMinisterDto {
+export interface MinisterDto extends Omit<CreateMinisterDto, "memberId"> {
   _id: string
+  memberId: string | PopulatedMemberRef
   status: MinisterStatus
-  memberName: string
-  memberEmail?: string
+  statusEffectiveDate?: string
   createdAt: string
   updatedAt: string
+}
+
+/** Resolve the populated member ref from a minister response */
+export function getMinisterMember(minister: MinisterDto): PopulatedMemberRef | null {
+  return typeof minister.memberId === "object" && minister.memberId !== null
+    ? minister.memberId
+    : null
 }
 
 /**

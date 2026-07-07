@@ -102,6 +102,24 @@ export interface ExitMemberDto {
 }
 
 /**
+ * Enrolled Service Member
+ * Returned by GET /api/church-services/:id/members
+ */
+export interface EnrolledServiceMember {
+  enrollmentId: string
+  memberId: string
+  fullName: string | null
+  membershipNumber: string | null
+  phoneNumber: string | null
+  sex: string | null
+  subCommunity: string | null
+  memberPicture: string | null
+  roleInService: string | null
+  notes: string | null
+  enrollmentDate: string
+}
+
+/**
  * Paginated Response
  */
 export interface PaginatedResponse<T> {
@@ -219,6 +237,22 @@ export async function updateChurchService(
     method: 'PATCH',
     body: JSON.stringify(payload),
   })
+}
+
+/**
+ * Get the members currently enrolled (active) in a service
+ * GET /api/church-services/:id/members
+ *
+ * @param serviceId - Service ID
+ * @returns Array of enrolled members with their profile info
+ */
+export async function getServiceMembers(
+  serviceId: string
+): Promise<EnrolledServiceMember[]> {
+  return apiRequest<EnrolledServiceMember[]>(
+    `/api/church-services/${serviceId}/members`,
+    { method: 'GET' }
+  )
 }
 
 /**

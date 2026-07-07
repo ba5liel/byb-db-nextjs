@@ -20,25 +20,21 @@ import { Switch } from "@/components/ui/switch"
 import { Skeleton } from "@/components/ui/skeleton"
 import { ArrowLeft, Save } from "lucide-react"
 import { useChurchServices } from "@/lib/church-services-context"
+import { useLanguage } from "@/lib/language-context"
+import { getTranslation } from "@/lib/translations"
 import type { UpdateChurchServiceDto, ServiceType } from "@/lib/types"
 
-const SERVICE_TYPES: { value: ServiceType; label: string }[] = [
-  { value: "worship", label: "Worship (አምልኮ)" },
-  { value: "evangelism", label: "Evangelism (ወንጌል)" },
-  { value: "social_service", label: "Social Service (ማህበራዊ አገልግሎት)" },
-  { value: "education", label: "Education (ትምህርት)" },
-  { value: "youth", label: "Youth (ወጣቶች)" },
-  { value: "children", label: "Children (ሕፃናት)" },
-  { value: "prayer", label: "Prayer (ጸሎት)" },
-  { value: "media", label: "Media (ሚዲያ)" },
-  { value: "administration", label: "Administration (አስተዳደር)" },
-  { value: "other", label: "Other (ሌላ)" },
+const SERVICE_TYPE_VALUES: ServiceType[] = [
+  "worship", "evangelism", "social_service", "education", "youth",
+  "children", "prayer", "media", "administration", "other",
 ]
 
 export default function EditChurchServicePage() {
   const params = useParams()
   const router = useRouter()
   const serviceId = params.id as string
+  const { locale } = useLanguage()
+  const tr = getTranslation(locale)
 
   const { getService, updateService, loading, error } = useChurchServices()
   const [service, setService] = useState<any>(null)
@@ -127,9 +123,9 @@ export default function EditChurchServicePage() {
       if (formData.secretary !== undefined)
         updateData.secretary = formData.secretary || undefined
       if (formData.leadership_start)
-        updateData.leadership_start = new Date(formData.leadership_start)
+        updateData.leadership_start = formData.leadership_start
       if (formData.leadership_end)
-        updateData.leadership_end = new Date(formData.leadership_end)
+        updateData.leadership_end = formData.leadership_end
       if (formData.maximum_members_allowed !== undefined)
         updateData.maximum_members_allowed = Number(
           formData.maximum_members_allowed
@@ -144,7 +140,7 @@ export default function EditChurchServicePage() {
       router.push(`/church-services/${updatedService._id}`)
     } catch (err) {
       setSubmitError(
-        err instanceof Error ? err.message : "Failed to update service"
+        err instanceof Error ? err.message : tr.churchServices.updateFailed
       )
     }
   }
@@ -173,7 +169,7 @@ export default function EditChurchServicePage() {
           <CardContent className="pt-6">
             <p className="text-destructive">{error}</p>
             <Link href="/church-services" className="mt-4 inline-block">
-              <Button variant="outline">Back to Services</Button>
+              <Button variant="outline">{tr.churchServices.backToServices}</Button>
             </Link>
           </CardContent>
         </Card>
@@ -186,9 +182,9 @@ export default function EditChurchServicePage() {
       <div className="container mx-auto py-8 px-4 max-w-4xl">
         <Card>
           <CardContent className="pt-6 text-center">
-            <p className="text-muted-foreground">Service not found</p>
+            <p className="text-muted-foreground">{tr.churchServices.serviceNotFound}</p>
             <Link href="/church-services" className="mt-4 inline-block">
-              <Button variant="outline">Back to Services</Button>
+              <Button variant="outline">{tr.churchServices.backToServices}</Button>
             </Link>
           </CardContent>
         </Card>
@@ -206,7 +202,7 @@ export default function EditChurchServicePage() {
           </Button>
         </Link>
         <div>
-          <h1 className="text-3xl font-bold">Edit Church Service</h1>
+          <h1 className="text-3xl font-bold">{tr.churchServices.editService}</h1>
           <p className="text-muted-foreground mt-1">{service.serviceName}</p>
         </div>
       </div>
@@ -224,34 +220,32 @@ export default function EditChurchServicePage() {
       <form onSubmit={handleSubmit}>
         <Card>
           <CardHeader>
-            <CardTitle>Service Information</CardTitle>
-            <CardDescription>
-              Update the church service information
-            </CardDescription>
+            <CardTitle>{tr.churchServices.serviceInformation}</CardTitle>
+            <CardDescription>{tr.churchServices.updateInfoDesc}</CardDescription>
           </CardHeader>
           <CardContent className="space-y-6">
             {/* Service Name */}
             <div className="space-y-2">
-              <Label htmlFor="serviceName">Service Name</Label>
+              <Label htmlFor="serviceName">{tr.churchServices.serviceName}</Label>
               <Input
                 id="serviceName"
                 value={formData.serviceName}
                 onChange={(e) => handleChange("serviceName", e.target.value)}
-                placeholder="e.g., Worship Service"
+                placeholder={tr.churchServices.serviceNamePlaceholder}
                 maxLength={150}
               />
             </div>
 
             {/* Description */}
             <div className="space-y-2">
-              <Label htmlFor="serviceDescription">Description</Label>
+              <Label htmlFor="serviceDescription">{tr.churchServices.description}</Label>
               <Textarea
                 id="serviceDescription"
                 value={formData.serviceDescription}
                 onChange={(e) =>
                   handleChange("serviceDescription", e.target.value)
                 }
-                placeholder="Describe the purpose and activities of this service..."
+                placeholder={tr.churchServices.descriptionPlaceholder}
                 maxLength={2000}
                 rows={4}
               />
@@ -259,7 +253,7 @@ export default function EditChurchServicePage() {
 
             {/* Type */}
             <div className="space-y-2">
-              <Label htmlFor="type">Service Type</Label>
+              <Label htmlFor="type">{tr.churchServices.serviceType}</Label>
               <Select
                 value={formData.type}
                 onValueChange={(value) => handleChange("type", value)}
@@ -268,9 +262,9 @@ export default function EditChurchServicePage() {
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  {SERVICE_TYPES.map((type) => (
-                    <SelectItem key={type.value} value={type.value}>
-                      {type.label}
+                  {SERVICE_TYPE_VALUES.map((v) => (
+                    <SelectItem key={v} value={v}>
+                      {tr.churchServices.typeLabels[v]}
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -279,29 +273,29 @@ export default function EditChurchServicePage() {
 
             {/* Leader */}
             <div className="space-y-2">
-              <Label htmlFor="leader">Leader Member ID</Label>
+              <Label htmlFor="leader">{tr.churchServices.leader}</Label>
               <Input
                 id="leader"
                 value={formData.leader}
                 onChange={(e) => handleChange("leader", e.target.value)}
-                placeholder="Enter member ID"
+                placeholder={tr.common.optional}
               />
             </div>
 
             {/* Secretary */}
             <div className="space-y-2">
-              <Label htmlFor="secretary">Secretary Member ID (Optional)</Label>
+              <Label htmlFor="secretary">{tr.churchServices.secretary}</Label>
               <Input
                 id="secretary"
                 value={formData.secretary || ""}
                 onChange={(e) => handleChange("secretary", e.target.value)}
-                placeholder="Enter member ID"
+                placeholder={tr.common.optional}
               />
             </div>
 
             {/* Leadership Start Date */}
             <div className="space-y-2">
-              <Label htmlFor="leadership_start">Leadership Start Date</Label>
+              <Label htmlFor="leadership_start">{tr.churchServices.leadershipStart}</Label>
               <Input
                 id="leadership_start"
                 type="date"
@@ -314,9 +308,7 @@ export default function EditChurchServicePage() {
 
             {/* Leadership End Date */}
             <div className="space-y-2">
-              <Label htmlFor="leadership_end">
-                Leadership End Date (Optional)
-              </Label>
+              <Label htmlFor="leadership_end">{tr.churchServices.leadershipEnd}</Label>
               <Input
                 id="leadership_end"
                 type="date"
@@ -329,9 +321,7 @@ export default function EditChurchServicePage() {
 
             {/* Maximum Members */}
             <div className="space-y-2">
-              <Label htmlFor="maximum_members_allowed">
-                Maximum Members (Optional)
-              </Label>
+              <Label htmlFor="maximum_members_allowed">{tr.churchServices.maxMembers}</Label>
               <Input
                 id="maximum_members_allowed"
                 type="number"
@@ -343,37 +333,33 @@ export default function EditChurchServicePage() {
                     e.target.value ? Number(e.target.value) : undefined
                   )
                 }
-                placeholder="Leave empty for unlimited"
+                placeholder={tr.churchServices.maxMembersPlaceholder}
               />
             </div>
 
             {/* Meeting Schedule */}
             <div className="space-y-2">
-              <Label htmlFor="meeting_schedule">
-                Meeting Schedule (Optional)
-              </Label>
+              <Label htmlFor="meeting_schedule">{tr.churchServices.meetingSchedule}</Label>
               <Input
                 id="meeting_schedule"
                 value={formData.meeting_schedule || ""}
                 onChange={(e) =>
                   handleChange("meeting_schedule", e.target.value || undefined)
                 }
-                placeholder="e.g., Every Sunday 2:00 PM"
+                placeholder={tr.churchServices.meetingSchedulePlaceholder}
               />
             </div>
 
             {/* Meeting Location */}
             <div className="space-y-2">
-              <Label htmlFor="meeting_location">
-                Meeting Location (Optional)
-              </Label>
+              <Label htmlFor="meeting_location">{tr.churchServices.meetingLocation}</Label>
               <Input
                 id="meeting_location"
                 value={formData.meeting_location || ""}
                 onChange={(e) =>
                   handleChange("meeting_location", e.target.value || undefined)
                 }
-                placeholder="e.g., Main Hall, Room 3"
+                placeholder={tr.churchServices.meetingLocationPlaceholder}
               />
             </div>
 
@@ -384,7 +370,7 @@ export default function EditChurchServicePage() {
                 checked={formData.status}
                 onCheckedChange={(checked) => handleChange("status", checked)}
               />
-              <Label htmlFor="status">Active Service</Label>
+              <Label htmlFor="status">{tr.churchServices.activeService}</Label>
             </div>
           </CardContent>
         </Card>
@@ -393,12 +379,12 @@ export default function EditChurchServicePage() {
         <div className="flex gap-4 mt-6">
           <Link href={`/church-services/${serviceId}`} className="flex-1">
             <Button type="button" variant="outline" className="w-full">
-              Cancel
+              {tr.common.cancel}
             </Button>
           </Link>
           <Button type="submit" disabled={loading} className="flex-1">
             <Save className="mr-2 h-4 w-4" />
-            {loading ? "Saving..." : "Save Changes"}
+            {loading ? tr.churchServices.saving : tr.churchServices.saveChanges}
           </Button>
         </div>
       </form>

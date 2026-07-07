@@ -46,8 +46,10 @@ import {
 import { Plus, Search, MoreVertical, Edit, Eye, Trash2, Lock, Unlock } from "lucide-react"
 import { useSystemAdmin } from "@/lib/system-admin-context"
 import { usePermissions } from "@/lib/use-permissions"
-import type { AdminUserRole, AdminUserStatus } from "@/lib/types"
+import type { AdminUser, AdminUserRole, AdminUserStatus } from "@/lib/types"
 import { useToast } from "@/hooks/use-toast"
+import { useLanguage } from "@/lib/language-context"
+import { getTranslation } from "@/lib/translations"
 
 // Role labels
 const ROLE_LABELS: Record<AdminUserRole, string> = {
@@ -71,6 +73,9 @@ const STATUS_VARIANTS: Record<AdminUserStatus, "default" | "secondary" | "destru
 export default function SystemAdminUsersPage() {
   const router = useRouter()
   const { toast } = useToast()
+  const { locale } = useLanguage()
+  const tr = getTranslation(locale)
+  const t = tr.systemAdminUsers
   const { users, loading, error, fetchUsers, deleteUser, lockAccount, unlockAccount } = useSystemAdmin()
   const { checkPermission } = usePermissions()
 
@@ -132,8 +137,8 @@ export default function SystemAdminUsersPage() {
     try {
       await deleteUser(userToAction._id)
       toast({
-        title: "Success",
-        description: "User deleted successfully",
+        title: t.success,
+        description: t.userDeleted,
       })
       setDeleteDialogOpen(false)
       setUserToAction(null)
@@ -148,8 +153,8 @@ export default function SystemAdminUsersPage() {
       fetchUsers(filters)
     } catch (err) {
       toast({
-        title: "Error",
-        description: err instanceof Error ? err.message : "Failed to delete user",
+        title: t.errorTitle,
+        description: err instanceof Error ? err.message : t.deleteFailed,
         variant: "destructive",
       })
     }
@@ -162,16 +167,16 @@ export default function SystemAdminUsersPage() {
       if (userToAction.status === "locked") {
         await unlockAccount(userToAction._id)
         toast({
-          title: "Success",
-          description: "User account unlocked",
+          title: t.success,
+          description: t.accountUnlocked,
         })
       } else {
         await lockAccount(userToAction._id, {
           reason: "Manual lock by administrator",
         })
         toast({
-          title: "Success",
-          description: "User account locked",
+          title: t.success,
+          description: t.accountLocked,
         })
       }
       setLockDialogOpen(false)
@@ -187,8 +192,8 @@ export default function SystemAdminUsersPage() {
       fetchUsers(filters)
     } catch (err) {
       toast({
-        title: "Error",
-        description: err instanceof Error ? err.message : "Failed to update account status",
+        title: t.errorTitle,
+        description: err instanceof Error ? err.message : t.statusUpdateFailed,
         variant: "destructive",
       })
     }
@@ -196,7 +201,7 @@ export default function SystemAdminUsersPage() {
 
   // Format date
   const formatDate = (dateString?: string) => {
-    if (!dateString) return "Never"
+    if (!dateString) return t.never
     return new Date(dateString).toLocaleDateString()
   }
 
@@ -205,14 +210,14 @@ export default function SystemAdminUsersPage() {
       {/* Header */}
       <div className="flex items-center justify-between mb-6">
         <div>
-          <h1 className="text-3xl font-bold">System Administration</h1>
-          <p className="text-muted-foreground mt-1">Manage admin users and system settings</p>
+          <h1 className="text-3xl font-bold">{t.title}</h1>
+          <p className="text-muted-foreground mt-1">{t.subtitle}</p>
         </div>
         {canCreate && (
           <Link href="/system-admin/users/new">
             <Button>
               <Plus className="mr-2 h-4 w-4" />
-              New User
+              {t.newUser}
             </Button>
           </Link>
         )}
@@ -221,7 +226,7 @@ export default function SystemAdminUsersPage() {
       {/* Filters */}
       <Card className="mb-6">
         <CardHeader>
-          <CardTitle>Filters</CardTitle>
+          <CardTitle>{tr.common.filters}</CardTitle>
         </CardHeader>
         <CardContent>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -229,7 +234,7 @@ export default function SystemAdminUsersPage() {
             <div className="relative">
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <Input
-                placeholder="Search users..."
+                placeholder={t.searchUsers}
                 value={searchTerm}
                 onChange={(e) => {
                   setSearchTerm(e.target.value)
@@ -242,10 +247,10 @@ export default function SystemAdminUsersPage() {
             {/* Role Filter */}
             <Select value={roleFilter} onValueChange={(value) => { setRoleFilter(value); setPage(1) }}>
               <SelectTrigger>
-                <SelectValue placeholder="All Roles" />
+                <SelectValue placeholder={t.allRoles} />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="all">All Roles</SelectItem>
+                <SelectItem value="all">{t.allRoles}</SelectItem>
                 {Object.entries(ROLE_LABELS).map(([key, label]) => (
                   <SelectItem key={key} value={key}>
                     {label}
@@ -257,14 +262,14 @@ export default function SystemAdminUsersPage() {
             {/* Status Filter */}
             <Select value={statusFilter} onValueChange={(value) => { setStatusFilter(value); setPage(1) }}>
               <SelectTrigger>
-                <SelectValue placeholder="All Status" />
+                <SelectValue placeholder={t.allStatus} />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="all">All Status</SelectItem>
-                <SelectItem value="active">Active</SelectItem>
-                <SelectItem value="inactive">Inactive</SelectItem>
-                <SelectItem value="locked">Locked</SelectItem>
-                <SelectItem value="pending_activation">Pending Activation</SelectItem>
+                <SelectItem value="all">{t.allStatus}</SelectItem>
+                <SelectItem value="active">{t.statusActive}</SelectItem>
+                <SelectItem value="inactive">{t.statusInactive}</SelectItem>
+                <SelectItem value="locked">{t.statusLocked}</SelectItem>
+                <SelectItem value="pending_activation">{t.statusPending}</SelectItem>
               </SelectContent>
             </Select>
           </div>
@@ -294,10 +299,10 @@ export default function SystemAdminUsersPage() {
       ) : users.length === 0 ? (
         <Card>
           <CardContent className="pt-6 text-center">
-            <p className="text-muted-foreground">No users found.</p>
+            <p className="text-muted-foreground">{t.noUsers}</p>
             {canCreate && (
               <Link href="/system-admin/users/new" className="mt-4 inline-block">
-                <Button variant="outline">Create First User</Button>
+                <Button variant="outline">{t.createFirstUser}</Button>
               </Link>
             )}
           </CardContent>
@@ -309,13 +314,13 @@ export default function SystemAdminUsersPage() {
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>Username</TableHead>
-                    <TableHead>Full Name</TableHead>
-                    <TableHead>Email</TableHead>
-                    <TableHead>Role</TableHead>
-                    <TableHead>Status</TableHead>
-                    <TableHead>Last Login</TableHead>
-                    <TableHead className="text-right">Actions</TableHead>
+                    <TableHead>{t.username}</TableHead>
+                    <TableHead>{t.fullName}</TableHead>
+                    <TableHead>{t.email}</TableHead>
+                    <TableHead>{t.role}</TableHead>
+                    <TableHead>{t.status}</TableHead>
+                    <TableHead>{t.lastLogin}</TableHead>
+                    <TableHead className="text-right">{t.actions}</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -325,7 +330,7 @@ export default function SystemAdminUsersPage() {
                       <TableCell>{user.fullName}</TableCell>
                       <TableCell>{user.email}</TableCell>
                       <TableCell>
-                        <Badge variant="outline">{ROLE_LABELS[user.role] || user.role}</Badge>
+                        <Badge variant="outline">{t.roleLabels[user.role] || user.role}</Badge>
                       </TableCell>
                       <TableCell>
                         <Badge variant={STATUS_VARIANTS[user.status]}>
@@ -341,19 +346,19 @@ export default function SystemAdminUsersPage() {
                             </Button>
                           </DropdownMenuTrigger>
                           <DropdownMenuContent align="end">
-                            <DropdownMenuLabel>Actions</DropdownMenuLabel>
+                            <DropdownMenuLabel>{t.actions}</DropdownMenuLabel>
                             <DropdownMenuSeparator />
                             <DropdownMenuItem asChild>
                               <Link href={`/system-admin/users/${user._id}`}>
                                 <Eye className="mr-2 h-4 w-4" />
-                                View
+                                {t.view}
                               </Link>
                             </DropdownMenuItem>
                             {canUpdate && (
                               <DropdownMenuItem asChild>
                                 <Link href={`/system-admin/users/${user._id}/edit`}>
                                   <Edit className="mr-2 h-4 w-4" />
-                                  Edit
+                                  {tr.common.edit}
                                 </Link>
                               </DropdownMenuItem>
                             )}
@@ -367,12 +372,12 @@ export default function SystemAdminUsersPage() {
                                 {user.status === "locked" ? (
                                   <>
                                     <Unlock className="mr-2 h-4 w-4" />
-                                    Unlock
+                                    {t.unlock}
                                   </>
                                 ) : (
                                   <>
                                     <Lock className="mr-2 h-4 w-4" />
-                                    Lock
+                                    {t.lock}
                                   </>
                                 )}
                               </DropdownMenuItem>
@@ -388,7 +393,7 @@ export default function SystemAdminUsersPage() {
                                   }}
                                 >
                                   <Trash2 className="mr-2 h-4 w-4" />
-                                  Delete
+                                  {tr.common.delete}
                                 </DropdownMenuItem>
                               </>
                             )}
@@ -410,17 +415,17 @@ export default function SystemAdminUsersPage() {
                 disabled={page === 1}
                 onClick={() => setPage(page - 1)}
               >
-                Previous
+                {tr.common.previous}
               </Button>
               <span className="text-sm text-muted-foreground">
-                Page {page} of {totalPages}
+                {t.pageOf.replace("{page}", String(page)).replace("{total}", String(totalPages))}
               </span>
               <Button
                 variant="outline"
                 disabled={page >= totalPages}
                 onClick={() => setPage(page + 1)}
               >
-                Next
+                {tr.common.next}
               </Button>
             </div>
           )}
@@ -431,16 +436,13 @@ export default function SystemAdminUsersPage() {
       <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Delete User</AlertDialogTitle>
-            <AlertDialogDescription>
-              Are you sure you want to delete {userToAction?.fullName}? This action cannot be undone.
-              The user will be soft-deleted and can be restored if needed.
-            </AlertDialogDescription>
+            <AlertDialogTitle>{t.deleteUserTitle}</AlertDialogTitle>
+            <AlertDialogDescription>{t.deleteUserDesc.replace("{name}", userToAction?.fullName ?? "")}</AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogCancel>{tr.common.cancel}</AlertDialogCancel>
             <AlertDialogAction onClick={handleDelete} className="bg-destructive text-destructive-foreground">
-              Delete
+              {tr.common.delete}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
@@ -451,16 +453,14 @@ export default function SystemAdminUsersPage() {
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>
-              {userToAction?.status === "locked" ? "Unlock User" : "Lock User"}
+              {userToAction?.status === "locked" ? t.unlockUserTitle : t.lockUserTitle}
             </AlertDialogTitle>
-            <AlertDialogDescription>
-              Are you sure you want to {userToAction?.status === "locked" ? "unlock" : "lock"} {userToAction?.fullName}?
-            </AlertDialogDescription>
+            <AlertDialogDescription>{(userToAction?.status === "locked" ? t.unlockConfirm : t.lockConfirm).replace("{name}", userToAction?.fullName ?? "")}</AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogCancel>{tr.common.cancel}</AlertDialogCancel>
             <AlertDialogAction onClick={handleLock}>
-              {userToAction?.status === "locked" ? "Unlock" : "Lock"}
+              {userToAction?.status === "locked" ? t.unlock : t.lock}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

@@ -19,23 +19,19 @@ import { Switch } from "@/components/ui/switch"
 import { ArrowLeft, Save } from "lucide-react"
 import Link from "next/link"
 import { useChurchServices } from "@/lib/church-services-context"
+import { useLanguage } from "@/lib/language-context"
+import { getTranslation } from "@/lib/translations"
 import type { CreateChurchServiceDto, ServiceType } from "@/lib/types"
 
-const SERVICE_TYPES: { value: ServiceType; label: string }[] = [
-  { value: "worship", label: "Worship (አምልኮ)" },
-  { value: "evangelism", label: "Evangelism (ወንጌል)" },
-  { value: "social_service", label: "Social Service (ማህበራዊ አገልግሎት)" },
-  { value: "education", label: "Education (ትምህርት)" },
-  { value: "youth", label: "Youth (ወጣቶች)" },
-  { value: "children", label: "Children (ሕፃናት)" },
-  { value: "prayer", label: "Prayer (ጸሎት)" },
-  { value: "media", label: "Media (ሚዲያ)" },
-  { value: "administration", label: "Administration (አስተዳደር)" },
-  { value: "other", label: "Other (ሌላ)" },
+const SERVICE_TYPE_VALUES: ServiceType[] = [
+  "worship", "evangelism", "social_service", "education", "youth",
+  "children", "prayer", "media", "administration", "other",
 ]
 
 export default function NewChurchServicePage() {
   const router = useRouter()
+  const { locale } = useLanguage()
+  const tr = getTranslation(locale)
   const { createService, loading, error } = useChurchServices()
 
   // Form state
@@ -75,25 +71,20 @@ export default function NewChurchServicePage() {
     try {
       // Validate required fields
       if (!formData.serviceName.trim()) {
-        setSubmitError("Service name is required")
+        setSubmitError(tr.churchServices.serviceNameRequired)
         return
       }
       if (!formData.serviceDescription.trim()) {
-        setSubmitError("Service description is required")
+        setSubmitError(tr.churchServices.serviceDescRequired)
         return
       }
       if (!formData.leader.trim()) {
-        setSubmitError("Leader is required")
+        setSubmitError(tr.churchServices.leaderRequired)
         return
       }
 
-      // Convert date strings to Date objects
       const serviceData = {
         ...formData,
-        leadership_start: new Date(formData.leadership_start),
-        ...(formData.leadership_end && {
-          leadership_end: new Date(formData.leadership_end),
-        }),
         ...(formData.maximum_members_allowed && {
           maximum_members_allowed: Number(formData.maximum_members_allowed),
         }),
@@ -103,7 +94,7 @@ export default function NewChurchServicePage() {
       router.push(`/church-services/${newService._id}`)
     } catch (err) {
       setSubmitError(
-        err instanceof Error ? err.message : "Failed to create service"
+        err instanceof Error ? err.message : tr.churchServices.createFailed
       )
     }
   }
@@ -118,10 +109,8 @@ export default function NewChurchServicePage() {
           </Button>
         </Link>
         <div>
-          <h1 className="text-3xl font-bold">New Church Service</h1>
-          <p className="text-muted-foreground mt-1">
-            Create a new church service or ministry
-          </p>
+          <h1 className="text-3xl font-bold">{tr.churchServices.createService}</h1>
+          <p className="text-muted-foreground mt-1">{tr.churchServices.createServiceSubtitle}</p>
         </div>
       </div>
 
@@ -138,22 +127,20 @@ export default function NewChurchServicePage() {
       <form onSubmit={handleSubmit}>
         <Card>
           <CardHeader>
-            <CardTitle>Service Information</CardTitle>
-            <CardDescription>
-              Basic information about the church service
-            </CardDescription>
+            <CardTitle>{tr.churchServices.serviceInformation}</CardTitle>
+            <CardDescription>{tr.churchServices.basicInfoDesc}</CardDescription>
           </CardHeader>
           <CardContent className="space-y-6">
             {/* Service Name */}
             <div className="space-y-2">
               <Label htmlFor="serviceName">
-                Service Name <span className="text-destructive">*</span>
+                {tr.churchServices.serviceName} <span className="text-destructive">*</span>
               </Label>
               <Input
                 id="serviceName"
                 value={formData.serviceName}
                 onChange={(e) => handleChange("serviceName", e.target.value)}
-                placeholder="e.g., Worship Service"
+                placeholder={tr.churchServices.serviceNamePlaceholder}
                 required
                 maxLength={150}
               />
@@ -162,7 +149,7 @@ export default function NewChurchServicePage() {
             {/* Description */}
             <div className="space-y-2">
               <Label htmlFor="serviceDescription">
-                Description <span className="text-destructive">*</span>
+                {tr.churchServices.description} <span className="text-destructive">*</span>
               </Label>
               <Textarea
                 id="serviceDescription"
@@ -170,7 +157,7 @@ export default function NewChurchServicePage() {
                 onChange={(e) =>
                   handleChange("serviceDescription", e.target.value)
                 }
-                placeholder="Describe the purpose and activities of this service..."
+                placeholder={tr.churchServices.descriptionPlaceholder}
                 required
                 maxLength={2000}
                 rows={4}
@@ -180,7 +167,7 @@ export default function NewChurchServicePage() {
             {/* Type */}
             <div className="space-y-2">
               <Label htmlFor="type">
-                Service Type <span className="text-destructive">*</span>
+                {tr.churchServices.serviceType} <span className="text-destructive">*</span>
               </Label>
               <Select
                 value={formData.type}
@@ -190,9 +177,9 @@ export default function NewChurchServicePage() {
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  {SERVICE_TYPES.map((type) => (
-                    <SelectItem key={type.value} value={type.value}>
-                      {type.label}
+                  {SERVICE_TYPE_VALUES.map((v) => (
+                    <SelectItem key={v} value={v}>
+                      {tr.churchServices.typeLabels[v]}
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -202,35 +189,33 @@ export default function NewChurchServicePage() {
             {/* Leader */}
             <div className="space-y-2">
               <Label htmlFor="leader">
-                Leader Member ID <span className="text-destructive">*</span>
+                {tr.churchServices.leader} <span className="text-destructive">*</span>
               </Label>
               <Input
                 id="leader"
                 value={formData.leader}
                 onChange={(e) => handleChange("leader", e.target.value)}
-                placeholder="Enter member ID"
+                placeholder={tr.common.required}
                 required
               />
-              <p className="text-sm text-muted-foreground">
-                The member ID of the service leader
-              </p>
+              <p className="text-sm text-muted-foreground">{tr.churchServices.leaderHelp}</p>
             </div>
 
             {/* Secretary */}
             <div className="space-y-2">
-              <Label htmlFor="secretary">Secretary Member ID (Optional)</Label>
+              <Label htmlFor="secretary">{tr.churchServices.secretary}</Label>
               <Input
                 id="secretary"
                 value={formData.secretary || ""}
                 onChange={(e) => handleChange("secretary", e.target.value)}
-                placeholder="Enter member ID"
+                placeholder={tr.common.optional}
               />
             </div>
 
             {/* Leadership Start Date */}
             <div className="space-y-2">
               <Label htmlFor="leadership_start">
-                Leadership Start Date <span className="text-destructive">*</span>
+                {tr.churchServices.leadershipStart} <span className="text-destructive">*</span>
               </Label>
               <Input
                 id="leadership_start"
@@ -245,9 +230,7 @@ export default function NewChurchServicePage() {
 
             {/* Leadership End Date */}
             <div className="space-y-2">
-              <Label htmlFor="leadership_end">
-                Leadership End Date (Optional)
-              </Label>
+              <Label htmlFor="leadership_end">{tr.churchServices.leadershipEnd}</Label>
               <Input
                 id="leadership_end"
                 type="date"
@@ -260,9 +243,7 @@ export default function NewChurchServicePage() {
 
             {/* Maximum Members */}
             <div className="space-y-2">
-              <Label htmlFor="maximum_members_allowed">
-                Maximum Members (Optional)
-              </Label>
+              <Label htmlFor="maximum_members_allowed">{tr.churchServices.maxMembers}</Label>
               <Input
                 id="maximum_members_allowed"
                 type="number"
@@ -274,33 +255,33 @@ export default function NewChurchServicePage() {
                     e.target.value ? Number(e.target.value) : undefined
                   )
                 }
-                placeholder="Leave empty for unlimited"
+                placeholder={tr.churchServices.maxMembersPlaceholder}
               />
             </div>
 
             {/* Meeting Schedule */}
             <div className="space-y-2">
-              <Label htmlFor="meeting_schedule">Meeting Schedule (Optional)</Label>
+              <Label htmlFor="meeting_schedule">{tr.churchServices.meetingSchedule}</Label>
               <Input
                 id="meeting_schedule"
                 value={formData.meeting_schedule || ""}
                 onChange={(e) =>
                   handleChange("meeting_schedule", e.target.value || undefined)
                 }
-                placeholder="e.g., Every Sunday 2:00 PM"
+                placeholder={tr.churchServices.meetingSchedulePlaceholder}
               />
             </div>
 
             {/* Meeting Location */}
             <div className="space-y-2">
-              <Label htmlFor="meeting_location">Meeting Location (Optional)</Label>
+              <Label htmlFor="meeting_location">{tr.churchServices.meetingLocation}</Label>
               <Input
                 id="meeting_location"
                 value={formData.meeting_location || ""}
                 onChange={(e) =>
                   handleChange("meeting_location", e.target.value || undefined)
                 }
-                placeholder="e.g., Main Hall, Room 3"
+                placeholder={tr.churchServices.meetingLocationPlaceholder}
               />
             </div>
 
@@ -311,7 +292,7 @@ export default function NewChurchServicePage() {
                 checked={formData.status}
                 onCheckedChange={(checked) => handleChange("status", checked)}
               />
-              <Label htmlFor="status">Active Service</Label>
+              <Label htmlFor="status">{tr.churchServices.activeService}</Label>
             </div>
           </CardContent>
         </Card>
@@ -320,12 +301,12 @@ export default function NewChurchServicePage() {
         <div className="flex gap-4 mt-6">
           <Link href="/church-services" className="flex-1">
             <Button type="button" variant="outline" className="w-full">
-              Cancel
+              {tr.common.cancel}
             </Button>
           </Link>
           <Button type="submit" disabled={loading} className="flex-1">
             <Save className="mr-2 h-4 w-4" />
-            {loading ? "Creating..." : "Create Service"}
+            {loading ? tr.churchServices.creating : tr.churchServices.createServiceBtn}
           </Button>
         </div>
       </form>

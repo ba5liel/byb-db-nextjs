@@ -12,6 +12,8 @@ import { Badge } from "@/components/ui/badge"
 import { useRoles, usePermissions } from "@/lib/api/hooks"
 import { PermissionGuard } from "@/components/auth/permission-guard"
 import { getRoleBadgeColor } from "@/lib/permissions"
+import { useLanguage } from "@/lib/language-context"
+import { getTranslation } from "@/lib/translations"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import {
   Accordion,
@@ -21,6 +23,8 @@ import {
 } from "@/components/ui/accordion"
 
 export default function RolesPage() {
+  const { locale } = useLanguage()
+  const tr = getTranslation(locale)
   const { data: rolesData, isLoading: rolesLoading } = useRoles()
   const { data: permissionsData, isLoading: permissionsLoading } = usePermissions()
 
@@ -34,27 +38,27 @@ export default function RolesPage() {
         <div className="flex justify-between items-center">
           <div>
             <h1 className="text-4xl font-bold tracking-tight">
-              Role Management
+              {tr.roles.title}
             </h1>
             <p className="text-muted-foreground mt-2">
-              የሚና አስተዳደር - View roles and their permissions
+              {tr.roles.subtitle}
             </p>
           </div>
         </div>
 
         <Tabs defaultValue="roles" className="w-full">
           <TabsList className="grid w-full max-w-md grid-cols-2">
-            <TabsTrigger value="roles">Roles</TabsTrigger>
-            <TabsTrigger value="permissions">Permissions</TabsTrigger>
+            <TabsTrigger value="roles">{tr.roles.rolesTab}</TabsTrigger>
+            <TabsTrigger value="permissions">{tr.roles.permissionsTab}</TabsTrigger>
           </TabsList>
 
           {/* Roles Tab */}
           <TabsContent value="roles" className="space-y-6">
             <Card className="glass-card border-white/10">
               <CardHeader>
-                <CardTitle>System Roles</CardTitle>
+                <CardTitle>{tr.roles.systemRoles}</CardTitle>
                 <CardDescription>
-                  {roles.length} roles configured in the system
+                  {tr.roles.rolesConfigured.replace("{count}", String(roles.length))}
                 </CardDescription>
               </CardHeader>
               <CardContent>
@@ -86,7 +90,7 @@ export default function RolesPage() {
                         </CardHeader>
                         <CardContent>
                           <div className="space-y-3">
-                            <div className="text-sm font-semibold">Permissions:</div>
+                            <div className="text-sm font-semibold">{tr.roles.permissionsLabel}</div>
                             <Accordion type="single" collapsible className="w-full">
                               {Object.entries(role.permissions.statements).map(([resource, actions]) => (
                                 <AccordionItem key={resource} value={resource} className="border-white/10">
@@ -130,10 +134,8 @@ export default function RolesPage() {
           <TabsContent value="permissions" className="space-y-6">
             <Card className="glass-card border-white/10">
               <CardHeader>
-                <CardTitle>Available Permissions</CardTitle>
-                <CardDescription>
-                  All available resources and their actions in the system
-                </CardDescription>
+                <CardTitle>{tr.roles.availablePermissions}</CardTitle>
+                <CardDescription>{tr.roles.availablePermissionsDesc}</CardDescription>
               </CardHeader>
               <CardContent>
                 {permissionsLoading ? (
@@ -149,9 +151,7 @@ export default function RolesPage() {
                             <Shield className="h-5 w-5 text-primary" />
                             {resource.replace(/_/g, " ").toUpperCase()}
                           </CardTitle>
-                          <CardDescription>
-                            Available actions for this resource
-                          </CardDescription>
+                          <CardDescription>{tr.roles.availableActionsDesc}</CardDescription>
                         </CardHeader>
                         <CardContent>
                           <div className="flex flex-wrap gap-2">
@@ -179,10 +179,8 @@ export default function RolesPage() {
         {/* Role Permissions Matrix */}
         <Card className="glass-card border-white/10">
           <CardHeader>
-            <CardTitle>Permissions Matrix</CardTitle>
-            <CardDescription>
-              Overview of which roles have access to which resources
-            </CardDescription>
+            <CardTitle>{tr.roles.permissionsMatrix}</CardTitle>
+            <CardDescription>{tr.roles.permissionsMatrixDesc}</CardDescription>
           </CardHeader>
           <CardContent>
             {rolesLoading ? (
@@ -194,7 +192,7 @@ export default function RolesPage() {
                 <table className="w-full border-collapse">
                   <thead>
                     <tr className="border-b border-white/10">
-                      <th className="text-left p-4 font-semibold">Resource</th>
+                      <th className="text-left p-4 font-semibold">{tr.roles.resource}</th>
                       {roles.map((role) => (
                         <th key={role.id} className="text-center p-4">
                           <Badge

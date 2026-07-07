@@ -30,6 +30,8 @@ import {
 import { Label } from "@/components/ui/label"
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
+import { useLanguage } from "@/lib/language-context"
+import { getTranslation } from "@/lib/translations"
 
 const ROLE_LABELS: Record<string, string> = {
   superAdmin: "Super Admin",
@@ -56,6 +58,9 @@ export default function AdminUserDetailPage() {
   const { getUser, loading, error, lockAccount, unlockAccount, resetPassword, forcePasswordChange } = useSystemAdmin()
   const { checkPermission } = usePermissions()
   const { toast } = useToast()
+  const { locale } = useLanguage()
+  const tr = getTranslation(locale)
+  const t = tr.systemAdminUsers
   const [user, setUser] = useState<any>(null)
 
   // Permission states
@@ -95,8 +100,8 @@ export default function AdminUserDetailPage() {
   const handleResetPassword = async () => {
     if (!newPassword || newPassword.length < 8) {
       toast({
-        title: "Error",
-        description: "Password must be at least 8 characters",
+        title: t.errorTitle,
+        description: t.passwordMin8,
         variant: "destructive",
       })
       return
@@ -109,8 +114,8 @@ export default function AdminUserDetailPage() {
         sendViaEmail: true,
       })
       toast({
-        title: "Success",
-        description: "Password reset successfully",
+        title: t.success,
+        description: t.passwordResetOk,
       })
       setResetPasswordDialogOpen(false)
       setNewPassword("")
@@ -131,16 +136,16 @@ export default function AdminUserDetailPage() {
       if (user.status === "locked") {
         await unlockAccount(userId)
         toast({
-          title: "Success",
-          description: "User account unlocked",
+          title: t.success,
+          description: t.accountUnlocked,
         })
       } else {
         await lockAccount(userId, {
           reason: "Manual lock by administrator",
         })
         toast({
-          title: "Success",
-          description: "User account locked",
+          title: t.success,
+          description: t.accountLocked,
         })
       }
       setLockDialogOpen(false)
@@ -160,8 +165,8 @@ export default function AdminUserDetailPage() {
     try {
       await forcePasswordChange(userId)
       toast({
-        title: "Success",
-        description: "User will be required to change password on next login",
+        title: t.success,
+        description: t.forceChangeOk,
       })
       getUser(userId).then(setUser)
     } catch (err) {
@@ -197,7 +202,7 @@ export default function AdminUserDetailPage() {
           <CardContent className="pt-6">
             <p className="text-destructive">{error}</p>
             <Link href="/system-admin/users" className="mt-4 inline-block">
-              <Button variant="outline">Back to Users</Button>
+              <Button variant="outline">{t.backToUsers}</Button>
             </Link>
           </CardContent>
         </Card>
@@ -210,9 +215,9 @@ export default function AdminUserDetailPage() {
       <div className="container mx-auto py-8 px-4 max-w-4xl">
         <Card>
           <CardContent className="pt-6 text-center">
-            <p className="text-muted-foreground">User not found</p>
+            <p className="text-muted-foreground">{t.userNotFound}</p>
             <Link href="/system-admin/users" className="mt-4 inline-block">
-              <Button variant="outline">Back to Users</Button>
+              <Button variant="outline">{t.backToUsers}</Button>
             </Link>
           </CardContent>
         </Card>
@@ -237,7 +242,7 @@ export default function AdminUserDetailPage() {
           <Link href={`/system-admin/users/${userId}/edit`}>
             <Button>
               <Edit className="mr-2 h-4 w-4" />
-              Edit
+              {tr.common.edit}
             </Button>
           </Link>
         )}
@@ -248,25 +253,25 @@ export default function AdminUserDetailPage() {
         {/* Basic Information */}
         <Card>
           <CardHeader>
-            <CardTitle>User Information</CardTitle>
+            <CardTitle>{t.userInformation}</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <p className="text-sm font-medium text-muted-foreground">Username</p>
+                <p className="text-sm font-medium text-muted-foreground">{t.username}</p>
                 <p className="text-lg">{user.username}</p>
               </div>
               <div>
-                <p className="text-sm font-medium text-muted-foreground">Full Name</p>
+                <p className="text-sm font-medium text-muted-foreground">{t.fullName}</p>
                 <p className="text-lg">{user.fullName}</p>
               </div>
               <div>
-                <p className="text-sm font-medium text-muted-foreground">Email</p>
+                <p className="text-sm font-medium text-muted-foreground">{t.email}</p>
                 <p className="text-lg">{user.email}</p>
               </div>
               {user.phoneNumber && (
                 <div>
-                  <p className="text-sm font-medium text-muted-foreground">Phone</p>
+                  <p className="text-sm font-medium text-muted-foreground">{t.phone}</p>
                   <p className="text-lg">{user.phoneNumber}</p>
                 </div>
               )}
@@ -276,13 +281,13 @@ export default function AdminUserDetailPage() {
 
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <p className="text-sm font-medium text-muted-foreground">Role</p>
+                <p className="text-sm font-medium text-muted-foreground">{t.role}</p>
                 <Badge variant="outline" className="mt-1">
                   {ROLE_LABELS[user.role] || user.role}
                 </Badge>
               </div>
               <div>
-                <p className="text-sm font-medium text-muted-foreground">Status</p>
+                <p className="text-sm font-medium text-muted-foreground">{t.status}</p>
                 <Badge variant={STATUS_VARIANTS[user.status]} className="mt-1">
                   {user.status}
                 </Badge>
@@ -294,37 +299,37 @@ export default function AdminUserDetailPage() {
         {/* Account Status */}
         <Card>
           <CardHeader>
-            <CardTitle>Account Status</CardTitle>
+            <CardTitle>{t.accountStatus}</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <p className="text-sm font-medium text-muted-foreground">Last Login</p>
+                <p className="text-sm font-medium text-muted-foreground">{t.lastLogin}</p>
                 <p>{formatDate(user.lastLoginAt)}</p>
               </div>
               <div>
-                <p className="text-sm font-medium text-muted-foreground">Last Login IP</p>
+                <p className="text-sm font-medium text-muted-foreground">{t.lastLoginIp}</p>
                 <p>{user.lastLoginIp || "N/A"}</p>
               </div>
               <div>
-                <p className="text-sm font-medium text-muted-foreground">Password Last Changed</p>
+                <p className="text-sm font-medium text-muted-foreground">{t.passwordLastChanged}</p>
                 <p>{formatDate(user.passwordLastChangedAt)}</p>
               </div>
               <div>
-                <p className="text-sm font-medium text-muted-foreground">Must Change Password</p>
+                <p className="text-sm font-medium text-muted-foreground">{t.mustChangePassword}</p>
                 <Badge variant={user.mustChangePassword ? "destructive" : "default"}>
                   {user.mustChangePassword ? "Yes" : "No"}
                 </Badge>
               </div>
               {user.lockedUntil && (
                 <div>
-                  <p className="text-sm font-medium text-muted-foreground">Locked Until</p>
+                  <p className="text-sm font-medium text-muted-foreground">{t.lockedUntil}</p>
                   <p>{formatDate(user.lockedUntil)}</p>
                 </div>
               )}
               {user.lockReason && (
                 <div>
-                  <p className="text-sm font-medium text-muted-foreground">Lock Reason</p>
+                  <p className="text-sm font-medium text-muted-foreground">{t.lockReason}</p>
                   <p>{user.lockReason}</p>
                 </div>
               )}
@@ -335,8 +340,8 @@ export default function AdminUserDetailPage() {
         {/* Actions */}
         <Card>
           <CardHeader>
-            <CardTitle>Actions</CardTitle>
-            <CardDescription>Manage user account and security</CardDescription>
+            <CardTitle>{t.actions}</CardTitle>
+            <CardDescription>{t.manageAccountDesc}</CardDescription>
           </CardHeader>
           <CardContent>
             <div className="flex flex-wrap gap-4">
@@ -347,13 +352,13 @@ export default function AdminUserDetailPage() {
                     onClick={() => setResetPasswordDialogOpen(true)}
                   >
                     <Key className="mr-2 h-4 w-4" />
-                    Reset Password
+                    {t.resetPassword}
                   </Button>
                   <Button
                     variant="outline"
                     onClick={handleForcePasswordChange}
                   >
-                    Force Password Change
+                    {t.forcePasswordChange}
                   </Button>
                 </>
               )}
@@ -365,12 +370,12 @@ export default function AdminUserDetailPage() {
                   {user.status === "locked" ? (
                     <>
                       <Unlock className="mr-2 h-4 w-4" />
-                      Unlock Account
+                      {t.unlockAccount}
                     </>
                   ) : (
                     <>
                       <Lock className="mr-2 h-4 w-4" />
-                      Lock Account
+                      {t.lockAccount}
                     </>
                   )}
                 </Button>
@@ -384,29 +389,27 @@ export default function AdminUserDetailPage() {
       <Dialog open={resetPasswordDialogOpen} onOpenChange={setResetPasswordDialogOpen}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Reset Password</DialogTitle>
-            <DialogDescription>
-              Enter a new temporary password for {user.fullName}. The user will be required to change it on next login.
-            </DialogDescription>
+            <DialogTitle>{t.resetPassword}</DialogTitle>
+            <DialogDescription>{t.resetPasswordDesc.replace("{name}", user.fullName)}</DialogDescription>
           </DialogHeader>
           <div className="space-y-4 py-4">
             <div className="space-y-2">
-              <Label htmlFor="newPassword">New Password</Label>
+              <Label htmlFor="newPassword">{t.newPassword}</Label>
               <Input
                 id="newPassword"
                 type="password"
                 value={newPassword}
                 onChange={(e) => setNewPassword(e.target.value)}
-                placeholder="Minimum 8 characters"
+                placeholder={t.minChars}
                 minLength={8}
               />
             </div>
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setResetPasswordDialogOpen(false)}>
-              Cancel
+              {tr.common.cancel}
             </Button>
-            <Button onClick={handleResetPassword}>Reset Password</Button>
+            <Button onClick={handleResetPassword}>{t.resetPassword}</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
@@ -416,18 +419,16 @@ export default function AdminUserDetailPage() {
         <DialogContent>
           <DialogHeader>
             <DialogTitle>
-              {user.status === "locked" ? "Unlock Account" : "Lock Account"}
+              {user.status === "locked" ? t.unlockAccount : t.lockAccount}
             </DialogTitle>
-            <DialogDescription>
-              Are you sure you want to {user.status === "locked" ? "unlock" : "lock"} {user.fullName}?
-            </DialogDescription>
+            <DialogDescription>{(user.status === "locked" ? t.unlockConfirm : t.lockConfirm).replace("{name}", user.fullName)}</DialogDescription>
           </DialogHeader>
           <DialogFooter>
             <Button variant="outline" onClick={() => setLockDialogOpen(false)}>
-              Cancel
+              {tr.common.cancel}
             </Button>
             <Button onClick={handleLock}>
-              {user.status === "locked" ? "Unlock" : "Lock"}
+              {user.status === "locked" ? t.unlock : t.lock}
             </Button>
           </DialogFooter>
         </DialogContent>

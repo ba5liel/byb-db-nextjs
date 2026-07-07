@@ -24,8 +24,13 @@ export function useAuth() {
     const getActiveOrg = async () => {
       if (session?.user) {
         try {
-          const { data } = await authClient.organization.getActiveOrganization()
-          setActiveOrg(data)
+          const activeOrgId = (session.session as any)?.activeOrganizationId
+          if (activeOrgId) {
+            const { data } = await authClient.organization.getFullOrganization({
+              query: { organizationId: activeOrgId },
+            })
+            setActiveOrg(data)
+          }
         } catch (error) {
           console.error("Failed to get active organization:", error)
         }
@@ -91,12 +96,12 @@ export function useOrgPermission(resource: string, actions: string[]) {
       try {
         const { data } = await authClient.organization.hasPermission({
           organizationId: activeOrg.id,
-          permission: {
+          permissions: {
             [resource]: actions,
           },
         })
-        
-        setHasPermission(data?.hasPermission || false)
+
+        setHasPermission((data as any)?.success || false)
       } catch (error) {
         console.error("Permission check failed:", error)
         setHasPermission(false)
@@ -127,7 +132,7 @@ export function useUserOrganizations() {
       }
 
       try {
-        const { data } = await authClient.organization.listUserOrganizations()
+        const { data } = await (authClient.organization as any).listUserOrganizations()
         setOrganizations(data || [])
       } catch (error) {
         console.error("Failed to fetch organizations:", error)
@@ -159,7 +164,7 @@ export function useCurrentOrgRole() {
 
       try {
         const { data } = await authClient.organization.getFullOrganization({
-          organizationId: activeOrg.id,
+          query: { organizationId: activeOrg.id },
         })
         
         // Get current user's role from members list

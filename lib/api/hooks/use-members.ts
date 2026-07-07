@@ -78,6 +78,24 @@ export function useCreateMember() {
 }
 
 /**
+ * Hook to bulk create members (import)
+ */
+export function useBulkCreateMembers() {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: (payload: {
+      members: Partial<CreateMemberDto>[]
+      duplicateStrategy?: "skip" | "update"
+    }) => membersService.bulkCreate(payload),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: memberKeys.lists() })
+      queryClient.invalidateQueries({ queryKey: memberKeys.statistics() })
+    },
+  })
+}
+
+/**
  * Hook to update a member
  */
 export function useUpdateMember() {
