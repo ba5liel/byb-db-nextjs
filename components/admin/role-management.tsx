@@ -19,7 +19,6 @@ import {
   updateRole,
   deleteRole,
 } from "@/lib/auth-operations"
-import { RESOURCES, ACTIONS } from "@/lib/permissions"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
@@ -42,6 +41,45 @@ import { Checkbox } from "@/components/ui/checkbox"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Loader2, Plus, Trash2, Edit, Save, X } from "lucide-react"
 import { toast } from "sonner"
+
+/**
+ * Resource permission keys (string values sent to the backend access-control layer).
+ * Kept local to this component; mirrors the backend permission statement keys.
+ */
+const RESOURCES = {
+  MEMBER: "church_member",
+  CHURCH_SERVICE: "church_service",
+  MINISTER: "minister",
+  ANALYTICS: "analytics",
+  ROLE: "role",
+  USER: "user",
+  SESSION: "session",
+} as const
+
+/**
+ * Action permission keys (string values sent to the backend access-control layer).
+ */
+const ACTIONS = {
+  CREATE: "create",
+  READ: "read",
+  UPDATE: "update",
+  DELETE: "delete",
+  LIST: "list",
+  APPROVE: "approve",
+  SUSPEND: "suspend",
+  ENROLL: "enroll",
+  EXIT: "exit",
+  MANAGE_ACCESS: "manage_access",
+  VIEW_REPORTS: "view_reports",
+  VIEW_DASHBOARD: "view_dashboard",
+  EXPORT_DATA: "export_data",
+  ASSIGN: "assign",
+  BAN: "ban",
+  IMPERSONATE: "impersonate",
+  SET_PASSWORD: "set-password",
+  SET_ROLE: "set-role",
+  REVOKE: "revoke",
+} as const
 
 /**
  * Available resources for permission assignment
@@ -167,7 +205,7 @@ function RoleForm({ organizationId, onSuccess, initialData, onCancel }: RoleForm
       <div className="space-y-4">
         <div>
           <label className="block text-sm font-medium mb-2">
-            Role Name {!initialData && <span className="text-red-500">*</span>}
+            Role Name {!initialData && <span className="text-destructive">*</span>}
           </label>
           <Input
             type="text"

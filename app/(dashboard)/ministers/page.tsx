@@ -44,7 +44,7 @@ import { Textarea } from "@/components/ui/textarea"
 import { Checkbox } from "@/components/ui/checkbox"
 import { useMinisters, useCreateMinister, useUpdateMinister, useDeleteMinister, useSearchMembers } from "@/lib/api/hooks"
 import { toast } from "@/hooks/use-toast"
-import type { CreateMinisterDto, MinisterDto, MinisterRole, ContractType } from "@/lib/api/types"
+import type { CreateMinisterDto, MinisterDto, MinisterRole, MinisterStatus, ContractType } from "@/lib/api/types"
 
 const ministerRoles: { value: MinisterRole; label: string }[] = [
   { value: "pastor", label: "Pastor" },
@@ -98,7 +98,7 @@ export default function MinistersPage() {
     page: currentPage,
     limit: 10,
     role: roleFilter === "all" ? undefined : (roleFilter as MinisterRole),
-    status: statusFilter === "all" ? undefined : statusFilter,
+    status: statusFilter === "all" ? undefined : (statusFilter as MinisterStatus),
     search: searchTerm,
   })
 
@@ -550,7 +550,7 @@ export default function MinistersPage() {
                   )}
 
                   {minister.hasSystemAccess && (
-                    <div className="flex items-center gap-2 text-sm text-green-600">
+                    <div className="flex items-center gap-2 text-sm text-green-700 dark:text-green-400">
                       <User className="w-4 h-4" />
                       <span>System Access</span>
                     </div>

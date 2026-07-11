@@ -44,9 +44,12 @@ export function Sidebar() {
     { name: "Notifications", href: "/notifications", icon: Bell, section: "Communication" },
     { name: "User Management", href: "/users", icon: UserCog, section: "System" },
     { name: "Role Management", href: "/roles", icon: Lock, section: "System" },
-    // Conditionally add System Admin link based on permissions
+    // Conditionally add System Admin links based on permissions
     ...(canAccessSystemAdmin
-      ? [{ name: "System Administration", href: "/system-admin/users", icon: UserCog, section: "System" }]
+      ? [
+          { name: "System Administration", href: "/system-admin/users", icon: UserCog, section: "System" },
+          { name: "Sefer Management", href: "/system-admin/sefers", icon: Home, section: "System" },
+        ]
       : []),
     { name: "Settings", href: "/settings", icon: Settings, section: "System" },
   ]
@@ -54,8 +57,8 @@ export function Sidebar() {
   const sections = Array.from(new Set(navigation.map((item) => item.section)))
 
   return (
-    <div className="flex h-screen w-64 flex-col border-r border-white/10 bg-sidebar/95 backdrop-blur-xl">
-      <div className="flex h-16 items-center border-b border-white/10 px-6 gap-3">
+    <div className="flex h-screen w-64 flex-col border-r border-sidebar-border bg-sidebar">
+      <div className="flex h-16 items-center border-b border-sidebar-border px-6 gap-3">
         <div className="w-8 h-8 flex items-center justify-center">
           <Image src="/logo.png" alt="BYB Logo" width={32} height={32} />
         </div>
@@ -76,8 +79,8 @@ export function Sidebar() {
                     href={item.href}
                     className={`flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-semibold transition-smooth ${
                       isActive
-                        ? "bg-primary text-primary-foreground shadow-flat-lg"
-                        : "text-muted-foreground hover:bg-accent/50 hover:text-foreground"
+                        ? "bg-sidebar-accent text-foreground"
+                        : "text-muted-foreground hover:bg-sidebar-accent hover:text-foreground"
                     }`}
                   >
                     <item.icon className="h-5 w-5" />
@@ -89,10 +92,10 @@ export function Sidebar() {
         ))}
       </nav>
 
-      <div className="border-t border-white/10 p-4 glass-card">
+      <div className="border-t border-sidebar-border p-4">
         <div className="mb-3 px-3">
           <p className="text-sm font-bold">
-            {user?.firstName} {user?.lastName}
+            {user?.name}
           </p>
           <p className="text-xs text-muted-foreground">{user?.email}</p>
         </div>

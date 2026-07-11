@@ -7,4 +7,5 @@ export * from "./use-services"
 export * from "./use-analytics"
 export * from "./use-ministers"
 export * from "./use-users"
+export * from "./use-roles"
 

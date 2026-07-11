@@ -1,108 +1,128 @@
+// Ethiopian-localized church grouping. Backend stores lowercase 'alpha' etc.
+export type SubCommunity = "Jemmo" | "Bethel" | "Weyira" | "Alpha"
+export type ChurchGroup = "jemmo" | "bethel" | "weyira" | "alpha"
+export type Nationality = "ethiopian" | "non_ethiopian"
+export type PaysTithe = "yes" | "no" | "unknown"
+export type FamilyRole = "father" | "mother" | "child" | "sibling" | "spouse" | "other"
+
 export interface Member {
   id: string
-  
+
   // Basic Information (መሰረታዊ መረጃ)
-  fullName?: string // Combined field
-  firstName: string
-  middleName?: string
-  lastName: string
-  email?: string // Now optional
+  fullName?: string // Combined field (firstName + middleName + lastName)
+  firstName: string // ስም (Name)
+  middleName?: string // የአባት ስም (Father's Name) — required in the form
+  lastName?: string // የአያት ስም (Grandfather's Name) — optional
+  email?: string
   phone: string
-  yearOfBirthEthiopian?: string // Ethiopian calendar year
-  dateOfBirth?: string // Gregorian calendar
+  birthYearEthiopian?: string // የትውልድ ዓመት (ዓ.ም)
+  dateOfBirth?: string // Gregorian calendar (backend birthDate)
   gender: "Male" | "Female"
+  nationality?: Nationality
   photoUrl?: string
   membershipNumber?: string // Auto-generated unique ID
   registrationDate?: string // Auto-filled on creation
-  
+
   // Age & Categorization (የእድሜ መረጃ)
   ageGroup?: "Children" | "Teenagers" | "Youth" | "Adults" | "Seniors" // Auto-calculated
-  
-  // Address (የመኖሪያ አድራሻ)
+
+  // Address & Church Grouping (የመኖሪያ አድራሻ / የቤተክርስቲያን ቡድን)
   physicalAddress?: string
-  address?: string
-  city?: string
-  state?: string
-  zipCode?: string
-  subCity?: string
   woreda?: string
-  kebele?: string
+  seferId?: string // Mongo id of the selected sefer
+  sefer?: string // sefer name
+  subCommunity?: SubCommunity // derived from sefer's churchGroup
+  currentGroupType?: "Cell Group" | "Youth Group" | "Bible Study" | "Prayer Group" | "None"
+  cellGroupName?: string
+  cellGroupNumber?: string
+  reasonForNoGroup?: string
 
   // Emergency Contact (የድንገተኛ ጊዜ ግንኙነት)
   emergencyContactName?: string
-  emergencyContactRelation?: string
   emergencyContactPhone?: string
 
   // Spiritual Journey (መንፈሳዊ ጉዞ)
-  salvationYearEthiopian?: string // ጌታን ያገኙበት አመት (ዓ.ም)
-  salvationDate?: string
-  baptismYearEthiopian?: string // የተጠመቁበት አመት (ዓ.ም)
-  baptismDate?: string
-  confirmationDate?: string
-  catechesisStatus?: "Not Started" | "In Progress" | "Completed" // የካቴኬሲስ ሁኔታ
-  discipleshipProgram?: string // የደቀመዝሙርነት ፕሮግራም
-  discipleshipLevel?: string
-  mentor?: string // እረኝነት
-  testimony?: string
-  faithJourneyNotes?: string
-
-  // Church Grouping & Community (የቤተክርስትያን ቡድን)
-  subCommunity?: "Jemmo" | "Bethel" | "Weyira" | "Alfa" | string // መንደር/ክፍል
-  currentGroupType?: "Cell Group" | "Youth Group" | "Bible Study" | "Prayer Group" | "None" | string // የሚማሩበት ቡድን አይነት
-  cellGroupType?: string
-  cellGroupName?: string // የሚማሩበት ቡድን ስም
-  cellGroupNumber?: string // የሴል ግሩፕ ቁጥር
-  reasonForNoGroup?: string // ምክንያት (if None selected)
+  salvationYearEthiopian?: string // የደኅንነት ዓመት (ዓ.ም)
+  baptismYearEthiopian?: string // የጥምቀት ዓመት (ዓ.ም)
+  catechesisStatus?: "Not Started" | "In Progress" | "Completed" // Discipleship status
 
   // Transfer Information (የዝውውር መረጃ)
-  isTransfer: boolean // ተዘዋውርው ነው የመጡት
-  transferFromChurch?: string // የመጡበት ቤ/ክ
-  transferYearEthiopian?: string // የመጡበት አመት (ዓ.ም)
+  isTransfer: boolean // cameByTransfer
+  transferFromChurch?: string
   transferDate?: string
-  transferLetterUrl?: string // የዝውውር ደብዳቤ
+  transferLetterUrl?: string
 
   // Service & Ministry (አገልግሎት)
-  currentServices: string[] // የሚያገለግሉበት አገልግሎት ዘርፍ (max 2)
-  desiredServices: string[] // ማገልገል የሚፈልጉብት አገልግሎት ዘርፍ
-  mentorshipBy?: string // እረኝነት
+  currentServices: string[] // currentlyServingAt (max 2)
 
   // Family & Personal Status (የቤተሰብ መረጃ)
-  maritalStatus: "Unmarried" | "Married" | "Divorced" | "Widowed" // የትዳር ሁኔታ
-  spouseName?: string // የትዳር ጓድኛ ሙሉ ስም
-  spouseMemberId?: string // Link to spouse if they're a member
-  numberOfChildren: number // የልጆች ብዛት
-  familyRelationships?: FamilyRelationship[]
+  maritalStatus: "Unmarried" | "Married" | "Divorced" | "Widowed"
+  numberOfChildren: number
+  familyId?: string // linked household (frontend-only convenience)
+  familyRole?: FamilyRole // this member's role in the linked family
 
   // Education & Profession (ትምህርት እና ሙያ)
-  educationLevel?: "Uneducated" | "1-8" | "9-12" | "Finished 12" | "Diploma" | "Degree" | "Masters" | "PhD" | string // የትምህርት ደረጃ
-  jobType?: "Personal" | "Government" | "Private" | "Unemployed" | "Student" | "Retired" | string // የስራ አይነት
-  profession?: string // ሙያ
-  occupation?: string
+  educationLevel?: "Uneducated" | "1-8" | "9-12" | "Finished 12" | "Diploma" | "Degree" | "Masters" | "PhD"
+  jobType?: "Personal" | "Government" | "Private" | "Unemployed" | "Student" | "Retired"
+  profession?: string
 
   // Financial Contribution (የገንዘብ አስተዋፅዖ)
-  paysTithe: boolean // አስራት ይከፍላሉ
-  titheAmount?: number // መጠን በብር
-  titheFrequency?: "Weekly" | "Monthly" | "Occasionally" | string // የክፍያ ድግግሞሽ
+  paysTithe: PaysTithe // አስራት — yes/no/unknown
+  titheAmount?: number
+  titheFrequency?: "Weekly" | "Monthly" | "Occasionally"
 
   // Member Status & History (የአባል ሁኔታ)
-  membershipStatus: "Active" | "Inactive" | "Removed" | "Transferred Out" | "Deceased" // የአባል ሁኔታ
-  removalReason?: string // የማስወገጃ ምክንያት
-  statusChangeDate?: string // ሁኔታ የተቀየረበት ቀን
-  membershipType: "Regular" | "Guest" | "Transferred" | string
-  
+  membershipStatus: "Active" | "Inactive" | "Removed" | "Transferred Out" | "Deceased"
+  membershipType?: "Regular" | "Guest" | "Transferred" | string
+
   // Join/Registration
   joinDate: string
-  nationality?: string
-  
-  // Notes & Documents
-  notes?: string // ማስታወሻ
-  documents?: MemberDocument[]
+
+  // Notes
+  notes?: string
 
   // Metadata
   createdAt: string
   updatedAt: string
   createdBy?: string
   updatedBy?: string
+}
+
+/**
+ * Sefer (neighborhood/zone). GET /api/sefers.
+ */
+export interface Sefer {
+  _id: string
+  name: string
+  nameAmharic?: string
+  churchGroup: ChurchGroup
+  isActive: boolean
+}
+
+/**
+ * A member entry within a family. On read, memberId is populated by the backend.
+ */
+export interface FamilyMember {
+  memberId:
+    | string
+    | {
+        _id: string
+        fullName: string
+        membershipNumber?: string
+        sex?: string
+        phoneNumber?: string
+        memberPicture?: string
+      }
+  role: FamilyRole
+}
+
+/**
+ * A family (household). GET /api/families.
+ */
+export interface Family {
+  _id: string
+  name?: string
+  members: FamilyMember[]
 }
 
 export interface FamilyRelationship {
@@ -284,4 +304,152 @@ export interface ServiceEnrollment {
   exitReason?: string
   createdBy?: string
   updatedBy?: string
+}
+
+// ============================================================================
+// Church Service DTOs (mirror lib/church-services-api.ts)
+// ============================================================================
+
+/**
+ * Create Church Service DTO
+ */
+export interface CreateChurchServiceDto {
+  serviceName: string
+  serviceDescription: string
+  type: ServiceType
+  service_logo?: string
+  leader: string // Member ID
+  secretary?: string // Member ID
+  leadership_start: Date | string
+  leadership_end?: Date | string
+  maximum_members_allowed?: number
+  meeting_schedule?: string
+  meeting_location?: string
+  status?: boolean
+}
+
+/**
+ * Update Church Service DTO (all fields optional)
+ */
+export interface UpdateChurchServiceDto extends Partial<CreateChurchServiceDto> {}
+
+/**
+ * Service Filter DTO
+ */
+export interface ServiceFilterDto {
+  type?: ServiceType
+  status?: string | boolean // 'true'/'false' string or boolean
+  page?: number
+  limit?: number
+}
+
+/**
+ * Generic paginated response
+ */
+export interface PaginatedResponse<T> {
+  data: T[]
+  pagination: {
+    total: number
+    page: number
+    limit: number
+    pages: number
+  }
+}
+
+// ============================================================================
+// System Admin DTOs (mirror lib/system-admin-api.ts)
+// ============================================================================
+
+/**
+ * Create Admin User DTO
+ */
+export interface CreateAdminUserDto {
+  username: string
+  fullName: string
+  email: string
+  phoneNumber?: string
+  password: string
+  role: AdminUserRole
+  ministerId?: string
+  memberId?: string
+  customPrivileges?: string[]
+  deniedPrivileges?: string[]
+  sendCredentialsSms?: boolean
+  sendCredentialsEmail?: boolean
+}
+
+/**
+ * Update Admin User DTO
+ */
+export interface UpdateAdminUserDto {
+  fullName?: string
+  email?: string
+  phoneNumber?: string
+  role?: AdminUserRole
+  ministerId?: string
+  memberId?: string
+  customPrivileges?: string[]
+  deniedPrivileges?: string[]
+  notifyOnPasswordChange?: boolean
+  notifyOnLogin?: boolean
+}
+
+/**
+ * Update User Status DTO
+ */
+export interface UpdateUserStatusDto {
+  status: AdminUserStatus
+  reason?: string
+}
+
+/**
+ * Reset Password DTO
+ */
+export interface ResetPasswordDto {
+  newPassword: string
+  forcePasswordChange?: boolean
+  sendViaSms?: boolean
+  sendViaEmail?: boolean
+}
+
+/**
+ * Lock Account DTO
+ */
+export interface LockAccountDto {
+  reason: string
+  lockDurationMinutes?: number
+}
+
+/**
+ * Query Admin Users DTO
+ */
+export interface QueryAdminUsersDto {
+  search?: string
+  role?: AdminUserRole
+  status?: AdminUserStatus
+  includeDeleted?: boolean
+  page?: number
+  limit?: number
+}
+
+/**
+ * Query Active Sessions DTO
+ */
+export interface QueryActiveSessionsDto {
+  userId?: string
+  page?: number
+  limit?: number
+}
+
+/**
+ * Query Activity Logs DTO
+ */
+export interface QueryActivityLogsDto {
+  userId?: string
+  action?: string
+  resource?: string
+  startDate?: string
+  endDate?: string
+  page?: number
+  limit?: number
 }

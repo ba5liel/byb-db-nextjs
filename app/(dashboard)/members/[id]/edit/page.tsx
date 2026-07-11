@@ -29,6 +29,7 @@ import { useMembers } from "@/lib/members-context"
 import { useToast } from "@/hooks/use-toast"
 import { useLanguage } from "@/lib/language-context"
 import { getTranslation } from "@/lib/translations"
+import { EthiopianYearInput, EthiopianDateInput } from "@/components/ethiopian-date-input"
 import type { Member } from "@/lib/types"
 
 export default function EditMemberPage() {
@@ -107,7 +108,7 @@ export default function EditMemberPage() {
 
     switch (step) {
       case 1:
-        if (!formData.firstName || !formData.lastName || !formData.phone) {
+        if (!formData.firstName || !formData.middleName || !formData.phone) {
           toast({
             title: locale === "en" ? "Required fields missing" : "አስፈላጊ መስኮች ይጎድላሉ",
             description: t.memberForm.requiredFields,
@@ -123,18 +124,6 @@ export default function EditMemberPage() {
             variant: "destructive",
           })
           return false
-        }
-        // Email validation if provided
-        if (formData.email) {
-          const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
-          if (!emailRegex.test(formData.email)) {
-            toast({
-              title: locale === "en" ? "Invalid email" : "ልክ ያልሆነ ኢሜይል",
-              description: locale === "en" ? "Please enter a valid email address" : "እባክዎ ልክ ያለ ኢሜይል አድራሻ ያስገቡ",
-              variant: "destructive",
-            })
-            return false
-          }
         }
         return true
       default:
@@ -298,7 +287,7 @@ export default function EditMemberPage() {
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                       <div>
                         <Label htmlFor="firstName">
-                          {t.basicInfo.firstName} <span className="text-destructive">*</span>
+                          {t.basicInfo.name} <span className="text-destructive">*</span>
                         </Label>
                         <Input
                           id="firstName"
@@ -310,25 +299,28 @@ export default function EditMemberPage() {
                         />
                       </div>
                       <div>
-                        <Label htmlFor="middleName">{t.basicInfo.middleName}</Label>
+                        <Label htmlFor="middleName">
+                          {t.basicInfo.fatherName} <span className="text-destructive">*</span>
+                        </Label>
                         <Input
                           id="middleName"
                           name="middleName"
                           value={formData.middleName || ""}
                           onChange={handleChange}
+                          required
                           className="mt-1"
                         />
                       </div>
                       <div>
                         <Label htmlFor="lastName">
-                          {t.basicInfo.lastName} <span className="text-destructive">*</span>
+                          {t.basicInfo.grandfatherName}{" "}
+                          <span className="text-muted-foreground text-xs">({t.common.optional})</span>
                         </Label>
                         <Input
                           id="lastName"
                           name="lastName"
-                          value={formData.lastName}
+                          value={formData.lastName || ""}
                           onChange={handleChange}
-                          required
                           className="mt-1"
                         />
                       </div>
@@ -365,21 +357,20 @@ export default function EditMemberPage() {
 
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                       <div>
-                        <Label htmlFor="yearOfBirthEthiopian">{t.basicInfo.yearOfBirthEthiopian}</Label>
-                        <Input
-                          id="yearOfBirthEthiopian"
-                          name="yearOfBirthEthiopian"
-                          value={formData.yearOfBirthEthiopian || ""}
+                        <Label htmlFor="birthYearEthiopian">{t.basicInfo.yearOfBirthEthiopian}</Label>
+                        <EthiopianYearInput
+                          id="birthYearEthiopian"
+                          name="birthYearEthiopian"
+                          value={formData.birthYearEthiopian || ""}
                           onChange={handleChange}
                           className="mt-1"
                         />
                       </div>
                       <div>
                         <Label htmlFor="dateOfBirth">{t.basicInfo.dateOfBirth}</Label>
-                        <Input
+                        <EthiopianDateInput
                           id="dateOfBirth"
                           name="dateOfBirth"
-                          type="date"
                           value={formData.dateOfBirth || ""}
                           onChange={handleChange}
                           className="mt-1"
@@ -434,13 +425,18 @@ export default function EditMemberPage() {
                       </div>
                       <div>
                         <Label htmlFor="nationality">{t.basicInfo.nationality}</Label>
-                        <Input
-                          id="nationality"
-                          name="nationality"
-                          value={formData.nationality || ""}
-                          onChange={handleChange}
-                          className="mt-1"
-                        />
+                        <Select
+                          value={formData.nationality}
+                          onValueChange={(value) => handleSelectChange("nationality", value)}
+                        >
+                          <SelectTrigger className="mt-1">
+                            <SelectValue placeholder={t.basicInfo.nationality} />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="ethiopian">{t.nationality.ethiopian}</SelectItem>
+                            <SelectItem value="non_ethiopian">{t.nationality.nonEthiopian}</SelectItem>
+                          </SelectContent>
+                        </Select>
                       </div>
                     </div>
                   </div>
@@ -463,29 +459,6 @@ export default function EditMemberPage() {
 
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       <div>
-                        <Label htmlFor="city">{t.basicInfo.city}</Label>
-                        <Input
-                          id="city"
-                          name="city"
-                          value={formData.city || ""}
-                          onChange={handleChange}
-                          className="mt-1"
-                        />
-                      </div>
-                      <div>
-                        <Label htmlFor="subCity">{t.basicInfo.subCity}</Label>
-                        <Input
-                          id="subCity"
-                          name="subCity"
-                          value={formData.subCity || ""}
-                          onChange={handleChange}
-                          className="mt-1"
-                        />
-                      </div>
-                    </div>
-
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                      <div>
                         <Label htmlFor="woreda">{t.basicInfo.woreda}</Label>
                         <Input
                           id="woreda"
@@ -496,21 +469,11 @@ export default function EditMemberPage() {
                         />
                       </div>
                       <div>
-                        <Label htmlFor="kebele">{t.basicInfo.kebele}</Label>
+                        <Label htmlFor="sefer">{t.basicInfo.sefer}</Label>
                         <Input
-                          id="kebele"
-                          name="kebele"
-                          value={formData.kebele || ""}
-                          onChange={handleChange}
-                          className="mt-1"
-                        />
-                      </div>
-                      <div>
-                        <Label htmlFor="zipCode">{t.basicInfo.zipCode}</Label>
-                        <Input
-                          id="zipCode"
-                          name="zipCode"
-                          value={formData.zipCode || ""}
+                          id="sefer"
+                          name="sefer"
+                          value={formData.sefer || ""}
                           onChange={handleChange}
                           className="mt-1"
                         />
@@ -522,23 +485,13 @@ export default function EditMemberPage() {
 
                   <div className="space-y-4">
                     <h3 className="text-lg font-semibold">{t.basicInfo.emergencyContact}</h3>
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       <div>
                         <Label htmlFor="emergencyContactName">{t.basicInfo.emergencyContactName}</Label>
                         <Input
                           id="emergencyContactName"
                           name="emergencyContactName"
                           value={formData.emergencyContactName || ""}
-                          onChange={handleChange}
-                          className="mt-1"
-                        />
-                      </div>
-                      <div>
-                        <Label htmlFor="emergencyContactRelation">{t.basicInfo.emergencyContactRelation}</Label>
-                        <Input
-                          id="emergencyContactRelation"
-                          name="emergencyContactRelation"
-                          value={formData.emergencyContactRelation || ""}
                           onChange={handleChange}
                           className="mt-1"
                         />

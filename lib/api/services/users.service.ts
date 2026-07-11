@@ -22,6 +22,9 @@ const USERS_BASE_URL = '/api/admin/users'
  */
 export async function getUsers(): Promise<UserListResponse> {
   const response = await apiClient.get<ApiResponse<UserListResponse>>(USERS_BASE_URL)
+  if (response.data.data === undefined) {
+    throw new Error(response.data.message || response.data.error || 'Request failed')
+  }
   return response.data.data
 }
 
@@ -30,6 +33,9 @@ export async function getUsers(): Promise<UserListResponse> {
  */
 export async function getUserById(userId: string): Promise<User> {
   const response = await apiClient.get<ApiResponse<User>>(`${USERS_BASE_URL}/${userId}`)
+  if (response.data.data === undefined) {
+    throw new Error(response.data.message || response.data.error || 'Request failed')
+  }
   return response.data.data
 }
 
@@ -38,6 +44,9 @@ export async function getUserById(userId: string): Promise<User> {
  */
 export async function createUser(data: CreateUserDto): Promise<User> {
   const response = await apiClient.post<ApiResponse<User>>(USERS_BASE_URL, data)
+  if (response.data.data === undefined) {
+    throw new Error(response.data.message || response.data.error || 'Request failed')
+  }
   return response.data.data
 }
 
@@ -46,6 +55,9 @@ export async function createUser(data: CreateUserDto): Promise<User> {
  */
 export async function updateUser(userId: string, data: UpdateUserDto): Promise<User> {
   const response = await apiClient.post<ApiResponse<User>>(`${USERS_BASE_URL}/${userId}`, data)
+  if (response.data.data === undefined) {
+    throw new Error(response.data.message || response.data.error || 'Request failed')
+  }
   return response.data.data
 }
 
@@ -54,6 +66,9 @@ export async function updateUser(userId: string, data: UpdateUserDto): Promise<U
  */
 export async function assignRole(userId: string, data: AssignRoleDto): Promise<User> {
   const response = await apiClient.post<ApiResponse<User>>(`${USERS_BASE_URL}/${userId}/role`, data)
+  if (response.data.data === undefined) {
+    throw new Error(response.data.message || response.data.error || 'Request failed')
+  }
   return response.data.data
 }
 
@@ -68,6 +83,9 @@ export async function resetUserPassword(
     `${USERS_BASE_URL}/${userId}/reset-password`,
     data,
   )
+  if (response.data.data === undefined) {
+    throw new Error(response.data.message || response.data.error || 'Request failed')
+  }
   return response.data.data
 }
 
@@ -80,6 +98,9 @@ export async function revokeUserSessions(
   const response = await apiClient.post<ApiResponse<{ success: boolean; message: string }>>(
     `${USERS_BASE_URL}/${userId}/revoke-sessions`,
   )
+  if (response.data.data === undefined) {
+    throw new Error(response.data.message || response.data.error || 'Request failed')
+  }
   return response.data.data
 }
 
@@ -94,6 +115,9 @@ export async function banUser(
     `${USERS_BASE_URL}/${userId}/ban`,
     data,
   )
+  if (response.data.data === undefined) {
+    throw new Error(response.data.message || response.data.error || 'Request failed')
+  }
   return response.data.data
 }
 
@@ -104,6 +128,9 @@ export async function unbanUser(userId: string): Promise<{ success: boolean; mes
   const response = await apiClient.post<ApiResponse<{ success: boolean; message: string }>>(
     `${USERS_BASE_URL}/${userId}/unban`,
   )
+  if (response.data.data === undefined) {
+    throw new Error(response.data.message || response.data.error || 'Request failed')
+  }
   return response.data.data
 }
 
@@ -114,6 +141,9 @@ export async function deleteUser(userId: string): Promise<{ success: boolean; me
   const response = await apiClient.post<ApiResponse<{ success: boolean; message: string }>>(
     `${USERS_BASE_URL}/${userId}/delete`,
   )
+  if (response.data.data === undefined) {
+    throw new Error(response.data.message || response.data.error || 'Request failed')
+  }
   return response.data.data
 }
 

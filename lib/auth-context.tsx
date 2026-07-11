@@ -41,8 +41,8 @@ interface AuthContextType {
   session: Session | null
   activeOrganization: Organization | null
   loading: boolean
-  login: (email: string, password: string) => Promise<void>
-  register: (name: string, email: string, password: string) => Promise<void>
+  login: (email: string, password: string) => Promise<{ success: boolean; error?: string }>
+  register: (name: string, email: string, password: string) => Promise<{ success: boolean; error?: string }>
   logout: () => Promise<void>
   hasPermission: (resource: Resource, action: Action) => boolean
   hasAnyPermission: (resource: Resource, actions: Action[]) => boolean
@@ -218,7 +218,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     checkSession()
   }, [checkSession])
 
-  const login = async (email: string, password: string) => {
+  const login = async (
+    email: string,
+    password: string,
+  ): Promise<{ success: boolean; error?: string }> => {
     try {
       setLoading(true)
 
@@ -234,18 +237,23 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if (response.data) {
         await checkSession() // Refresh session with permissions
         toast.success("Login successful!")
-        router.push("/dashboard")
       }
+
+      return { success: true }
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : "Login failed"
       toast.error(errorMessage)
-      throw error
+      return { success: false, error: errorMessage }
     } finally {
       setLoading(false)
     }
   }
 
-  const register = async (name: string, email: string, password: string) => {
+  const register = async (
+    name: string,
+    email: string,
+    password: string,
+  ): Promise<{ success: boolean; error?: string }> => {
     try {
       setLoading(true)
       const response = await authClient.signUp.email({ email, password, name })
@@ -258,12 +266,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         // User is automatically added to default organization on backend
         await checkSession() // Refresh session with permissions
         toast.success("Registration successful!")
-        router.push("/dashboard")
       }
+
+      return { success: true }
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : "Registration failed"
       toast.error(errorMessage)
-      throw error
+      return { success: false, error: errorMessage }
     } finally {
       setLoading(false)
     }

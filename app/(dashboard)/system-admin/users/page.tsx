@@ -46,7 +46,7 @@ import {
 import { Plus, Search, MoreVertical, Edit, Eye, Trash2, Lock, Unlock } from "lucide-react"
 import { useSystemAdmin } from "@/lib/system-admin-context"
 import { usePermissions } from "@/lib/use-permissions"
-import type { AdminUserRole, AdminUserStatus } from "@/lib/types"
+import type { AdminUser, AdminUserRole, AdminUserStatus } from "@/lib/types"
 import { useToast } from "@/hooks/use-toast"
 import { PermissionGuard } from "@/components/auth/permission-guard"
 import { Resource, Action } from "@/lib/permissions"

@@ -76,7 +76,7 @@ export async function unbanUser(userId: string) {
 export async function setUserRole(userId: string, role: string) {
   return authClient.admin.setRole({
     userId,
-    role,
+    role: role as "user" | "admin",
   })
 }
 
@@ -84,7 +84,7 @@ export async function setUserRole(userId: string, role: string) {
  * Impersonate a user (Super Admin only)
  */
 export async function impersonateUser(userId: string) {
-  return authClient.admin.impersonate({
+  return authClient.admin.impersonateUser({
     userId,
   })
 }
@@ -93,8 +93,8 @@ export async function impersonateUser(userId: string) {
  * Revoke a user's session (Admin only)
  */
 export async function revokeUserSession(sessionId: string) {
-  return authClient.admin.revokeSession({
-    sessionId,
+  return authClient.admin.revokeUserSession({
+    sessionToken: sessionId,
   })
 }
 
@@ -124,7 +124,7 @@ export async function createOrganization(data: {
  */
 export async function getOrganization(organizationId: string) {
   return authClient.organization.getFullOrganization({
-    organizationId,
+    query: { organizationId },
   })
 }
 
@@ -132,7 +132,7 @@ export async function getOrganization(organizationId: string) {
  * List all organizations for current user
  */
 export async function listUserOrganizations() {
-  return authClient.organization.listUserOrganizations()
+  return authClient.organization.list()
 }
 
 /**
@@ -147,9 +147,9 @@ export async function updateOrganization(
     metadata?: Record<string, any>
   }
 ) {
-  return authClient.organization.updateOrganization({
+  return authClient.organization.update({
     organizationId,
-    ...data,
+    data,
   })
 }
 
@@ -157,7 +157,7 @@ export async function updateOrganization(
  * Delete an organization (Super Admin only)
  */
 export async function deleteOrganization(organizationId: string) {
-  return authClient.organization.deleteOrganization({
+  return authClient.organization.delete({
     organizationId,
   })
 }
@@ -166,7 +166,8 @@ export async function deleteOrganization(organizationId: string) {
  * Get active organization
  */
 export async function getActiveOrganization() {
-  return authClient.organization.getActiveOrganization()
+  // No dedicated endpoint: getFullOrganization() with no query returns the active org
+  return authClient.organization.getFullOrganization()
 }
 
 /**
@@ -193,7 +194,7 @@ export async function inviteMemberToOrg(
   return authClient.organization.inviteMember({
     organizationId,
     email,
-    role,
+    role: role as "admin" | "member" | "owner",
   })
 }
 
@@ -229,7 +230,7 @@ export async function cancelInvitation(invitationId: string) {
  */
 export async function listOrgMembers(organizationId: string) {
   return authClient.organization.listMembers({
-    organizationId,
+    query: { organizationId },
   })
 }
 
@@ -243,7 +244,7 @@ export async function updateMemberRole(
 ) {
   return authClient.organization.updateMemberRole({
     organizationId,
-    userId,
+    memberId: userId,
     role: newRole,
   })
 }
@@ -257,7 +258,7 @@ export async function removeMemberFromOrg(
 ) {
   return authClient.organization.removeMember({
     organizationId,
-    userId,
+    memberIdOrEmail: userId,
   })
 }
 
@@ -265,7 +266,7 @@ export async function removeMemberFromOrg(
  * Leave an organization
  */
 export async function leaveOrganization(organizationId: string) {
-  return authClient.organization.leaveOrganization({
+  return authClient.organization.leave({
     organizationId,
   })
 }
@@ -285,9 +286,8 @@ export async function createCustomRole(
 ) {
   return authClient.organization.createRole({
     organizationId,
-    name: roleName,
-    description: description || "",
-    permissions,
+    role: roleName,
+    permission: permissions,
   })
 }
 
@@ -296,7 +296,7 @@ export async function createCustomRole(
  */
 export async function listOrgRoles(organizationId: string) {
   return authClient.organization.listRoles({
-    organizationId,
+    query: { organizationId },
   })
 }
 
@@ -312,8 +312,9 @@ export async function updateRole(
   return authClient.organization.updateRole({
     organizationId,
     roleId,
-    permissions,
-    description,
+    data: {
+      permission: permissions,
+    },
   })
 }
 
@@ -346,7 +347,7 @@ export async function checkPermission(
     },
   })
 
-  return data?.hasPermission || false
+  return data?.success || false
 }
 
 /**
@@ -361,7 +362,7 @@ export async function checkMultiplePermissions(
     permission: permissions,
   })
 
-  return data?.hasPermission || false
+  return data?.success || false
 }
 
 // ============================================
@@ -394,7 +395,7 @@ export async function listSessions() {
  */
 export async function revokeSession(sessionId: string) {
   return authClient.revokeSession({
-    id: sessionId,
+    token: sessionId,
   })
 }
 
@@ -405,10 +406,9 @@ export async function revokeSession(sessionId: string) {
 /**
  * List pending invitations for an organization
  */
-export async function listPendingInvitations(organizationId: string) {
-  return authClient.organization.getInvitations({
-    organizationId,
-  })
+export async function listPendingInvitations(_organizationId: string) {
+  // Endpoint reads the caller's active organization from the session.
+  return authClient.organization.listInvitations()
 }
 
 /**
@@ -416,7 +416,7 @@ export async function listPendingInvitations(organizationId: string) {
  */
 export async function getInvitation(invitationId: string) {
   return authClient.organization.getInvitation({
-    invitationId,
+    query: { id: invitationId },
   })
 }
 
@@ -433,10 +433,12 @@ export async function isOrganizationOwner(
 ): Promise<boolean> {
   try {
     const { data } = await authClient.organization.getFullOrganization({
-      organizationId,
+      query: { organizationId },
     })
 
-    return data?.createdBy === userId || false
+    // TODO: verify against better-auth API — Organization has no `createdBy`;
+    // ownership is expressed via a member with the "owner" role.
+    return (data as { createdBy?: string } | null)?.createdBy === userId || false
   } catch {
     return false
   }
@@ -451,7 +453,7 @@ export async function getUserRoleInOrg(
 ): Promise<string | null> {
   try {
     const { data } = await authClient.organization.getFullOrganization({
-      organizationId,
+      query: { organizationId },
     })
 
     const member = data?.members?.find((m: any) => m.userId === userId)

@@ -64,10 +64,10 @@ export default function RegisterPage() {
   }
 
   return (
-    <main className="min-h-screen gradient-bg flex items-center justify-center px-4 py-8">
-      <Card variant="glass-strong" className="w-full max-w-md">
+    <main className="min-h-screen bg-muted flex items-center justify-center px-4 py-8">
+      <Card className="w-full max-w-md bg-card border border-border">
         <CardHeader className="text-center space-y-2">
-          <CardTitle className="text-4xl font-bold bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">
+          <CardTitle className="text-4xl font-bold text-foreground">
             Create Account
           </CardTitle>
           <CardDescription className="text-base">Sign up for Church Management</CardDescription>
@@ -75,7 +75,7 @@ export default function RegisterPage() {
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-5">
             {error && (
-              <div className="flex gap-3 p-4 bg-destructive/10 border border-destructive/20 rounded-lg glass">
+              <div className="flex gap-3 p-4 bg-destructive/10 border border-destructive/20 rounded-lg">
                 <AlertCircle className="w-5 h-5 text-destructive flex-shrink-0 mt-0.5" />
                 <p className="text-sm text-destructive font-medium">{error}</p>
               </div>
@@ -89,7 +89,7 @@ export default function RegisterPage() {
                 value={formData.name}
                 onChange={handleChange}
                 required
-                className="h-11 border-white/10 bg-white/5 backdrop-blur-sm"
+                className="h-11"
                 placeholder="John Doe"
               />
             </div>
@@ -103,7 +103,7 @@ export default function RegisterPage() {
                 value={formData.email}
                 onChange={handleChange}
                 required
-                className="h-11 border-white/10 bg-white/5 backdrop-blur-sm"
+                className="h-11"
                 placeholder="admin@church.com"
               />
             </div>
@@ -116,7 +116,7 @@ export default function RegisterPage() {
                 value={formData.password}
                 onChange={handleChange}
                 required
-                className="h-11 border-white/10 bg-white/5 backdrop-blur-sm"
+                className="h-11"
                 placeholder="••••••••"
               />
             </div>
@@ -129,7 +129,7 @@ export default function RegisterPage() {
                 value={formData.confirmPassword}
                 onChange={handleChange}
                 required
-                className="h-11 border-white/10 bg-white/5 backdrop-blur-sm"
+                className="h-11"
                 placeholder="••••••••"
               />
             </div>

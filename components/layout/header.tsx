@@ -13,6 +13,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import { LanguageSwitcher } from "@/components/language-switcher"
+import { ThemeToggle } from "@/components/theme-toggle"
 import { useLanguage } from "@/lib/language-context"
 import { getTranslation } from "@/lib/translations"
 import { useAuth } from "@/lib/auth-context"
@@ -41,22 +42,23 @@ export function Header() {
     : "U"
 
   return (
-    <header className="flex h-16 items-center justify-between border-b border-white/10 glass-card px-6 shadow-flat">
+    <header className="flex h-16 items-center justify-between border-b border-border bg-background px-6">
       <div className="flex flex-1 items-center gap-4">
         <div className="relative w-96">
           <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-          <Input 
-            type="search" 
-            placeholder={t.members.searchPlaceholder} 
-            className="pl-10 h-10 border-white/10 bg-white/5 backdrop-blur-sm font-medium" 
+          <Input
+            type="search"
+            placeholder={t.members.searchPlaceholder}
+            className="pl-10 h-10 font-medium"
           />
         </div>
       </div>
 
       <div className="flex items-center gap-3">
         <LanguageSwitcher />
-        
-        <Button variant="ghost" size="icon" className="hover:bg-accent/50">
+        <ThemeToggle />
+
+        <Button variant="ghost" size="icon" className="hover:bg-accent">
           <Bell className="h-5 w-5" />
         </Button>
 
@@ -66,7 +68,7 @@ export function Header() {
             <Button variant="ghost" className="gap-2 hover:bg-accent/50">
               <Avatar className="h-8 w-8">
                 <AvatarImage src={currentUser?.image || undefined} />
-                <AvatarFallback className="text-xs font-bold bg-gradient-to-br from-primary/20 to-accent/20">
+                <AvatarFallback className="text-xs font-bold bg-secondary text-secondary-foreground">
                   {userInitials}
                 </AvatarFallback>
               </Avatar>
@@ -75,7 +77,7 @@ export function Header() {
                 {currentUser?.role && (
                   <Badge 
                     variant="outline" 
-                    className={`${getRoleBadgeColor(currentUser.role)} text-white border-none text-[10px] px-1.5 py-0`}
+                    className={`${getRoleBadgeColor(currentUser.role)} border-none text-[10px] px-1.5 py-0`}
                   >
                     <Shield className="h-3 w-3 mr-1" />
                     {locale === "am" 
@@ -87,7 +89,7 @@ export function Header() {
               </div>
             </Button>
           </DropdownMenuTrigger>
-          <DropdownMenuContent align="end" className="w-56 glass-card border-white/10">
+          <DropdownMenuContent align="end" className="w-56">
             <DropdownMenuLabel>
               <div className="flex flex-col space-y-1">
                 <p className="text-sm font-medium leading-none">{currentUser?.name}</p>
@@ -96,7 +98,7 @@ export function Header() {
                 </p>
               </div>
             </DropdownMenuLabel>
-            <DropdownMenuSeparator className="bg-white/10" />
+            <DropdownMenuSeparator />
             <DropdownMenuItem onClick={() => router.push("/profile")}>
               <User className="mr-2 h-4 w-4" />
               <span>{locale === "am" ? "መገለጫ" : "Profile"}</span>
@@ -105,8 +107,8 @@ export function Header() {
               <Shield className="mr-2 h-4 w-4" />
               <span>{locale === "am" ? "ቅንብሮች" : "Settings"}</span>
             </DropdownMenuItem>
-            <DropdownMenuSeparator className="bg-white/10" />
-            <DropdownMenuItem onClick={handleLogout} className="text-red-500 focus:text-red-500">
+            <DropdownMenuSeparator />
+            <DropdownMenuItem onClick={handleLogout} className="text-destructive focus:text-destructive">
               <span>{locale === "am" ? "ውጣ" : "Logout"}</span>
             </DropdownMenuItem>
           </DropdownMenuContent>

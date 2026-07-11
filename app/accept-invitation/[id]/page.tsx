@@ -65,13 +65,13 @@ export default function AcceptInvitationPage() {
   }, [invitationId, router])
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-indigo-50 via-white to-purple-50 p-4">
+    <div className="min-h-screen flex items-center justify-center bg-muted p-4">
       <Card className="w-full max-w-md">
         <CardHeader className="text-center">
           {status === "loading" && (
             <>
-              <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-indigo-100">
-                <Loader2 className="h-8 w-8 animate-spin text-indigo-600" />
+              <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-primary/10">
+                <Loader2 className="h-8 w-8 animate-spin text-primary" />
               </div>
               <CardTitle className="text-2xl">Processing Invitation</CardTitle>
               <CardDescription>Please wait while we accept your invitation...</CardDescription>
@@ -80,10 +80,10 @@ export default function AcceptInvitationPage() {
 
           {status === "success" && (
             <>
-              <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-green-100">
-                <CheckCircle2 className="h-8 w-8 text-green-600" />
+              <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-green-50 dark:bg-green-950">
+                <CheckCircle2 className="h-8 w-8 text-green-700 dark:text-green-400" />
               </div>
-              <CardTitle className="text-2xl text-green-700">Invitation Accepted!</CardTitle>
+              <CardTitle className="text-2xl text-green-700 dark:text-green-400">Invitation Accepted!</CardTitle>
               <CardDescription>
                 You have successfully joined the organization. Redirecting to dashboard...
               </CardDescription>
@@ -92,10 +92,10 @@ export default function AcceptInvitationPage() {
 
           {status === "error" && (
             <>
-              <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-red-100">
-                <XCircle className="h-8 w-8 text-red-600" />
+              <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-red-50 dark:bg-red-950">
+                <XCircle className="h-8 w-8 text-destructive" />
               </div>
-              <CardTitle className="text-2xl text-red-700">Invitation Error</CardTitle>
+              <CardTitle className="text-2xl text-destructive">Invitation Error</CardTitle>
               <CardDescription>There was a problem accepting your invitation</CardDescription>
             </>
           )}
@@ -104,12 +104,12 @@ export default function AcceptInvitationPage() {
         <CardContent>
           {invitation && status === "loading" && (
             <div className="space-y-4">
-              <div className="rounded-lg bg-indigo-50 p-4">
+              <div className="rounded-lg bg-muted p-4">
                 <div className="flex items-start gap-3">
-                  <Mail className="h-5 w-5 text-indigo-600 mt-0.5" />
+                  <Mail className="h-5 w-5 text-primary mt-0.5" />
                   <div>
-                    <p className="text-sm font-medium text-gray-900">Organization</p>
-                    <p className="text-sm text-gray-600">{invitation.organizationName}</p>
+                    <p className="text-sm font-medium text-foreground">Organization</p>
+                    <p className="text-sm text-muted-foreground">{invitation.organizationName}</p>
                   </div>
                 </div>
               </div>
@@ -118,20 +118,20 @@ export default function AcceptInvitationPage() {
 
           {status === "success" && (
             <div className="space-y-4">
-              <div className="rounded-lg bg-green-50 p-4 text-center">
-                <p className="text-sm text-green-700">
+              <div className="rounded-lg bg-green-50 dark:bg-green-950 p-4 text-center">
+                <p className="text-sm text-green-700 dark:text-green-300">
                   Welcome to {invitation?.organizationName || "the organization"}!
                 </p>
-                <p className="text-xs text-green-600 mt-2">You will be redirected shortly...</p>
+                <p className="text-xs text-green-600 dark:text-green-400 mt-2">You will be redirected shortly...</p>
               </div>
             </div>
           )}
 
           {status === "error" && (
             <div className="space-y-4">
-              <div className="rounded-lg bg-red-50 p-4">
-                <p className="text-sm text-red-700 font-medium">Error Details:</p>
-                <p className="text-sm text-red-600 mt-1">
+              <div className="rounded-lg bg-red-50 dark:bg-red-950 p-4">
+                <p className="text-sm text-destructive font-medium">Error Details:</p>
+                <p className="text-sm text-destructive mt-1">
                   {errorMessage || "An unexpected error occurred"}
                 </p>
               </div>
@@ -146,7 +146,7 @@ export default function AcceptInvitationPage() {
               </div>
 
               <div className="text-center">
-                <p className="text-xs text-gray-500">
+                <p className="text-xs text-muted-foreground">
                   If you continue to experience issues, please contact your organization administrator.
                 </p>
               </div>

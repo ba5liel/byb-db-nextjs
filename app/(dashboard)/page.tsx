@@ -49,7 +49,7 @@ export default function Home() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-4xl font-bold mb-2">Dashboard</h1>
-          <p className="text-muted-foreground text-lg">Welcome back, {user?.firstName} {user?.lastName}</p>
+          <p className="text-muted-foreground text-lg">Welcome back, {user?.name}</p>
         </div>
         <div className="flex gap-3">
           <Link href="/members/new">
@@ -96,8 +96,8 @@ export default function Home() {
               </CardHeader>
               <CardContent>
                 <div className="flex items-center justify-between">
-                  <div className="text-4xl font-bold text-green-500">{overview?.activeMembers || 0}</div>
-                  <UserCheck className="w-10 h-10 text-green-500/30" />
+                  <div className="text-4xl font-bold text-green-700 dark:text-green-400">{overview?.activeMembers || 0}</div>
+                  <UserCheck className="w-10 h-10 text-green-600/30 dark:text-green-400/30" />
                 </div>
               </CardContent>
             </Card>
@@ -108,8 +108,8 @@ export default function Home() {
               </CardHeader>
               <CardContent>
                 <div className="flex items-center justify-between">
-                  <div className="text-4xl font-bold text-blue-500">{overview?.newMembersThisMonth || 0}</div>
-                  <TrendingUp className="w-10 h-10 text-blue-500/30" />
+                  <div className="text-4xl font-bold text-primary">{overview?.newMembersThisMonth || 0}</div>
+                  <TrendingUp className="w-10 h-10 text-primary/30" />
                 </div>
               </CardContent>
             </Card>
@@ -120,10 +120,10 @@ export default function Home() {
               </CardHeader>
               <CardContent>
                 <div className="flex items-center justify-between">
-                  <div className="text-4xl font-bold text-purple-500">
+                  <div className="text-4xl font-bold text-foreground">
                     {overview?.maleCount || 0} / {overview?.femaleCount || 0}
                   </div>
-                  <Heart className="w-10 h-10 text-purple-500/30" />
+                  <Heart className="w-10 h-10 text-muted-foreground/30" />
                 </div>
               </CardContent>
             </Card>
@@ -160,14 +160,14 @@ export default function Home() {
               </CardHeader>
               <CardContent>
                 <div className="space-y-4">
-                  <div className="flex items-center justify-between p-3 rounded-lg bg-white/5">
+                  <div className="flex items-center justify-between p-3 rounded-lg bg-muted">
                     <div className="flex items-center gap-3">
                       <div className="w-3 h-3 rounded-full bg-blue-500" />
                       <span className="text-sm font-semibold">Male</span>
                     </div>
                     <span className="text-2xl font-bold">{demographics?.sexDistribution.male || 0}</span>
                   </div>
-                  <div className="flex items-center justify-between p-3 rounded-lg bg-white/5">
+                  <div className="flex items-center justify-between p-3 rounded-lg bg-muted">
                     <div className="flex items-center gap-3">
                       <div className="w-3 h-3 rounded-full bg-pink-500" />
                       <span className="text-sm font-semibold">Female</span>
@@ -186,7 +186,7 @@ export default function Home() {
               <CardContent>
                 <div className="space-y-4">
                   {demographics?.ageGroupStats.slice(0, 3).map((stat, index) => (
-                    <div key={index} className="flex items-center justify-between p-3 rounded-lg bg-white/5">
+                    <div key={index} className="flex items-center justify-between p-3 rounded-lg bg-muted">
                       <div className="flex items-center gap-3">
                         <div className="w-3 h-3 rounded-full bg-accent" />
                         <span className="text-sm font-semibold capitalize">{stat.ageGroup}</span>

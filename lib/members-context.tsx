@@ -25,260 +25,296 @@ interface MembersContextType {
 
 const MembersContext = createContext<MembersContextType | undefined>(undefined)
 
+// --- Enum maps (frontend label <-> backend value) ---------------------------
+
+const SUB_COMMUNITY_TO_UI: Record<string, Member["subCommunity"]> = {
+  jemmo: "Jemmo",
+  bethel: "Bethel",
+  weyira: "Weyira",
+  alpha: "Alpha",
+}
+
+const GROUP_TYPE_TO_UI: Record<string, Member["currentGroupType"]> = {
+  cell_group: "Cell Group",
+  youth_group: "Youth Group",
+  bible_study: "Bible Study",
+  prayer_group: "Prayer Group",
+  none: "None",
+}
+const GROUP_TYPE_TO_BACKEND: Record<string, string> = {
+  "Cell Group": "cell_group",
+  "Youth Group": "youth_group",
+  "Bible Study": "bible_study",
+  "Prayer Group": "prayer_group",
+  None: "none",
+}
+
+const CATECHESIS_TO_UI: Record<string, Member["catechesisStatus"]> = {
+  not_started: "Not Started",
+  in_progress: "In Progress",
+  completed: "Completed",
+}
+const CATECHESIS_TO_BACKEND: Record<string, string> = {
+  "Not Started": "not_started",
+  "In Progress": "in_progress",
+  Completed: "completed",
+}
+
+const MARITAL_TO_UI: Record<string, Member["maritalStatus"]> = {
+  unmarried: "Unmarried",
+  married: "Married",
+  divorced: "Divorced",
+  widowed: "Widowed",
+}
+const MARITAL_TO_BACKEND: Record<string, string> = {
+  Unmarried: "unmarried",
+  Married: "married",
+  Divorced: "divorced",
+  Widowed: "widowed",
+}
+
+const STATUS_TO_UI: Record<string, Member["membershipStatus"]> = {
+  active: "Active",
+  inactive: "Inactive",
+  removed: "Removed",
+  transferred_out: "Transferred Out",
+  deceased: "Deceased",
+}
+
+const EDUCATION_TO_UI: Record<string, Member["educationLevel"]> = {
+  uneducated: "Uneducated",
+  "1-8": "1-8",
+  "9-12": "9-12",
+  finished_12: "Finished 12",
+  diploma: "Diploma",
+  degree: "Degree",
+  masters: "Masters",
+  phd: "PhD",
+}
+const EDUCATION_TO_BACKEND: Record<string, string> = {
+  Uneducated: "uneducated",
+  "1-8": "1-8",
+  "9-12": "9-12",
+  "Finished 12": "finished_12",
+  Diploma: "diploma",
+  Degree: "degree",
+  Masters: "masters",
+  PhD: "phd",
+}
+
+const JOB_TO_UI: Record<string, Member["jobType"]> = {
+  self_employed: "Personal",
+  government: "Government",
+  private: "Private",
+  unemployed: "Unemployed",
+  student: "Student",
+  retired: "Retired",
+}
+const JOB_TO_BACKEND: Record<string, string> = {
+  Personal: "self_employed",
+  Government: "government",
+  Private: "private",
+  Unemployed: "unemployed",
+  Student: "student",
+  Retired: "retired",
+}
+
+const FREQUENCY_TO_UI: Record<string, Member["titheFrequency"]> = {
+  weekly: "Weekly",
+  monthly: "Monthly",
+  occasionally: "Occasionally",
+}
+
 /**
  * Maps backend member data to frontend Member type
  */
 function mapBackendMemberToMember(backendMember: any): Member {
-  // Backend uses sex: 'male'/'female', frontend uses gender: 'Male'/'Female'
-  const gender = backendMember.sex === 'male' ? 'Male' : 'Female'
-  
-  // Parse fullName into firstName, middleName, lastName
-  const nameParts = backendMember.fullName?.split(' ') || []
-  const firstName = nameParts[0] || ''
-  const middleName = nameParts.length > 2 ? nameParts.slice(1, -1).join(' ') : ''
-  const lastName = nameParts.length > 1 ? nameParts[nameParts.length - 1] : ''
+  const gender = backendMember.sex === "male" ? "Male" : "Female"
 
-  // Map memberStatus to membershipStatus
-  const membershipStatusMap: Record<string, string> = {
-    'active': 'Active',
-    'inactive': 'Inactive',
-    'removed': 'Removed',
-    'transferred_out': 'Transferred Out',
-    'deceased': 'Deceased',
-  }
-  const membershipStatus = membershipStatusMap[backendMember.memberStatus] || 'Active'
+  // Parse fullName into firstName (Name), middleName (Father's), lastName (Grandfather's)
+  const nameParts: string[] = backendMember.fullName?.trim().split(/\s+/) || []
+  const firstName = nameParts[0] || ""
+  const middleName = nameParts[1] || undefined
+  const lastName = nameParts.length > 2 ? nameParts.slice(2).join(" ") : undefined
 
-  // Map ageGroup to frontend format (capitalize first letter)
-  const ageGroup = backendMember.ageGroup 
-    ? backendMember.ageGroup.charAt(0).toUpperCase() + backendMember.ageGroup.slice(1)
+  const registrationDate = backendMember.registrationDate
+    ? new Date(backendMember.registrationDate).toISOString().split("T")[0]
     : undefined
-
-  // Map catechesisStatus
-  const catechesisStatusMap: Record<string, string> = {
-    'not_started': 'Not Started',
-    'in_progress': 'In Progress',
-    'completed': 'Completed',
-  }
-  const catechesisStatus = backendMember.catechesisStatus 
-    ? catechesisStatusMap[backendMember.catechesisStatus] || backendMember.catechesisStatus
-    : undefined
-
-  // Map groupType
-  const groupTypeMap: Record<string, string> = {
-    'cell_group': 'Cell Group',
-    'youth_group': 'Youth Group',
-    'bible_study': 'Bible Study',
-    'prayer_group': 'Prayer Group',
-    'none': 'None',
-  }
-  const currentGroupType = backendMember.groupType 
-    ? groupTypeMap[backendMember.groupType] || backendMember.groupType
-    : undefined
-
-  // Map subCommunity (capitalize first letter)
-  const subCommunity = backendMember.subCommunity 
-    ? backendMember.subCommunity.charAt(0).toUpperCase() + backendMember.subCommunity.slice(1)
-    : undefined
-
-  // Map maritalStatus
-  const maritalStatusMap: Record<string, string> = {
-    'unmarried': 'Unmarried',
-    'married': 'Married',
-    'divorced': 'Divorced',
-    'widowed': 'Widowed',
-  }
-  const maritalStatus = backendMember.maritalStatus 
-    ? maritalStatusMap[backendMember.maritalStatus] || backendMember.maritalStatus
-    : 'Unmarried'
 
   return {
     id: backendMember._id || backendMember.id,
     fullName: backendMember.fullName,
     firstName,
-    middleName: middleName || undefined,
+    middleName,
     lastName,
-    email: backendMember.email,
-    phone: backendMember.phoneNumber,
-    yearOfBirthEthiopian: backendMember.birthDate ? new Date(backendMember.birthDate).getFullYear().toString() : undefined,
-    dateOfBirth: backendMember.birthDate ? new Date(backendMember.birthDate).toISOString().split('T')[0] : undefined,
+    email: backendMember.email || undefined,
+    phone: backendMember.phoneNumber || "",
+    birthYearEthiopian: backendMember.birthYearEthiopian?.toString(),
+    dateOfBirth: backendMember.birthDate
+      ? new Date(backendMember.birthDate).toISOString().split("T")[0]
+      : undefined,
     gender,
+    nationality: backendMember.nationality,
     photoUrl: backendMember.memberPicture,
     membershipNumber: backendMember.membershipNumber,
-    registrationDate: backendMember.registrationDate ? new Date(backendMember.registrationDate).toISOString().split('T')[0] : undefined,
-    ageGroup,
+    registrationDate,
+    ageGroup: backendMember.ageGroup
+      ? ((backendMember.ageGroup.charAt(0).toUpperCase() +
+          backendMember.ageGroup.slice(1)) as Member["ageGroup"])
+      : undefined,
     physicalAddress: backendMember.physicalAddress,
-    address: backendMember.physicalAddress,
-    emergencyContactName: backendMember.emergencyContactName,
-    emergencyContactRelation: backendMember.emergencyContactRelation,
-    emergencyContactPhone: backendMember.emergencyContactPhone,
-    salvationYearEthiopian: backendMember.salvationYear ? new Date(backendMember.salvationYear).getFullYear().toString() : undefined,
-    salvationDate: backendMember.salvationYear ? new Date(backendMember.salvationYear).toISOString().split('T')[0] : undefined,
-    baptismYearEthiopian: backendMember.baptismYear ? new Date(backendMember.baptismYear).getFullYear().toString() : undefined,
-    baptismDate: backendMember.baptismYear ? new Date(backendMember.baptismYear).toISOString().split('T')[0] : undefined,
-    catechesisStatus,
-    discipleshipProgram: backendMember.discipleshipProgram,
-    subCommunity,
-    currentGroupType,
-    cellGroupType: backendMember.groupType,
+    woreda: backendMember.woreda,
+    seferId:
+      typeof backendMember.seferId === "object" && backendMember.seferId
+        ? backendMember.seferId._id
+        : backendMember.seferId,
+    sefer:
+      backendMember.sefer ||
+      (typeof backendMember.seferId === "object" ? backendMember.seferId?.name : undefined),
+    subCommunity: backendMember.subCommunity
+      ? SUB_COMMUNITY_TO_UI[backendMember.subCommunity]
+      : undefined,
+    currentGroupType: backendMember.groupType
+      ? GROUP_TYPE_TO_UI[backendMember.groupType]
+      : undefined,
     cellGroupName: backendMember.groupName,
     cellGroupNumber: backendMember.cellGroupNumber?.toString(),
     reasonForNoGroup: backendMember.reasonForNoGroup,
+    emergencyContactName: backendMember.emergencyContactName,
+    emergencyContactPhone: backendMember.emergencyContactPhone,
+    salvationYearEthiopian: backendMember.salvationYearEthiopian?.toString(),
+    baptismYearEthiopian: backendMember.baptismYearEthiopian?.toString(),
+    catechesisStatus: backendMember.catechesisStatus
+      ? CATECHESIS_TO_UI[backendMember.catechesisStatus]
+      : undefined,
     isTransfer: backendMember.cameByTransfer || false,
     transferFromChurch: backendMember.transferredFromChurch,
-    transferYearEthiopian: backendMember.transferYear ? new Date(backendMember.transferYear).getFullYear().toString() : undefined,
-    transferDate: backendMember.transferYear ? new Date(backendMember.transferYear).toISOString().split('T')[0] : undefined,
+    transferDate: backendMember.transferDate
+      ? new Date(backendMember.transferDate).toISOString().split("T")[0]
+      : undefined,
     transferLetterUrl: backendMember.transferLetterUrl,
     currentServices: backendMember.currentlyServingAt || [],
-    desiredServices: backendMember.wantingToServeAt || [],
-    maritalStatus: maritalStatus as "Unmarried" | "Married" | "Divorced" | "Widowed",
-    spouseName: backendMember.spouseName,
+    maritalStatus: backendMember.maritalStatus
+      ? MARITAL_TO_UI[backendMember.maritalStatus] || "Unmarried"
+      : "Unmarried",
     numberOfChildren: backendMember.numberOfChildren || 0,
-    educationLevel: backendMember.educationLevel,
-    jobType: backendMember.jobType,
+    familyId:
+      typeof backendMember.familyId === "object" && backendMember.familyId
+        ? backendMember.familyId._id
+        : backendMember.familyId,
+    educationLevel: backendMember.educationLevel
+      ? EDUCATION_TO_UI[backendMember.educationLevel]
+      : undefined,
+    jobType: backendMember.jobType ? JOB_TO_UI[backendMember.jobType] : undefined,
     profession: backendMember.profession,
-    occupation: backendMember.profession,
-    paysTithe: backendMember.paysTithe || false,
+    paysTithe: (backendMember.paysTithe as Member["paysTithe"]) || "unknown",
     titheAmount: backendMember.titheAmount,
-    titheFrequency: backendMember.paymentFrequency ? backendMember.paymentFrequency.charAt(0).toUpperCase() + backendMember.paymentFrequency.slice(1) : undefined,
-    membershipStatus: membershipStatus as "Active" | "Inactive" | "Removed" | "Transferred Out" | "Deceased",
+    titheFrequency: backendMember.paymentFrequency
+      ? FREQUENCY_TO_UI[backendMember.paymentFrequency]
+      : undefined,
+    membershipStatus: backendMember.memberStatus
+      ? STATUS_TO_UI[backendMember.memberStatus] || "Active"
+      : "Active",
     membershipType: backendMember.membershipType || "Regular",
-    joinDate: backendMember.registrationDate ? new Date(backendMember.registrationDate).toISOString().split('T')[0] : new Date().toISOString().split('T')[0],
-    nationality: backendMember.nationality,
+    joinDate: registrationDate || new Date().toISOString().split("T")[0],
+    notes: backendMember.notes,
     createdAt: backendMember.createdAt || new Date().toISOString(),
     updatedAt: backendMember.updatedAt || new Date().toISOString(),
   }
 }
 
+/** Coerce a value to a positive integer, or undefined if not parseable. */
+function toInt(value: unknown): number | undefined {
+  if (value === undefined || value === null || value === "") return undefined
+  const n = typeof value === "number" ? value : parseInt(String(value), 10)
+  return Number.isFinite(n) ? n : undefined
+}
+
+/** Empty string -> undefined (backend enums/emails reject empty strings). */
+function clean(value: unknown): string | undefined {
+  if (typeof value !== "string") return value as string | undefined
+  const trimmed = value.trim()
+  return trimmed === "" ? undefined : trimmed
+}
+
 /**
- * Maps frontend Member type to backend create/update format
+ * Maps a frontend Member to the backend create/update payload.
+ *
+ * CRITICAL: the backend validates with whitelist + forbidNonWhitelisted, so this
+ * MUST emit ONLY whitelisted fields. Any stray key causes a 400. We build the
+ * object explicitly and drop undefined/empty values.
  */
-function mapMemberToBackendFormat(member: Partial<Member>, isUpdate: boolean = false): any {
-  const backendMember: any = {}
+function mapMemberToBackendFormat(member: Partial<Member>): any {
+  const out: Record<string, any> = {}
 
-  if (member.fullName !== undefined) backendMember.fullName = member.fullName
-  if (member.firstName !== undefined || member.lastName !== undefined) {
-    // Combine firstName, middleName, lastName into fullName
-    const nameParts = [member.firstName, member.middleName, member.lastName].filter(Boolean)
-    backendMember.fullName = nameParts.join(' ')
+  const set = (key: string, value: unknown) => {
+    if (value !== undefined && value !== null && value !== "") out[key] = value
   }
 
-  // Map gender to sex
-  if (member.gender !== undefined) {
-    backendMember.sex = member.gender.toLowerCase() === 'male' ? 'male' : 'female'
+  // Name -> fullName
+  const fullName =
+    clean(member.fullName) ||
+    [member.firstName, member.middleName, member.lastName].map(clean).filter(Boolean).join(" ")
+  set("fullName", fullName || undefined)
+
+  set("sex", member.gender ? (member.gender.toLowerCase() === "male" ? "male" : "female") : undefined)
+  if (member.dateOfBirth) set("birthDate", new Date(member.dateOfBirth).toISOString())
+  set("birthYearEthiopian", toInt(member.birthYearEthiopian))
+  set("nationality", clean(member.nationality))
+  set("phoneNumber", clean(member.phone))
+  set("email", clean(member.email))
+  set("physicalAddress", clean(member.physicalAddress))
+  set("woreda", clean(member.woreda))
+  set("seferId", clean(member.seferId))
+  set("sefer", clean(member.sefer))
+  set("memberPicture", clean(member.photoUrl))
+
+  // Spiritual
+  set("salvationYearEthiopian", toInt(member.salvationYearEthiopian))
+  set("baptismYearEthiopian", toInt(member.baptismYearEthiopian))
+  set("catechesisStatus", member.catechesisStatus ? CATECHESIS_TO_BACKEND[member.catechesisStatus] : undefined)
+
+  // Church grouping
+  set("subCommunity", member.subCommunity ? member.subCommunity.toLowerCase() : undefined)
+  set("groupType", member.currentGroupType ? GROUP_TYPE_TO_BACKEND[member.currentGroupType] : undefined)
+  set("groupName", clean(member.cellGroupName))
+  set("cellGroupNumber", toInt(member.cellGroupNumber))
+  set("reasonForNoGroup", clean(member.reasonForNoGroup))
+
+  // Transfer
+  if (member.isTransfer !== undefined) out.cameByTransfer = !!member.isTransfer
+  if (member.isTransfer) {
+    set("transferredFromChurch", clean(member.transferFromChurch))
+    if (member.transferDate) set("transferDate", new Date(member.transferDate).toISOString())
+    set("transferLetterUrl", clean(member.transferLetterUrl))
   }
 
-  // Map dateOfBirth to birthDate
-  if (member.dateOfBirth !== undefined) {
-    backendMember.birthDate = new Date(member.dateOfBirth)
+  // Service
+  if (member.currentServices && member.currentServices.length > 0) {
+    out.currentlyServingAt = member.currentServices.slice(0, 2)
   }
 
-  if (member.phone !== undefined) backendMember.phoneNumber = member.phone
-  if (member.email !== undefined) backendMember.email = member.email
-  if (member.physicalAddress !== undefined || member.address !== undefined) {
-    backendMember.physicalAddress = member.physicalAddress || member.address
-  }
-  if (member.photoUrl !== undefined) backendMember.memberPicture = member.photoUrl
+  // Family / personal
+  set("maritalStatus", member.maritalStatus ? MARITAL_TO_BACKEND[member.maritalStatus] : undefined)
+  if (member.numberOfChildren !== undefined) set("numberOfChildren", toInt(member.numberOfChildren))
+  set("emergencyContactName", clean(member.emergencyContactName))
+  set("emergencyContactPhone", clean(member.emergencyContactPhone))
 
-  // Map membershipStatus to memberStatus
-  if (member.membershipStatus !== undefined) {
-    const statusMap: Record<string, string> = {
-      'Active': 'active',
-      'Inactive': 'inactive',
-      'Removed': 'removed',
-      'Transferred Out': 'transferred_out',
-      'Deceased': 'deceased',
-    }
-    backendMember.memberStatus = statusMap[member.membershipStatus] || member.membershipStatus.toLowerCase()
-  }
+  // Education / profession
+  set("educationLevel", member.educationLevel ? EDUCATION_TO_BACKEND[member.educationLevel] : undefined)
+  set("jobType", member.jobType ? JOB_TO_BACKEND[member.jobType] : undefined)
+  set("profession", clean(member.profession))
 
-  // Map ageGroup (lowercase)
-  if (member.ageGroup !== undefined) {
-    backendMember.ageGroup = member.ageGroup.toLowerCase()
+  // Financial — tithe amount/frequency only meaningful when paysTithe === 'yes'
+  if (member.paysTithe !== undefined) out.paysTithe = member.paysTithe
+  if (member.paysTithe === "yes") {
+    set("titheAmount", toInt(member.titheAmount))
+    set("paymentFrequency", member.titheFrequency ? member.titheFrequency.toLowerCase() : undefined)
   }
 
-  // Map subCommunity (lowercase)
-  if (member.subCommunity !== undefined) {
-    backendMember.subCommunity = member.subCommunity.toLowerCase()
-  }
+  set("notes", clean(member.notes))
 
-  // Map currentGroupType to groupType
-  if (member.currentGroupType !== undefined) {
-    const groupTypeMap: Record<string, string> = {
-      'Cell Group': 'cell_group',
-      'Youth Group': 'youth_group',
-      'Bible Study': 'bible_study',
-      'Prayer Group': 'prayer_group',
-      'None': 'none',
-    }
-    backendMember.groupType = groupTypeMap[member.currentGroupType] || member.currentGroupType.toLowerCase().replace(' ', '_')
-  }
-
-  if (member.cellGroupName !== undefined) backendMember.groupName = member.cellGroupName
-  if (member.cellGroupNumber !== undefined) backendMember.cellGroupNumber = parseInt(member.cellGroupNumber)
-  if (member.reasonForNoGroup !== undefined) backendMember.reasonForNoGroup = member.reasonForNoGroup
-  if (member.discipleshipProgram !== undefined) backendMember.discipleshipProgram = member.discipleshipProgram
-
-  // Transfer info
-  if (member.isTransfer !== undefined) backendMember.cameByTransfer = member.isTransfer
-  if (member.transferFromChurch !== undefined) backendMember.transferredFromChurch = member.transferFromChurch
-  if (member.transferDate !== undefined) backendMember.transferYear = new Date(member.transferDate)
-  if (member.transferLetterUrl !== undefined) backendMember.transferLetterUrl = member.transferLetterUrl
-
-  if (member.currentServices !== undefined) backendMember.currentlyServingAt = member.currentServices
-  if (member.desiredServices !== undefined) backendMember.wantingToServeAt = member.desiredServices
-
-  // Marital status
-  if (member.maritalStatus !== undefined) {
-    const maritalMap: Record<string, string> = {
-      'Unmarried': 'unmarried',
-      'Married': 'married',
-      'Divorced': 'divorced',
-      'Widowed': 'widowed',
-    }
-    backendMember.maritalStatus = maritalMap[member.maritalStatus] || member.maritalStatus.toLowerCase()
-  }
-
-  if (member.spouseName !== undefined) backendMember.spouseName = member.spouseName
-  if (member.numberOfChildren !== undefined) backendMember.numberOfChildren = member.numberOfChildren
-
-  if (member.educationLevel !== undefined) backendMember.educationLevel = member.educationLevel
-  if (member.jobType !== undefined) backendMember.jobType = member.jobType
-  if (member.profession !== undefined || member.occupation !== undefined) {
-    backendMember.profession = member.profession || member.occupation
-  }
-
-  if (member.paysTithe !== undefined) backendMember.paysTithe = member.paysTithe
-  if (member.titheAmount !== undefined) backendMember.titheAmount = member.titheAmount
-  if (member.titheFrequency !== undefined) {
-    backendMember.paymentFrequency = member.titheFrequency.toLowerCase()
-  }
-
-  if (member.nationality !== undefined) backendMember.nationality = member.nationality
-
-  // Dates
-  if (member.registrationDate !== undefined || member.joinDate !== undefined) {
-    backendMember.registrationDate = new Date(member.registrationDate || member.joinDate || new Date())
-  }
-
-  // Spiritual journey dates
-  if (member.salvationDate !== undefined) {
-    backendMember.salvationYear = new Date(member.salvationDate)
-  }
-  if (member.baptismDate !== undefined) {
-    backendMember.baptismYear = new Date(member.baptismDate)
-  }
-
-  // Catechesis status
-  if (member.catechesisStatus !== undefined) {
-    const catechesisMap: Record<string, string> = {
-      'Not Started': 'not_started',
-      'In Progress': 'in_progress',
-      'Completed': 'completed',
-    }
-    backendMember.catechesisStatus = catechesisMap[member.catechesisStatus] || member.catechesisStatus.toLowerCase().replace(' ', '_')
-  }
-
-  return backendMember
+  return out
 }
 
 export function MembersProvider({ children }: { children: ReactNode }) {
@@ -326,7 +362,7 @@ export function MembersProvider({ children }: { children: ReactNode }) {
     try {
       setLoading(true)
       setError(null)
-      const backendFormat = mapMemberToBackendFormat(memberData, false)
+      const backendFormat = mapMemberToBackendFormat(memberData)
       const createdMember = await membersAPI.createMember(backendFormat)
       const mappedMember = mapBackendMemberToMember(createdMember)
       setMembers((prev) => [...prev, mappedMember])
@@ -348,7 +384,7 @@ export function MembersProvider({ children }: { children: ReactNode }) {
     try {
       setLoading(true)
       setError(null)
-      const backendFormat = mapMemberToBackendFormat(memberData, true)
+      const backendFormat = mapMemberToBackendFormat(memberData)
       const updatedMember = await membersAPI.updateMember(id, backendFormat)
       const mappedMember = mapBackendMemberToMember(updatedMember)
       setMembers((prev) =>

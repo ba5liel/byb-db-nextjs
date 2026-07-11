@@ -37,7 +37,7 @@ import { useMembers, useServices, useDeleteMember } from "@/lib/api/hooks"
 import { useLanguage } from "@/lib/language-context"
 import { getTranslation } from "@/lib/translations"
 import { toast } from "@/hooks/use-toast"
-import type { MemberDto } from "@/lib/api/types"
+import type { MemberDto, SubCommunity, Sex, MaritalStatus, MemberStatus, GroupType, AgeGroup } from "@/lib/api/types"
 import { PermissionGuard } from "@/components/auth/permission-guard"
 import { Resource, Action } from "@/lib/permissions"
 import { useAuth } from "@/lib/auth-context"
@@ -67,12 +67,12 @@ export default function MembersPage() {
     page: currentPage,
     limit: itemsPerPage,
     search: searchTerm,
-    subCommunity: subCommunityFilter === "all" ? undefined : subCommunityFilter,
-    sex: genderFilter === "all" ? undefined : genderFilter,
-    maritalStatus: maritalStatusFilter === "all" ? undefined : maritalStatusFilter,
-    memberStatus: statusFilter === "all" ? undefined : statusFilter,
-    groupType: groupTypeFilter === "all" ? undefined : groupTypeFilter,
-    ageGroup: ageGroupFilter === "all" ? undefined : ageGroupFilter,
+    subCommunity: subCommunityFilter === "all" ? undefined : (subCommunityFilter as SubCommunity),
+    sex: genderFilter === "all" ? undefined : (genderFilter as Sex),
+    maritalStatus: maritalStatusFilter === "all" ? undefined : (maritalStatusFilter as MaritalStatus),
+    memberStatus: statusFilter === "all" ? undefined : (statusFilter as MemberStatus),
+    groupType: groupTypeFilter === "all" ? undefined : (groupTypeFilter as GroupType),
+    ageGroup: ageGroupFilter === "all" ? undefined : (ageGroupFilter as AgeGroup),
   })
 
   const { data: servicesData } = useServices({ limit: 100 }) // Get all services for dropdown
@@ -87,7 +87,6 @@ export default function MembersPage() {
     setDeleteDialogOpen(true)
   }
 
-  async function handleDeleteConfirm() {
   async function handleDeleteConfirm() {
     if (memberToDelete) {
       try {

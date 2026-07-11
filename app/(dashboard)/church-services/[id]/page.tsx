@@ -113,7 +113,7 @@ export default function ChurchServiceDetailPage() {
         <div className="flex-1">
           <h1 className="text-3xl font-bold">{service.serviceName}</h1>
           <p className="text-muted-foreground mt-1">
-            {SERVICE_TYPE_LABELS[service.type] || service.type}
+            {SERVICE_TYPE_LABELS[service.type as ServiceType] || service.type}
           </p>
         </div>
         <Link href={`/church-services/${serviceId}/edit`}>
