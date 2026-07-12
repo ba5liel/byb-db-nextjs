@@ -54,6 +54,7 @@ export const MEMBER_IMPORT_TEMPLATE_COLUMNS = [
   "physicalAddress",
   "subCommunity",
   "groupType",
+  "reasonForNoGroup",
   "maritalStatus",
   "educationLevel",
   "jobType",
@@ -79,9 +80,10 @@ const MEMBER_IMPORT_NOTES: Record<string, string> = {
   physicalAddress:       "Optional.",
   subCommunity:          "REQUIRED. jemmo / bethel / weyira / alfa",
   groupType:             "REQUIRED. cell_group / youth_group / bible_study / prayer_group / none",
+  reasonForNoGroup:      "Required if groupType=none. Why the member is not in a group.",
   maritalStatus:         "REQUIRED. unmarried / married / divorced / widowed",
   educationLevel:        "Optional. uneducated / 1-8 / 9-12 / finished_12 / diploma / degree / masters / phd",
-  jobType:               "Optional. personal / government / private / unemployed / student / retired",
+  jobType:               "Optional. self_employed / government / private / unemployed / student / retired",
   profession:            "Optional.",
   paysTithe:             "REQUIRED. yes / no",
   titheAmount:           "Optional. Number. Required if paysTithe=yes.",
@@ -122,7 +124,7 @@ const COMMUNITY_VALUES = ["jemmo", "bethel", "weyira", "alfa"]
 const GROUP_TYPE_VALUES = ["cell_group", "youth_group", "bible_study", "prayer_group", "none"]
 const MARITAL_VALUES = ["unmarried", "married", "divorced", "widowed"]
 const EDU_VALUES = ["uneducated", "1-8", "9-12", "finished_12", "diploma", "degree", "masters", "phd"]
-const JOB_VALUES = ["personal", "government", "private", "unemployed", "student", "retired"]
+const JOB_VALUES = ["self_employed", "government", "private", "unemployed", "student", "retired"]
 const PAY_FREQ_VALUES = ["weekly", "monthly", "occasionally"]
 const CATECHESIS_VALUES = ["not_started", "in_progress", "completed"]
 
@@ -145,6 +147,9 @@ export function validateMemberRow(row: Record<string, unknown>): RowValidationRe
   if (!phoneNumber)                       errors.push("phoneNumber is required")
   if (!COMMUNITY_VALUES.includes(subCommunity)) errors.push(`subCommunity must be one of ${COMMUNITY_VALUES.join(", ")} (got "${row.subCommunity}")`)
   if (!GROUP_TYPE_VALUES.includes(groupType))   errors.push(`groupType must be one of ${GROUP_TYPE_VALUES.join(", ")} (got "${row.groupType}")`)
+  if (groupType === "none" && !String(row.reasonForNoGroup || "").trim()) {
+    errors.push("reasonForNoGroup is required when groupType is none")
+  }
   if (!MARITAL_VALUES.includes(maritalStatus))  errors.push(`maritalStatus must be one of ${MARITAL_VALUES.join(", ")} (got "${row.maritalStatus}")`)
   if (paysTithe === null)                 errors.push("paysTithe is required (yes or no)")
   if (paysTithe === true && (row.titheAmount === undefined || row.titheAmount === "")) {
@@ -180,6 +185,7 @@ export function validateMemberRow(row: Record<string, unknown>): RowValidationRe
   }
   if (row.email)            dto.email = String(row.email)
   if (row.physicalAddress)  dto.physicalAddress = String(row.physicalAddress)
+  if (row.reasonForNoGroup) dto.reasonForNoGroup = String(row.reasonForNoGroup)
   if (educationLevel)       dto.educationLevel = educationLevel as EducationLevel
   if (jobType)              dto.jobType = jobType as JobType
   if (row.profession)       dto.profession = String(row.profession)
@@ -320,7 +326,7 @@ export async function downloadMemberTemplate() {
   const notesRow = headers.map(h => MEMBER_IMPORT_NOTES[h] ?? "")
   const exampleRow = [
     "አበበ ከበደ ተስፋዬ", "male", "1990-06-15", "0911234567", "abebe@email.com",
-    "ቦሌ, አዲስ አበባ", "bethel", "cell_group", "unmarried",
+    "ቦሌ, አዲስ አበባ", "bethel", "cell_group", "", "unmarried",
     "degree", "private", "Software Engineer", "yes", "2000", "monthly",
     "no", "", "completed", "0", "", "", "",
   ]
