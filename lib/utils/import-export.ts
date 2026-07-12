@@ -64,6 +64,7 @@ export const MEMBER_IMPORT_TEMPLATE_COLUMNS = [
   "paymentFrequency",
   "cameByTransfer",
   "transferredFromChurch",
+  "transferYear",
   "catechesisStatus",
   "numberOfChildren",
   "emergencyContactName",
@@ -89,7 +90,8 @@ const MEMBER_IMPORT_NOTES: Record<string, string> = {
   titheAmount:           "Optional. Number. Required if paysTithe=yes.",
   paymentFrequency:      "Optional. weekly / monthly / occasionally",
   cameByTransfer:        "REQUIRED. yes / no",
-  transferredFromChurch: "Optional. Name of previous church. Required if cameByTransfer=yes.",
+  transferredFromChurch: "Required if cameByTransfer=yes. Name of previous church.",
+  transferYear:          "Required if cameByTransfer=yes. Year or date, e.g. 2023 or 2023-06-15.",
   catechesisStatus:      "Optional. not_started / in_progress / completed",
   numberOfChildren:      "Optional. Number.",
   emergencyContactName:  "Optional.",
@@ -156,6 +158,15 @@ export function validateMemberRow(row: Record<string, unknown>): RowValidationRe
     errors.push("titheAmount is required when paysTithe is yes")
   }
   if (cameByTransfer === null)            errors.push("cameByTransfer is required (yes or no)")
+  const transferYear = parseDate(row.transferYear)
+  if (cameByTransfer === true) {
+    if (!String(row.transferredFromChurch || "").trim()) {
+      errors.push("transferredFromChurch is required when cameByTransfer is yes")
+    }
+    if (!transferYear) {
+      errors.push(`transferYear is required when cameByTransfer is yes (got "${row.transferYear ?? ""}")`)
+    }
+  }
 
   const educationLevel = String(row.educationLevel || "").trim()
   if (educationLevel && !EDU_VALUES.includes(educationLevel)) errors.push(`educationLevel must be one of ${EDU_VALUES.join(", ")}`)
@@ -192,6 +203,7 @@ export function validateMemberRow(row: Record<string, unknown>): RowValidationRe
   if (paysTithe && row.titheAmount) dto.titheAmount = Number(row.titheAmount)
   if (paymentFrequency)     dto.paymentFrequency = paymentFrequency as PaymentFrequency
   if (cameByTransfer && row.transferredFromChurch) dto.transferredFromChurch = String(row.transferredFromChurch)
+  if (cameByTransfer && transferYear) dto.transferYear = transferYear
   if (catechesisStatus)     dto.catechesisStatus = catechesisStatus as CatechesisStatus
   if (row.numberOfChildren !== undefined && row.numberOfChildren !== "") dto.numberOfChildren = Number(row.numberOfChildren)
   if (row.emergencyContactName)  dto.emergencyContactName = String(row.emergencyContactName)
@@ -328,7 +340,7 @@ export async function downloadMemberTemplate() {
     "አበበ ከበደ ተስፋዬ", "male", "1990-06-15", "0911234567", "abebe@email.com",
     "ቦሌ, አዲስ አበባ", "bethel", "cell_group", "", "unmarried",
     "degree", "private", "Software Engineer", "yes", "2000", "monthly",
-    "no", "", "completed", "0", "", "", "",
+    "no", "", "", "completed", "0", "", "", "",
   ]
 
   const ws = XLSX.utils.aoa_to_sheet([headers, notesRow, exampleRow])
