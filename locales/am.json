@@ -574,9 +574,9 @@
     },
     "statusOptions": {
       "active": "ንቁ",
-      "inactive": "ንቁ ያልሆነ",
       "suspended": "የታገደ",
-      "retired": "ጡረታ የወጣ"
+      "retired": "ጡረታ የወጣ",
+      "on_leave": "በእረፍት"
     },
     "detail": {
       "backToList": "ወደ አገልጋዮች ተመለስ",

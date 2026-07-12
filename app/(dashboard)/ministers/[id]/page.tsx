@@ -50,7 +50,7 @@ import { MinisterForm, type MinisterFormData } from "@/components/ministers/mini
 import { getMinisterMember } from "@/lib/api/types"
 import type { MinisterStatus } from "@/lib/api/types"
 
-const STATUS_VALUES: MinisterStatus[] = ["active", "inactive", "suspended", "retired"]
+const STATUS_VALUES: MinisterStatus[] = ["active", "on_leave", "suspended", "retired"]
 
 export default function MinisterDetailPage() {
   const params = useParams<{ id: string }>()
@@ -193,7 +193,7 @@ export default function MinisterDetailPage() {
           <CardContent className="space-y-4">
             <div className="flex items-center gap-2 text-sm">
               <Calendar className="w-4 h-4 text-muted-foreground" />
-              <span className="text-muted-foreground">{tr.ministers.ordinationDate}:</span>
+              <span className="text-muted-foreground">{tr.ministers.ordinationDate.replace(" *", "")}:</span>
               <span className="font-medium">
                 {new Date(minister.ordinationDate).toLocaleDateString()}
               </span>
@@ -234,7 +234,7 @@ export default function MinisterDetailPage() {
             )}
             <div>
               <p className="text-sm text-muted-foreground mb-1">
-                {tr.ministers.responsibilities}
+                {tr.ministers.responsibilities.replace(" *", "")}
               </p>
               <p className="text-sm">{minister.responsibilities}</p>
             </div>

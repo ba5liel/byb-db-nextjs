@@ -274,7 +274,7 @@ export default function MinistersPage() {
               <SelectContent>
                 <SelectItem value="all">{tr.ministers.allStatus}</SelectItem>
                 <SelectItem value="active">{tr.ministers.statusOptions.active}</SelectItem>
-                <SelectItem value="inactive">{tr.ministers.statusOptions.inactive}</SelectItem>
+                <SelectItem value="on_leave">{tr.ministers.statusOptions.on_leave}</SelectItem>
                 <SelectItem value="suspended">{tr.ministers.statusOptions.suspended}</SelectItem>
                 <SelectItem value="retired">{tr.ministers.statusOptions.retired}</SelectItem>
               </SelectContent>

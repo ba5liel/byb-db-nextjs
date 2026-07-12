@@ -3,7 +3,7 @@
  */
 
 export type MinisterRole = "pastor" | "elder" | "deacon" | "evangelist" | "teacher" | "other"
-export type MinisterStatus = "active" | "inactive" | "suspended" | "retired"
+export type MinisterStatus = "active" | "on_leave" | "suspended" | "retired"
 export type ContractType = "full_time" | "part_time" | "volunteer" | "contract"
 
 /**
