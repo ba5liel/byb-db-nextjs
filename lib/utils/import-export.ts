@@ -147,6 +147,9 @@ export function validateMemberRow(row: Record<string, unknown>): RowValidationRe
   if (!GROUP_TYPE_VALUES.includes(groupType))   errors.push(`groupType must be one of ${GROUP_TYPE_VALUES.join(", ")} (got "${row.groupType}")`)
   if (!MARITAL_VALUES.includes(maritalStatus))  errors.push(`maritalStatus must be one of ${MARITAL_VALUES.join(", ")} (got "${row.maritalStatus}")`)
   if (paysTithe === null)                 errors.push("paysTithe is required (yes or no)")
+  if (paysTithe === true && (row.titheAmount === undefined || row.titheAmount === "")) {
+    errors.push("titheAmount is required when paysTithe is yes")
+  }
   if (cameByTransfer === null)            errors.push("cameByTransfer is required (yes or no)")
 
   const educationLevel = String(row.educationLevel || "").trim()
