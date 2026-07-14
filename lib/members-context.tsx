@@ -10,6 +10,12 @@
 import { createContext, useContext, useState, useEffect, useCallback, type ReactNode } from "react"
 import type { Member } from "./types"
 import * as membersAPI from "./members-api"
+import { useAuth } from "./auth-context"
+import {
+  ecPartialToGregorianISO,
+  ecPartialYear,
+  gregorianISOToEcPartial,
+} from "@/components/flexible-date-input"
 
 interface MembersContextType {
   members: Member[]
@@ -150,9 +156,7 @@ function mapBackendMemberToMember(backendMember: any): Member {
     email: backendMember.email || undefined,
     phone: backendMember.phoneNumber || "",
     birthYearEthiopian: backendMember.birthYearEthiopian?.toString(),
-    dateOfBirth: backendMember.birthDate
-      ? new Date(backendMember.birthDate).toISOString().split("T")[0]
-      : undefined,
+    dateOfBirth: gregorianISOToEcPartial(backendMember.birthDate, backendMember.birthYearEthiopian),
     gender,
     nationality: backendMember.nationality,
     photoUrl: backendMember.memberPicture,
@@ -189,9 +193,7 @@ function mapBackendMemberToMember(backendMember: any): Member {
       : undefined,
     isTransfer: backendMember.cameByTransfer || false,
     transferFromChurch: backendMember.transferredFromChurch,
-    transferDate: backendMember.transferDate
-      ? new Date(backendMember.transferDate).toISOString().split("T")[0]
-      : undefined,
+    transferDate: gregorianISOToEcPartial(backendMember.transferDate) || undefined,
     transferLetterUrl: backendMember.transferLetterUrl,
     currentServices: backendMember.currentlyServingAt || [],
     maritalStatus: backendMember.maritalStatus
@@ -258,8 +260,9 @@ function mapMemberToBackendFormat(member: Partial<Member>): any {
   set("fullName", fullName || undefined)
 
   set("sex", member.gender ? (member.gender.toLowerCase() === "male" ? "male" : "female") : undefined)
-  if (member.dateOfBirth) set("birthDate", new Date(member.dateOfBirth).toISOString())
-  set("birthYearEthiopian", toInt(member.birthYearEthiopian))
+  // dateOfBirth is a partial ETHIOPIAN date ("2015" | "2015-04" | "2015-04-11")
+  set("birthDate", ecPartialToGregorianISO(member.dateOfBirth))
+  set("birthYearEthiopian", ecPartialYear(member.dateOfBirth))
   set("nationality", clean(member.nationality))
   set("phoneNumber", clean(member.phone))
   set("email", clean(member.email))
@@ -269,9 +272,9 @@ function mapMemberToBackendFormat(member: Partial<Member>): any {
   set("sefer", clean(member.sefer))
   set("memberPicture", clean(member.photoUrl))
 
-  // Spiritual
-  set("salvationYearEthiopian", toInt(member.salvationYearEthiopian))
-  set("baptismYearEthiopian", toInt(member.baptismYearEthiopian))
+  // Spiritual — form values are partial EC dates; the backend keeps the EC year
+  set("salvationYearEthiopian", ecPartialYear(member.salvationYearEthiopian))
+  set("baptismYearEthiopian", ecPartialYear(member.baptismYearEthiopian))
   set("catechesisStatus", member.catechesisStatus ? CATECHESIS_TO_BACKEND[member.catechesisStatus] : undefined)
 
   // Church grouping
@@ -285,7 +288,7 @@ function mapMemberToBackendFormat(member: Partial<Member>): any {
   if (member.isTransfer !== undefined) out.cameByTransfer = !!member.isTransfer
   if (member.isTransfer) {
     set("transferredFromChurch", clean(member.transferFromChurch))
-    if (member.transferDate) set("transferDate", new Date(member.transferDate).toISOString())
+    set("transferDate", ecPartialToGregorianISO(member.transferDate))
     set("transferLetterUrl", clean(member.transferLetterUrl))
   }
 
@@ -318,6 +321,7 @@ function mapMemberToBackendFormat(member: Partial<Member>): any {
 }
 
 export function MembersProvider({ children }: { children: ReactNode }) {
+  const { user } = useAuth()
   const [members, setMembers] = useState<Member[]>([])
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -349,11 +353,17 @@ export function MembersProvider({ children }: { children: ReactNode }) {
   }, [fetchMembers])
 
   /**
-   * Fetch members on mount
+   * Fetch members whenever the authenticated user changes. The provider is
+   * mounted globally (including on /login), so fetching only on mount would
+   * run before authentication and leave the list permanently empty.
    */
   useEffect(() => {
-    fetchMembers()
-  }, [fetchMembers])
+    if (user) {
+      fetchMembers()
+    } else {
+      setMembers([])
+    }
+  }, [user?.id, fetchMembers]) // eslint-disable-line react-hooks/exhaustive-deps
 
   /**
    * Add a new member

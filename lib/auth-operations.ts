@@ -342,7 +342,7 @@ export async function checkPermission(
 ) {
   const { data } = await authClient.organization.hasPermission({
     organizationId,
-    permission: {
+    permissions: {
       [resource]: actions,
     },
   })
@@ -359,7 +359,7 @@ export async function checkMultiplePermissions(
 ) {
   const { data } = await authClient.organization.hasPermission({
     organizationId,
-    permission: permissions,
+    permissions,
   })
 
   return data?.success || false

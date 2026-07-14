@@ -1,27 +1,36 @@
 "use client"
 
-import { useState } from "react"
+import { useEffect, useMemo, useState } from "react"
 import Link from "next/link"
+import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Card } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Badge } from "@/components/ui/badge"
 import { Skeleton } from "@/components/ui/skeleton"
+import { Avatar, AvatarFallback } from "@/components/ui/avatar"
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table"
 import {
   Plus,
   Edit,
   Trash2,
   Eye,
   Search,
-  Filter,
   ChevronLeft,
   ChevronRight,
   Users,
-  UserCheck,
-  TrendingUp,
   X,
   AlertCircle,
+  BarChart3,
+  MoreHorizontal,
 } from "lucide-react"
 import {
   DropdownMenu,
@@ -31,56 +40,146 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
-import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog"
-import { Label } from "@/components/ui/label"
-import { useMembers, useServices, useDeleteMember } from "@/lib/api/hooks"
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog"
+import { useMembers } from "@/lib/members-context"
+import { getSefers } from "@/lib/sefers-api"
+import { searchFamilies } from "@/lib/families-api"
+import type { Member, Sefer } from "@/lib/types"
 import { useLanguage } from "@/lib/language-context"
 import { getTranslation } from "@/lib/translations"
 import { toast } from "@/hooks/use-toast"
-import type { MemberDto, SubCommunity, Sex, MaritalStatus, MemberStatus, GroupType, AgeGroup } from "@/lib/api/types"
 import { PermissionGuard } from "@/components/auth/permission-guard"
 import { Resource, Action } from "@/lib/permissions"
 import { useAuth } from "@/lib/auth-context"
 
+const PAGE_SIZE = 20
+
+const CHURCH_GROUPS: Member["subCommunity"][] = ["Jemmo", "Bethel", "Weyira", "Alpha"]
+const AGE_GROUPS: NonNullable<Member["ageGroup"]>[] = [
+  "Children",
+  "Teenagers",
+  "Youth",
+  "Adults",
+  "Seniors",
+]
+
+/** Family lookup entry keyed by member id. */
+interface FamilyRef {
+  familyId: string
+  familyName: string
+}
+
 export default function MembersPage() {
   const { locale } = useLanguage()
   const t = getTranslation(locale)
+  const router = useRouter()
   const { hasPermission } = useAuth()
+  const { members, loading, error, deleteMember } = useMembers()
 
-  const [searchTerm, setSearchTerm] = useState("")
-  const [showFilters, setShowFilters] = useState(false)
-  const [currentPage, setCurrentPage] = useState(1)
+  // Search (debounced) + filters
+  const [searchInput, setSearchInput] = useState("")
+  const [search, setSearch] = useState("")
+  const [statusFilter, setStatusFilter] = useState("all")
+  const [genderFilter, setGenderFilter] = useState("all")
+  const [groupFilter, setGroupFilter] = useState("all")
+  const [seferFilter, setSeferFilter] = useState("all")
+  const [ageGroupFilter, setAgeGroupFilter] = useState("all")
+
+  const [page, setPage] = useState(1)
+
+  // Sefer options + member -> family map (fetched once)
+  const [sefers, setSefers] = useState<Sefer[]>([])
+  const [familyByMember, setFamilyByMember] = useState<Record<string, FamilyRef>>({})
+
+  // Delete dialog
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
   const [memberToDelete, setMemberToDelete] = useState<string | null>(null)
-  const itemsPerPage = 10
+  const [deleting, setDeleting] = useState(false)
 
-  // Filter states
-  const [statusFilter, setStatusFilter] = useState<string>("all")
-  const [genderFilter, setGenderFilter] = useState<string>("all")
-  const [ageGroupFilter, setAgeGroupFilter] = useState<string>("all")
-  const [subCommunityFilter, setSubCommunityFilter] = useState<string>("all")
-  const [groupTypeFilter, setGroupTypeFilter] = useState<string>("all")
-  const [maritalStatusFilter, setMaritalStatusFilter] = useState<string>("all")
+  // Debounce the search input (300ms).
+  useEffect(() => {
+    const id = setTimeout(() => setSearch(searchInput.trim().toLowerCase()), 300)
+    return () => clearTimeout(id)
+  }, [searchInput])
 
-  // API hooks
-  const { data: membersData, isLoading, error } = useMembers({
-    page: currentPage,
-    limit: itemsPerPage,
-    search: searchTerm,
-    subCommunity: subCommunityFilter === "all" ? undefined : (subCommunityFilter as SubCommunity),
-    sex: genderFilter === "all" ? undefined : (genderFilter as Sex),
-    maritalStatus: maritalStatusFilter === "all" ? undefined : (maritalStatusFilter as MaritalStatus),
-    memberStatus: statusFilter === "all" ? undefined : (statusFilter as MemberStatus),
-    groupType: groupTypeFilter === "all" ? undefined : (groupTypeFilter as GroupType),
-    ageGroup: ageGroupFilter === "all" ? undefined : (ageGroupFilter as AgeGroup),
-  })
+  // Load sefer options + build the family lookup map once.
+  useEffect(() => {
+    getSefers()
+      .then(setSefers)
+      .catch(() => setSefers([]))
 
-  const { data: servicesData } = useServices({ limit: 100 }) // Get all services for dropdown
-  const deleteMutation = useDeleteMember()
+    searchFamilies("", 1, 500)
+      .then((res) => {
+        const map: Record<string, FamilyRef> = {}
+        for (const family of res.data) {
+          const familyName = family.name || (locale === "am" ? "ቤተሰብ" : "Family")
+          for (const fm of family.members) {
+            const id = typeof fm.memberId === "object" ? fm.memberId._id : fm.memberId
+            if (id) map[id] = { familyId: family._id, familyName }
+          }
+        }
+        setFamilyByMember(map)
+      })
+      .catch(() => setFamilyByMember({}))
+    // locale only affects the fallback label; safe to ignore for refetch.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
-  const members = membersData?.data || []
-  const pagination = membersData?.pagination
-  const services = servicesData?.data || []
+  const hasActiveFilters =
+    statusFilter !== "all" ||
+    genderFilter !== "all" ||
+    groupFilter !== "all" ||
+    seferFilter !== "all" ||
+    ageGroupFilter !== "all" ||
+    search !== ""
+
+  function clearFilters() {
+    setSearchInput("")
+    setSearch("")
+    setStatusFilter("all")
+    setGenderFilter("all")
+    setGroupFilter("all")
+    setSeferFilter("all")
+    setAgeGroupFilter("all")
+  }
+
+  const displayName = (m: Member) =>
+    m.fullName || [m.firstName, m.middleName, m.lastName].filter(Boolean).join(" ") || "—"
+
+  // Client-side filtering over all loaded members.
+  const filtered = useMemo(() => {
+    return members.filter((m) => {
+      if (statusFilter !== "all" && m.membershipStatus !== statusFilter) return false
+      if (genderFilter !== "all" && m.gender !== genderFilter) return false
+      if (groupFilter !== "all" && m.subCommunity !== groupFilter) return false
+      if (seferFilter !== "all" && m.sefer !== seferFilter) return false
+      if (ageGroupFilter !== "all" && m.ageGroup !== ageGroupFilter) return false
+      if (search) {
+        const name = displayName(m).toLowerCase()
+        const phone = (m.phone || "").toLowerCase()
+        if (!name.includes(search) && !phone.includes(search)) return false
+      }
+      return true
+    })
+  }, [members, statusFilter, genderFilter, groupFilter, seferFilter, ageGroupFilter, search])
+
+  // Reset to first page whenever the result set changes.
+  useEffect(() => {
+    setPage(1)
+  }, [statusFilter, genderFilter, groupFilter, seferFilter, ageGroupFilter, search])
+
+  const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE))
+  const currentPage = Math.min(page, totalPages)
+  const pageItems = filtered.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE)
 
   function handleDeleteClick(id: string) {
     setMemberToDelete(id)
@@ -88,46 +187,82 @@ export default function MembersPage() {
   }
 
   async function handleDeleteConfirm() {
-    if (memberToDelete) {
-      try {
-        await deleteMutation.mutateAsync(memberToDelete)
-        toast({
-          title: "Success",
-          description: "Member deleted successfully",
-        })
-        setDeleteDialogOpen(false)
-        setMemberToDelete(null)
-      } catch (error) {
-        toast({
-          title: "Error",
-          description: "Failed to delete member",
-          variant: "destructive",
-        })
-      }
+    if (!memberToDelete) return
+    try {
+      setDeleting(true)
+      await deleteMember(memberToDelete)
+      toast({ title: "Success", description: "Member deleted successfully" })
+      setDeleteDialogOpen(false)
+      setMemberToDelete(null)
+    } catch {
+      toast({ title: "Error", description: "Failed to delete member", variant: "destructive" })
+    } finally {
+      setDeleting(false)
     }
   }
 
-  const getStatusBadge = (status: string) => {
-    switch (status) {
-      case "active":
-        return <Badge className="bg-green-500">{t.members.active}</Badge>
-      case "inactive":
-        return <Badge variant="secondary">{t.members.inactive}</Badge>
-      case "removed":
-        return <Badge variant="destructive">{t.members.removed}</Badge>
+  const statusBadge = (status: Member["membershipStatus"]) => {
+    if (status === "Active") {
+      return (
+        <Badge className="bg-green-50 text-green-700 dark:bg-green-950 dark:text-green-300 hover:bg-green-50 border-0 font-medium">
+          {t.members.active}
+        </Badge>
+      )
+    }
+    if (status === "Inactive") {
+      return (
+        <Badge className="bg-amber-50 text-amber-700 dark:bg-amber-950 dark:text-amber-300 hover:bg-amber-50 border-0 font-medium">
+          {t.members.inactive}
+        </Badge>
+      )
+    }
+    return (
+      <Badge className="bg-muted text-muted-foreground hover:bg-muted border-0 font-medium">
+        {status}
+      </Badge>
+    )
+  }
+
+  const groupLabel = (g?: Member["subCommunity"]) => {
+    switch (g) {
+      case "Jemmo":
+        return t.members.jemmo
+      case "Bethel":
+        return t.members.bethel
+      case "Weyira":
+        return t.members.weyira
+      case "Alpha":
+        return t.members.alfa
       default:
-        return <Badge variant="outline">{status}</Badge>
+        return "—"
+    }
+  }
+
+  const ageGroupLabel = (a?: Member["ageGroup"]) => {
+    switch (a) {
+      case "Children":
+        return t.members.children
+      case "Teenagers":
+        return t.members.teenagers
+      case "Youth":
+        return t.members.youth
+      case "Adults":
+        return t.members.adults
+      case "Seniors":
+        return t.members.seniors
+      default:
+        return "—"
     }
   }
 
   if (error) {
     return (
       <div className="flex items-center justify-center min-h-[400px]">
-        <Card variant="glass" className="p-8 max-w-md">
+        <Card className="p-8 max-w-md">
           <div className="flex flex-col items-center gap-4 text-center">
             <AlertCircle className="w-12 h-12 text-destructive" />
             <h2 className="text-2xl font-bold">Failed to load members</h2>
-            <p className="text-muted-foreground">Please try refreshing the page</p>
+            <p className="text-muted-foreground">{error}</p>
           </div>
         </Card>
       </div>
@@ -136,394 +271,350 @@ export default function MembersPage() {
 
   return (
     <PermissionGuard resource={Resource.CHURCH_MEMBER} action={Action.READ}>
-      <div className="space-y-6">
+      <div className="space-y-5">
         {/* Header */}
-        <div className="flex items-center justify-between">
+        <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
-            <h1 className="text-4xl font-bold">{t.members.title}</h1>
-            <p className="text-muted-foreground text-lg">{t.members.subtitle}</p>
+            <h1 className="text-2xl font-semibold tracking-tight">{t.members.title}</h1>
+            <p className="text-sm text-muted-foreground">{t.members.subtitle}</p>
           </div>
-          <div className="flex gap-3">
+          <div className="flex items-center gap-2">
+            <Link href="/members/analytics">
+              <Button variant="outline" size="sm" className="gap-2">
+                <BarChart3 className="w-4 h-4" />
+                {locale === "am" ? "የአባላት ትንታኔ" : "Member Analytics"}
+              </Button>
+            </Link>
             <PermissionGuard resource={Resource.CHURCH_MEMBER} action={Action.CREATE} showError={false}>
               <Link href="/members/new">
-                <Button size="lg" className="gap-2 font-semibold">
-                  <Plus className="w-5 h-5" />
+                <Button size="sm" className="gap-2">
+                  <Plus className="w-4 h-4" />
                   {t.members.addMember}
                 </Button>
               </Link>
             </PermissionGuard>
-            <Button
-            variant="outline"
-            size="lg"
-            className="gap-2"
-            onClick={() => setShowFilters(!showFilters)}
-          >
-            <Filter className="w-5 h-5" />
-            {t.members.filters}
-          </Button>
+          </div>
         </div>
-      </div>
 
-      {/* Search Bar */}
-      <Card variant="glass">
-        <CardContent className="pt-6">
-          <div className="relative">
+        {/* Toolbar */}
+        <div className="flex flex-wrap items-center gap-2">
+          <div className="relative flex-1 min-w-[220px]">
             <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
             <Input
               type="search"
               placeholder={t.members.searchPlaceholder}
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="pl-10 h-12"
+              value={searchInput}
+              onChange={(e) => setSearchInput(e.target.value)}
+              className="pl-9 h-9 bg-card"
             />
           </div>
-        </CardContent>
-      </Card>
 
-      {/* Filters */}
-      {showFilters && (
-        <Card variant="glass">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Filter className="w-5 h-5" />
-              {t.members.filters}
-            </CardTitle>
-            <CardDescription>{t.members.filtersDescription}</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              <div>
-                <Label htmlFor="status-filter">{t.members.membershipStatus}</Label>
-                <Select value={statusFilter} onValueChange={setStatusFilter}>
-                  <SelectTrigger id="status-filter">
-                    <SelectValue placeholder={t.members.selectStatus} />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">{t.members.allStatuses}</SelectItem>
-                    <SelectItem value="active">{t.members.active}</SelectItem>
-                    <SelectItem value="inactive">{t.members.inactive}</SelectItem>
-                    <SelectItem value="removed">{t.members.removed}</SelectItem>
-                    <SelectItem value="transferred">{t.members.transferredOut}</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
+          <Select value={statusFilter} onValueChange={setStatusFilter}>
+            <SelectTrigger className="h-9 w-auto min-w-[120px] bg-card">
+              <SelectValue placeholder={t.members.membershipStatus} />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">{t.members.allStatuses}</SelectItem>
+              <SelectItem value="Active">{t.members.active}</SelectItem>
+              <SelectItem value="Inactive">{t.members.inactive}</SelectItem>
+            </SelectContent>
+          </Select>
 
-              <div>
-                <Label htmlFor="gender-filter">{t.members.gender}</Label>
-                <Select value={genderFilter} onValueChange={setGenderFilter}>
-                  <SelectTrigger id="gender-filter">
-                    <SelectValue placeholder={t.members.selectGender} />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">{t.members.allGenders}</SelectItem>
-                    <SelectItem value="male">{t.members.male}</SelectItem>
-                    <SelectItem value="female">{t.members.female}</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
+          <Select value={genderFilter} onValueChange={setGenderFilter}>
+            <SelectTrigger className="h-9 w-auto min-w-[110px] bg-card">
+              <SelectValue placeholder={t.members.gender} />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">{t.members.allGenders}</SelectItem>
+              <SelectItem value="Male">{t.members.male}</SelectItem>
+              <SelectItem value="Female">{t.members.female}</SelectItem>
+            </SelectContent>
+          </Select>
 
-              <div>
-                <Label htmlFor="subcommunity-filter">{t.members.subCommunity}</Label>
-                <Select value={subCommunityFilter} onValueChange={setSubCommunityFilter}>
-                  <SelectTrigger id="subcommunity-filter">
-                    <SelectValue placeholder={t.members.selectSubCommunity} />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">{t.members.allSubCommunities}</SelectItem>
-                    <SelectItem value="jemmo">{t.members.jemmo}</SelectItem>
-                    <SelectItem value="bethel">{t.members.bethel}</SelectItem>
-                    <SelectItem value="weyira">{t.members.weyira}</SelectItem>
-                    <SelectItem value="alfa">{t.members.alfa}</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div>
-                <Label htmlFor="age-group-filter">{t.members.ageGroup}</Label>
-                <Select value={ageGroupFilter} onValueChange={setAgeGroupFilter}>
-                  <SelectTrigger id="age-group-filter">
-                    <SelectValue placeholder={t.members.selectAgeGroup} />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">{t.members.allAgeGroups}</SelectItem>
-                    <SelectItem value="children">{t.members.children}</SelectItem>
-                    <SelectItem value="teenagers">{t.members.teenagers}</SelectItem>
-                    <SelectItem value="youth">{t.members.youth}</SelectItem>
-                    <SelectItem value="adults">{t.members.adults}</SelectItem>
-                    <SelectItem value="seniors">{t.members.seniors}</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div>
-                <Label htmlFor="group-type-filter">{t.members.groupType}</Label>
-                <Select value={groupTypeFilter} onValueChange={setGroupTypeFilter}>
-                  <SelectTrigger id="group-type-filter">
-                    <SelectValue placeholder={t.members.selectGroupType} />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">{t.members.allGroupTypes}</SelectItem>
-                    <SelectItem value="cell_group">{t.members.cellGroup}</SelectItem>
-                    <SelectItem value="youth_group">{t.members.youthGroup}</SelectItem>
-                    <SelectItem value="bible_study">{t.members.bibleStudy}</SelectItem>
-                    <SelectItem value="prayer_group">{t.members.prayerGroup}</SelectItem>
-                    <SelectItem value="none">{t.members.noGroup}</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div>
-                <Label htmlFor="marital-status-filter">{t.members.maritalStatus}</Label>
-                <Select value={maritalStatusFilter} onValueChange={setMaritalStatusFilter}>
-                  <SelectTrigger id="marital-status-filter">
-                    <SelectValue placeholder={t.members.selectMaritalStatus} />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">{t.members.allMaritalStatuses}</SelectItem>
-                    <SelectItem value="unmarried">{t.members.unmarried}</SelectItem>
-                    <SelectItem value="married">{t.members.married}</SelectItem>
-                    <SelectItem value="divorced">{t.members.divorced}</SelectItem>
-                    <SelectItem value="widowed">{t.members.widowed}</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
-            <div className="flex justify-end pt-4">
-              <Button
-                variant="outline"
-                onClick={() => {
-                  setStatusFilter("all")
-                  setGenderFilter("all")
-                  setAgeGroupFilter("all")
-                  setSubCommunityFilter("all")
-                  setGroupTypeFilter("all")
-                  setMaritalStatusFilter("all")
-                }}
-              >
-                <X className="w-4 h-4 mr-2" />
-                {t.members.clearFilters}
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
-      )}
-
-      {/* Statistics Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-        {isLoading ? (
-          <>
-            {[...Array(4)].map((_, i) => (
-              <Card key={i} variant="glass">
-                <CardContent className="p-6">
-                  <Skeleton className="h-16 w-full" />
-                </CardContent>
-              </Card>
-            ))}
-          </>
-        ) : (
-          <>
-            <Card variant="glass" hover="lift">
-              <CardContent className="p-6">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm font-medium text-muted-foreground">{t.members.totalMembers}</p>
-                    <p className="text-3xl font-bold text-primary">{pagination?.total || 0}</p>
-                  </div>
-                  <Users className="w-12 h-12 text-primary/20" />
-                </div>
-              </CardContent>
-            </Card>
-
-            <Card variant="glass" hover="lift">
-              <CardContent className="p-6">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm font-medium text-muted-foreground">{t.members.activeMembers}</p>
-                    <p className="text-3xl font-bold text-green-600">
-                      {members.filter((m) => m.memberStatus === "active").length}
-                    </p>
-                  </div>
-                  <UserCheck className="w-12 h-12 text-green-600/20" />
-                </div>
-              </CardContent>
-            </Card>
-
-            <Card variant="glass" hover="lift">
-              <CardContent className="p-6">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm font-medium text-muted-foreground">Services</p>
-                    <p className="text-3xl font-bold text-blue-600">{services.length}</p>
-                  </div>
-                  <TrendingUp className="w-12 h-12 text-blue-600/20" />
-                </div>
-              </CardContent>
-            </Card>
-
-            <Card variant="glass" hover="lift">
-              <CardContent className="p-6">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm font-medium text-muted-foreground">Current Page</p>
-                    <p className="text-3xl font-bold text-purple-600">{members.length}</p>
-                  </div>
-                  <Filter className="w-12 h-12 text-purple-600/20" />
-                </div>
-              </CardContent>
-            </Card>
-          </>
-        )}
-      </div>
-
-      {/* Members Table */}
-      <Card variant="glass">
-        <CardHeader>
-          <CardTitle>{t.members.membersList}</CardTitle>
-          <CardDescription>
-            {pagination && `Showing ${((pagination.page - 1) * pagination.limit) + 1} to ${Math.min(pagination.page * pagination.limit, pagination.total)} of ${pagination.total} members`}
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          {isLoading ? (
-            <div className="space-y-4">
-              {[...Array(5)].map((_, i) => (
-                <div key={i} className="flex items-center justify-between p-4 border rounded-lg">
-                  <div className="flex items-center gap-4">
-                    <Skeleton className="h-12 w-12 rounded-full" />
-                    <div className="space-y-2">
-                      <Skeleton className="h-4 w-32" />
-                      <Skeleton className="h-3 w-24" />
-                    </div>
-                  </div>
-                  <Skeleton className="h-8 w-20" />
-                </div>
+          <Select value={groupFilter} onValueChange={setGroupFilter}>
+            <SelectTrigger className="h-9 w-auto min-w-[130px] bg-card">
+              <SelectValue placeholder={locale === "am" ? "የቤተክርስቲያን ቡድን" : "Church Group"} />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">{t.members.allSubCommunities}</SelectItem>
+              {CHURCH_GROUPS.map((g) => (
+                <SelectItem key={g} value={g as string}>
+                  {groupLabel(g)}
+                </SelectItem>
               ))}
-            </div>
-          ) : members.length === 0 ? (
-            <div className="text-center py-12">
-              <Users className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
-              <h3 className="text-lg font-semibold mb-2">No members found</h3>
-              <p className="text-muted-foreground mb-4">Try adjusting your search or filters</p>
-              <Link href="/members/new">
-                <Button>
-                  <Plus className="w-4 h-4 mr-2" />
-                  Add First Member
-                </Button>
-              </Link>
-            </div>
-          ) : (
-            <div className="space-y-4">
-              {members.map((member) => (
-                <div key={member._id} className="flex items-center justify-between p-4 border rounded-lg hover:bg-accent/50 transition-colors">
-                  <div className="flex items-center gap-4">
-                    <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center">
-                      <Users className="w-6 h-6 text-primary" />
-                    </div>
-                    <div>
-                      <h3 className="font-semibold">{member.fullName}</h3>
-                      <div className="flex items-center gap-4 text-sm text-muted-foreground">
-                        <span>{member.phoneNumber}</span>
-                        {member.email && <span>{member.email}</span>}
-                        <span className="capitalize">{member.subCommunity}</span>
-                      </div>
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-3">
-                    {getStatusBadge(member.memberStatus || "active")}
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <Button variant="ghost" size="sm">
-                          Actions
-                        </Button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end">
-                        <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                        <DropdownMenuSeparator />
-                        <DropdownMenuItem asChild>
-                          <Link href={`/members/${member._id}`}>
-                            <Eye className="w-4 h-4 mr-2" />
-                            View Details
-                          </Link>
-                        </DropdownMenuItem>
-                        {hasPermission(Resource.CHURCH_MEMBER, Action.UPDATE) && (
-                          <DropdownMenuItem asChild>
-                            <Link href={`/members/${member._id}/edit`}>
-                              <Edit className="w-4 h-4 mr-2" />
-                              Edit Member
-                            </Link>
-                          </DropdownMenuItem>
-                        )}
-                        {hasPermission(Resource.CHURCH_MEMBER, Action.DELETE) && (
-                          <>
-                            <DropdownMenuSeparator />
-                            <DropdownMenuItem
-                              className="text-destructive"
-                              onClick={() => handleDeleteClick(member._id)}
-                            >
-                              <Trash2 className="w-4 h-4 mr-2" />
-                              Delete Member
-                            </DropdownMenuItem>
-                          </>
-                        )}
-                      </DropdownMenuContent>
-                    </DropdownMenu>
-                  </div>
-                </div>
+            </SelectContent>
+          </Select>
+
+          <Select value={seferFilter} onValueChange={setSeferFilter}>
+            <SelectTrigger className="h-9 w-auto min-w-[120px] bg-card">
+              <SelectValue placeholder={locale === "am" ? "ሰፈር" : "Sefer"} />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">{locale === "am" ? "ሁሉም ሰፈሮች" : "All Sefers"}</SelectItem>
+              {sefers.map((s) => (
+                <SelectItem key={s._id} value={s.name}>
+                  {locale === "am" && s.nameAmharic ? s.nameAmharic : s.name}
+                </SelectItem>
               ))}
-            </div>
+            </SelectContent>
+          </Select>
+
+          <Select value={ageGroupFilter} onValueChange={setAgeGroupFilter}>
+            <SelectTrigger className="h-9 w-auto min-w-[120px] bg-card">
+              <SelectValue placeholder={t.members.ageGroup} />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">{t.members.allAgeGroups}</SelectItem>
+              {AGE_GROUPS.map((a) => (
+                <SelectItem key={a} value={a}>
+                  {ageGroupLabel(a)}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+
+          {hasActiveFilters && (
+            <Button variant="ghost" size="sm" className="h-9 gap-1.5 text-muted-foreground" onClick={clearFilters}>
+              <X className="w-4 h-4" />
+              {t.members.clearFilters}
+            </Button>
           )}
-        </CardContent>
-      </Card>
-
-      {/* Pagination */}
-      {pagination && pagination.pages > 1 && (
-        <div className="flex items-center justify-between">
-          <p className="text-sm text-muted-foreground">
-            Page {pagination.page} of {pagination.pages}
-          </p>
-          <div className="flex gap-2">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setCurrentPage(currentPage - 1)}
-              disabled={currentPage === 1}
-            >
-              <ChevronLeft className="w-4 h-4 mr-1" />
-              Previous
-            </Button>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setCurrentPage(currentPage + 1)}
-              disabled={currentPage === pagination.pages}
-            >
-              Next
-              <ChevronRight className="w-4 h-4 ml-1" />
-            </Button>
-          </div>
         </div>
-      )}
 
-      {/* Delete Confirmation Dialog */}
-      <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>{t.members.deleteMember}</AlertDialogTitle>
-            <AlertDialogDescription>
-              {t.members.deleteConfirmation}
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>{t.members.cancel}</AlertDialogCancel>
-            <AlertDialogAction
-              onClick={handleDeleteConfirm}
-              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-            >
-              {deleteMutation.isPending ? "Deleting..." : t.members.delete}
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+        {/* Table */}
+        <Card className="overflow-hidden">
+          <Table>
+            <TableHeader>
+              <TableRow className="hover:bg-transparent">
+                <TableHead>{locale === "am" ? "አባል" : "Member"}</TableHead>
+                <TableHead>{locale === "am" ? "ስልክ" : "Phone"}</TableHead>
+                <TableHead>{locale === "am" ? "ሰፈር" : "Sefer"}</TableHead>
+                <TableHead>{locale === "am" ? "የቤተክርስቲያን ቡድን" : "Church Group"}</TableHead>
+                <TableHead>{locale === "am" ? "ቤተሰብ" : "Family"}</TableHead>
+                <TableHead>{t.members.ageGroup}</TableHead>
+                <TableHead>{t.members.membershipStatus}</TableHead>
+                <TableHead className="w-[52px] text-right"></TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {loading ? (
+                [...Array(8)].map((_, i) => (
+                  <TableRow key={i} className="hover:bg-transparent">
+                    <TableCell>
+                      <div className="flex items-center gap-3">
+                        <Skeleton className="h-9 w-9 rounded-full" />
+                        <div className="space-y-1.5">
+                          <Skeleton className="h-3.5 w-32" />
+                          <Skeleton className="h-3 w-20" />
+                        </div>
+                      </div>
+                    </TableCell>
+                    <TableCell><Skeleton className="h-3.5 w-24" /></TableCell>
+                    <TableCell><Skeleton className="h-3.5 w-20" /></TableCell>
+                    <TableCell><Skeleton className="h-5 w-16 rounded-full" /></TableCell>
+                    <TableCell><Skeleton className="h-3.5 w-20" /></TableCell>
+                    <TableCell><Skeleton className="h-3.5 w-16" /></TableCell>
+                    <TableCell><Skeleton className="h-5 w-16 rounded-full" /></TableCell>
+                    <TableCell></TableCell>
+                  </TableRow>
+                ))
+              ) : pageItems.length === 0 ? (
+                <TableRow className="hover:bg-transparent">
+                  <TableCell colSpan={8}>
+                    <div className="text-center py-14">
+                      <Users className="w-10 h-10 text-muted-foreground/50 mx-auto mb-3" />
+                      <h3 className="text-sm font-semibold mb-1">{t.members.noMembers}</h3>
+                      <p className="text-sm text-muted-foreground mb-4">
+                        {hasActiveFilters
+                          ? locale === "am"
+                            ? "ማጣሪያዎችን ያስተካክሉ"
+                            : "Try adjusting your search or filters"
+                          : locale === "am"
+                            ? "የመጀመሪያውን አባል ያክሉ"
+                            : "Get started by adding your first member"}
+                      </p>
+                      {hasActiveFilters ? (
+                        <Button variant="outline" size="sm" onClick={clearFilters}>
+                          {t.members.clearFilters}
+                        </Button>
+                      ) : (
+                        <Link href="/members/new">
+                          <Button size="sm" className="gap-2">
+                            <Plus className="w-4 h-4" />
+                            {t.members.addMember}
+                          </Button>
+                        </Link>
+                      )}
+                    </div>
+                  </TableCell>
+                </TableRow>
+              ) : (
+                pageItems.map((member) => {
+                  const name = displayName(member)
+                  const family = familyByMember[member.id]
+                  return (
+                    <TableRow
+                      key={member.id}
+                      className="cursor-pointer"
+                      onClick={() => router.push(`/members/${member.id}`)}
+                    >
+                      <TableCell>
+                        <div className="flex items-center gap-3">
+                          <Avatar className="h-9 w-9">
+                            <AvatarFallback className="bg-primary/10 text-primary text-xs font-semibold">
+                              {name.charAt(0).toUpperCase()}
+                            </AvatarFallback>
+                          </Avatar>
+                          <div className="min-w-0">
+                            <p className="text-sm font-medium truncate">{name}</p>
+                            {member.membershipNumber && (
+                              <p className="text-xs text-muted-foreground truncate">
+                                {member.membershipNumber}
+                              </p>
+                            )}
+                          </div>
+                        </div>
+                      </TableCell>
+                      <TableCell className="text-sm text-muted-foreground">
+                        {member.phone || "—"}
+                      </TableCell>
+                      <TableCell className="text-sm text-muted-foreground">
+                        {member.sefer || "—"}
+                      </TableCell>
+                      <TableCell>
+                        {member.subCommunity ? (
+                          <Badge variant="outline" className="font-normal">
+                            {groupLabel(member.subCommunity)}
+                          </Badge>
+                        ) : (
+                          <span className="text-sm text-muted-foreground">—</span>
+                        )}
+                      </TableCell>
+                      <TableCell onClick={(e) => e.stopPropagation()}>
+                        {family ? (
+                          <Link href={`/families/${family.familyId}`}>
+                            <Badge
+                              variant="outline"
+                              className="font-normal hover:bg-accent transition-colors"
+                            >
+                              {family.familyName}
+                            </Badge>
+                          </Link>
+                        ) : (
+                          <span className="text-sm text-muted-foreground">—</span>
+                        )}
+                      </TableCell>
+                      <TableCell className="text-sm text-muted-foreground">
+                        {ageGroupLabel(member.ageGroup)}
+                      </TableCell>
+                      <TableCell>{statusBadge(member.membershipStatus)}</TableCell>
+                      <TableCell className="text-right" onClick={(e) => e.stopPropagation()}>
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button variant="ghost" size="icon" className="h-8 w-8">
+                              <MoreHorizontal className="w-4 h-4" />
+                              <span className="sr-only">Actions</span>
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end">
+                            <DropdownMenuLabel>{locale === "am" ? "ድርጊቶች" : "Actions"}</DropdownMenuLabel>
+                            <DropdownMenuSeparator />
+                            <DropdownMenuItem asChild>
+                              <Link href={`/members/${member.id}`}>
+                                <Eye className="w-4 h-4 mr-2" />
+                                {t.members.viewMember}
+                              </Link>
+                            </DropdownMenuItem>
+                            {hasPermission(Resource.CHURCH_MEMBER, Action.UPDATE) && (
+                              <DropdownMenuItem asChild>
+                                <Link href={`/members/${member.id}/edit`}>
+                                  <Edit className="w-4 h-4 mr-2" />
+                                  {t.members.editMember}
+                                </Link>
+                              </DropdownMenuItem>
+                            )}
+                            {hasPermission(Resource.CHURCH_MEMBER, Action.DELETE) && (
+                              <>
+                                <DropdownMenuSeparator />
+                                <DropdownMenuItem
+                                  className="text-destructive focus:text-destructive"
+                                  onClick={() => handleDeleteClick(member.id)}
+                                >
+                                  <Trash2 className="w-4 h-4 mr-2" />
+                                  {t.members.deleteMember}
+                                </DropdownMenuItem>
+                              </>
+                            )}
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      </TableCell>
+                    </TableRow>
+                  )
+                })
+              )}
+            </TableBody>
+          </Table>
+        </Card>
+
+        {/* Footer: count + pagination */}
+        {!loading && filtered.length > 0 && (
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <p className="text-sm text-muted-foreground">
+              {locale === "am"
+                ? `ከ${members.length} ${pageItems.length} ማሳየት`
+                : `Showing ${(currentPage - 1) * PAGE_SIZE + 1}–${Math.min(
+                    currentPage * PAGE_SIZE,
+                    filtered.length,
+                  )} of ${filtered.length}${
+                    filtered.length !== members.length ? ` (${members.length} total)` : ""
+                  }`}
+            </p>
+            {totalPages > 1 && (
+              <div className="flex items-center gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setPage(currentPage - 1)}
+                  disabled={currentPage === 1}
+                >
+                  <ChevronLeft className="w-4 h-4 mr-1" />
+                  {locale === "am" ? "ቀዳሚ" : "Previous"}
+                </Button>
+                <span className="text-sm text-muted-foreground px-1">
+                  {currentPage} / {totalPages}
+                </span>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setPage(currentPage + 1)}
+                  disabled={currentPage === totalPages}
+                >
+                  {locale === "am" ? "ቀጣይ" : "Next"}
+                  <ChevronRight className="w-4 h-4 ml-1" />
+                </Button>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Delete confirmation */}
+        <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>{t.members.deleteMember}</AlertDialogTitle>
+              <AlertDialogDescription>{t.members.deleteConfirmation}</AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>{t.members.cancel}</AlertDialogCancel>
+              <AlertDialogAction
+                onClick={handleDeleteConfirm}
+                className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              >
+                {deleting ? "Deleting..." : t.members.delete}
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
       </div>
     </PermissionGuard>
   )

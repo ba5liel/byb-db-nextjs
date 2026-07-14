@@ -29,7 +29,7 @@ import { useMembers } from "@/lib/members-context"
 import { useToast } from "@/hooks/use-toast"
 import { useLanguage } from "@/lib/language-context"
 import { getTranslation } from "@/lib/translations"
-import { EthiopianYearInput, EthiopianDateInput } from "@/components/ethiopian-date-input"
+import { FlexibleDateInput, ageFromEcPartial } from "@/components/flexible-date-input"
 import type { Member } from "@/lib/types"
 
 export default function EditMemberPage() {
@@ -63,31 +63,19 @@ export default function EditMemberPage() {
     loadMember()
   }, [memberId, getMember, router, locale, toast])
 
-  // Auto-calculate age group when date of birth changes
+  // Auto-calculate age group when the (Ethiopian) date of birth changes
   useEffect(() => {
-    if (formData?.dateOfBirth) {
-      const age = calculateAge(formData.dateOfBirth)
-      let ageGroup: Member["ageGroup"]
-      if (age <= 13) ageGroup = "Children"
-      else if (age <= 17) ageGroup = "Teenagers"
-      else if (age <= 35) ageGroup = "Youth"
-      else if (age <= 65) ageGroup = "Adults"
-      else ageGroup = "Seniors"
-      
-      setFormData((prev) => prev ? { ...prev, ageGroup } : null)
-    }
-  }, [formData?.dateOfBirth])
+    const age = ageFromEcPartial(formData?.dateOfBirth)
+    if (age === undefined) return
+    let ageGroup: Member["ageGroup"]
+    if (age <= 13) ageGroup = "Children"
+    else if (age <= 17) ageGroup = "Teenagers"
+    else if (age <= 35) ageGroup = "Youth"
+    else if (age <= 65) ageGroup = "Adults"
+    else ageGroup = "Seniors"
 
-  const calculateAge = (dob: string) => {
-    const birthDate = new Date(dob)
-    const today = new Date()
-    let age = today.getFullYear() - birthDate.getFullYear()
-    const monthDiff = today.getMonth() - birthDate.getMonth()
-    if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) {
-      age--
-    }
-    return age
-  }
+    setFormData((prev) => (prev ? { ...prev, ageGroup } : null))
+  }, [formData?.dateOfBirth])
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     if (!formData) return
@@ -357,22 +345,14 @@ export default function EditMemberPage() {
 
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                       <div>
-                        <Label htmlFor="birthYearEthiopian">{t.basicInfo.yearOfBirthEthiopian}</Label>
-                        <EthiopianYearInput
-                          id="birthYearEthiopian"
-                          name="birthYearEthiopian"
-                          value={formData.birthYearEthiopian || ""}
-                          onChange={handleChange}
-                          className="mt-1"
-                        />
-                      </div>
-                      <div>
-                        <Label htmlFor="dateOfBirth">{t.basicInfo.dateOfBirth}</Label>
-                        <EthiopianDateInput
+                        <Label htmlFor="dateOfBirth">{t.basicInfo.dateOfBirth} (ዓ.ም)</Label>
+                        <FlexibleDateInput
                           id="dateOfBirth"
-                          name="dateOfBirth"
+                          locale={locale}
                           value={formData.dateOfBirth || ""}
-                          onChange={handleChange}
+                          onChange={(v) =>
+                            setFormData((prev) => (prev ? { ...prev, dateOfBirth: v } : prev))
+                          }
                           className="mt-1"
                         />
                       </div>

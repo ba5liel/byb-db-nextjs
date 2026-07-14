@@ -2,9 +2,17 @@
  * Minister-related DTOs
  */
 
-export type MinisterRole = "pastor" | "elder" | "deacon" | "evangelist" | "teacher" | "other"
-export type MinisterStatus = "active" | "inactive" | "suspended" | "retired"
-export type ContractType = "full_time" | "part_time" | "volunteer" | "contract"
+export type MinisterRole =
+  | "pastor"
+  | "apostle"
+  | "evangelist"
+  | "elder"
+  | "deacon"
+  | "deaconess"
+  | "youth_leader"
+  | "other"
+export type MinisterStatus = "active" | "on_leave" | "suspended" | "retired"
+export type ContractType = "full_time" | "part_time" | "volunteer"
 
 /**
  * Create minister DTO
@@ -15,8 +23,7 @@ export interface CreateMinisterDto {
   customRole?: string
   ordinationDate: Date | string
   ordinationCertificateUrl?: string
-  ordainingBody?: string
-  responsibilities: string
+  responsibilities?: string
   assignedDepartments?: string[]
   salary?: number
   contractType?: ContractType
@@ -35,12 +42,27 @@ export type UpdateMinisterDto = Partial<CreateMinisterDto> & {
 }
 
 /**
+ * Member reference as populated on a minister response (backend populates
+ * `memberId` with a subset of member fields).
+ */
+export interface PopulatedMember {
+  _id: string
+  fullName: string
+  membershipNumber?: string
+  phoneNumber?: string
+  email?: string
+  memberPicture?: string
+  phase?: string
+}
+
+/**
  * Minister response DTO
  */
-export interface MinisterDto extends CreateMinisterDto {
+export interface MinisterDto extends Omit<CreateMinisterDto, "memberId"> {
   _id: string
+  memberId: string | PopulatedMember
   status: MinisterStatus
-  memberName: string
+  memberName?: string
   memberEmail?: string
   createdAt: string
   updatedAt: string

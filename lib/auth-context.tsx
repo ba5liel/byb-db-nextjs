@@ -308,6 +308,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
    * Uses permissions from session (synchronous check)
    */
   const hasPermission = (resource: Resource, action: Action): boolean => {
+    // superAdmin has full access (mirrors the backend PermissionsGuard bypass)
+    if (user?.role === "superAdmin") return true
     if (!session?.permissions) return false
 
     const resourcePermissions = session.permissions[resource]
@@ -320,6 +322,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
    * Check if user has any of the specified permissions
    */
   const hasAnyPermission = (resource: Resource, actions: Action[]): boolean => {
+    if (user?.role === "superAdmin") return true
     if (!session?.permissions) return false
     const resourcePermissions = session.permissions[resource] || []
     return actions.some((action) => resourcePermissions.includes(action))

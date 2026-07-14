@@ -91,7 +91,7 @@ export function useOrgPermission(resource: string, actions: string[]) {
       try {
         const { data } = await authClient.organization.hasPermission({
           organizationId: activeOrg.id,
-          permission: {
+          permissions: {
             [resource]: actions,
           },
         })

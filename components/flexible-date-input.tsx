@@ -2,20 +2,22 @@
 
 import * as React from "react"
 import { CalendarDays, ChevronLeft, ChevronRight, X } from "lucide-react"
+import Kenat, { monthNames, toGC, toEC } from "kenat"
 import { Button } from "@/components/ui/button"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { cn } from "@/lib/utils"
 
 /**
- * FlexibleDateInput — a single date field where MONTH and DAY are optional.
+ * FlexibleDateInput — an ETHIOPIAN-CALENDAR date field where MONTH and DAY are
+ * optional (year-only and year+month entries are valid).
  *
- * Value is a partial ISO string: "" | "YYYY" | "YYYY-MM" | "YYYY-MM-DD".
+ * Value is a partial Ethiopian date string: "" | "YYYY" | "YYYY-MM" | "YYYY-MM-DD"
+ * (all parts Ethiopian calendar; 13 months, Pagume has 5/6 days).
  * The picker walks Year → Month → Day; the user can stop at any stage
- * ("Year only" / "Month only"), which replaces the old pattern of a separate
- * year input next to a full date input.
+ * ("Year only" / "Month only").
  *
- * NOTE: like components/ethiopian-date-input.tsx, this is the seam for a
- * future Ethiopian-calendar picker — swap the grids in this file only.
+ * Conversion helpers for the backend (which stores Gregorian Dates) live at the
+ * bottom of this file — keep all EC↔GC conversion going through here.
  */
 
 interface FlexibleDateInputProps {
@@ -33,6 +35,10 @@ interface FlexibleDateInputProps {
 type Stage = "year" | "month" | "day"
 
 const YEARS_PER_PAGE = 16
+
+export function getCurrentEthiopianYear(): number {
+  return new Kenat().getEthiopian().year
+}
 
 function parseValue(value: string | undefined): {
   year?: number
@@ -52,19 +58,24 @@ function pad(n: number) {
   return String(n).padStart(2, "0")
 }
 
-function daysInMonth(year: number, month: number) {
-  return new Date(year, month, 0).getDate()
+/** Days in an Ethiopian month: 30 for months 1–12, Pagume (13) has 5 or 6. */
+function daysInEcMonth(year: number, month: number) {
+  if (month !== 13) return 30
+  return year % 4 === 3 ? 6 : 5
+}
+
+function ecMonthName(month: number, locale: "en" | "am") {
+  const names = locale === "am" ? monthNames.amharic : monthNames.english
+  return names[month - 1] ?? String(month)
 }
 
 export function formatFlexibleDate(value: string | undefined, locale: "en" | "am" = "en"): string {
   const { year, month, day } = parseValue(value)
   if (!year) return ""
-  if (!month) return String(year)
-  const monthName = new Intl.DateTimeFormat(locale === "am" ? "am" : "en", {
-    month: "short",
-  }).format(new Date(year, month - 1, 1))
-  if (!day) return `${monthName} ${year}`
-  return `${monthName} ${day}, ${year}`
+  const suffix = locale === "am" ? " ዓ.ም" : ""
+  if (!month) return `${year}${suffix}`
+  if (!day) return `${ecMonthName(month, locale)} ${year}${suffix}`
+  return `${ecMonthName(month, locale)} ${day}, ${year}${suffix}`
 }
 
 export function FlexibleDateInput({
@@ -74,36 +85,33 @@ export function FlexibleDateInput({
   placeholder,
   locale = "en",
   fromYear = 1900,
-  toYear = new Date().getFullYear(),
+  toYear,
   disabled,
   className,
 }: FlexibleDateInputProps) {
+  const currentEcYear = React.useMemo(() => getCurrentEthiopianYear(), [])
+  const maxYear = toYear ?? currentEcYear
   const parsed = parseValue(value)
   const [open, setOpen] = React.useState(false)
   const [stage, setStage] = React.useState<Stage>("year")
   const [draftYear, setDraftYear] = React.useState<number | undefined>(parsed.year)
   const [draftMonth, setDraftMonth] = React.useState<number | undefined>(parsed.month)
   const [pageStart, setPageStart] = React.useState(() => {
-    const anchor = parsed.year ?? toYear
+    const anchor = parsed.year ?? maxYear
     return Math.max(fromYear, anchor - (YEARS_PER_PAGE - 1))
   })
-
-  const monthNames = React.useMemo(() => {
-    const fmt = new Intl.DateTimeFormat(locale === "am" ? "am" : "en", { month: "short" })
-    return Array.from({ length: 12 }, (_, i) => fmt.format(new Date(2000, i, 1)))
-  }, [locale])
 
   const yearOnlyLabel = locale === "am" ? "ዓመት ብቻ" : "Year only"
   const monthOnlyLabel = locale === "am" ? "ወር ብቻ" : "Month only"
   const clearLabel = locale === "am" ? "አጽዳ" : "Clear"
-  const pickYearLabel = locale === "am" ? "ዓመት ይምረጡ" : "Pick a year"
+  const pickYearLabel = locale === "am" ? "ዓመት ይምረጡ (ዓ.ም)" : "Pick a year (EC)"
 
   const openPicker = () => {
     const current = parseValue(value)
     setDraftYear(current.year)
     setDraftMonth(current.month)
     setStage("year")
-    const anchor = current.year ?? toYear
+    const anchor = current.year ?? maxYear
     setPageStart(Math.max(fromYear, anchor - (YEARS_PER_PAGE - 1)))
     setOpen(true)
   }
@@ -131,10 +139,10 @@ export function FlexibleDateInput({
         >
           <CalendarDays className="h-4 w-4 shrink-0 text-muted-foreground" />
           {display ? (
-            <span className="flex-1 text-left">{display}</span>
+            <span className="flex-1 truncate text-left">{display}</span>
           ) : (
             <span className="flex-1 text-left text-muted-foreground">
-              {placeholder ?? (locale === "am" ? "ቀን ይምረጡ" : "Pick a date")}
+              {placeholder ?? (locale === "am" ? "ቀን ይምረጡ (ዓ.ም)" : "Pick a date (EC)")}
             </span>
           )}
           {display && !disabled && (
@@ -170,8 +178,8 @@ export function FlexibleDateInput({
             )}
             <span>
               {stage === "year" && pickYearLabel}
-              {stage === "month" && draftYear}
-              {stage === "day" && draftYear && draftMonth && `${monthNames[draftMonth - 1]} ${draftYear}`}
+              {stage === "month" && `${draftYear} ${locale === "am" ? "ዓ.ም" : "EC"}`}
+              {stage === "day" && draftYear && draftMonth && `${ecMonthName(draftMonth, locale)} ${draftYear}`}
             </span>
           </div>
           {stage === "year" && (
@@ -188,8 +196,8 @@ export function FlexibleDateInput({
               <button
                 type="button"
                 className="rounded p-1 hover:bg-accent disabled:opacity-40"
-                disabled={pageStart + YEARS_PER_PAGE > toYear}
-                onClick={() => setPageStart(Math.min(toYear, pageStart + YEARS_PER_PAGE))}
+                disabled={pageStart + YEARS_PER_PAGE > maxYear}
+                onClick={() => setPageStart(Math.min(maxYear, pageStart + YEARS_PER_PAGE))}
                 aria-label="Later years"
               >
                 <ChevronRight className="h-4 w-4" />
@@ -201,7 +209,7 @@ export function FlexibleDateInput({
         {stage === "year" && (
           <div className="grid grid-cols-4 gap-1.5">
             {Array.from({ length: YEARS_PER_PAGE }, (_, i) => pageStart + i)
-              .filter((y) => y >= fromYear && y <= toYear)
+              .filter((y) => y >= fromYear && y <= maxYear)
               .map((y) => (
                 <button
                   key={y}
@@ -234,20 +242,21 @@ export function FlexibleDateInput({
               {yearOnlyLabel}: {draftYear} ✓
             </Button>
             <div className="grid grid-cols-3 gap-1.5">
-              {monthNames.map((name, i) => (
+              {Array.from({ length: 13 }, (_, i) => i + 1).map((m) => (
                 <button
-                  key={name}
+                  key={m}
                   type="button"
                   onClick={() => {
-                    setDraftMonth(i + 1)
+                    setDraftMonth(m)
                     setStage("day")
                   }}
                   className={cn(
                     "rounded-md px-1 py-1.5 text-sm hover:bg-accent",
-                    i + 1 === draftMonth && "bg-primary text-primary-foreground hover:bg-primary",
+                    m === draftMonth && "bg-primary text-primary-foreground hover:bg-primary",
+                    m === 13 && "col-span-3 bg-muted/50",
                   )}
                 >
-                  {name}
+                  {ecMonthName(m, locale)}
                 </button>
               ))}
             </div>
@@ -263,10 +272,10 @@ export function FlexibleDateInput({
               className="mb-2 w-full"
               onClick={() => commit(`${draftYear}-${pad(draftMonth)}`)}
             >
-              {monthOnlyLabel}: {monthNames[draftMonth - 1]} {draftYear} ✓
+              {monthOnlyLabel}: {ecMonthName(draftMonth, locale)} {draftYear} ✓
             </Button>
-            <div className="grid grid-cols-7 gap-1">
-              {Array.from({ length: daysInMonth(draftYear, draftMonth) }, (_, i) => i + 1).map((d) => (
+            <div className="grid grid-cols-6 gap-1">
+              {Array.from({ length: daysInEcMonth(draftYear, draftMonth) }, (_, i) => i + 1).map((d) => (
                 <button
                   key={d}
                   type="button"
@@ -296,4 +305,57 @@ export function FlexibleDateInput({
       </PopoverContent>
     </Popover>
   )
+}
+
+// ============================================================================
+// EC ↔ GC conversion helpers (all conversion goes through this file)
+// ============================================================================
+
+/** Ethiopian-calendar year from a partial EC value ("2015-04-11" → 2015). */
+export function ecPartialYear(value: string | undefined): number | undefined {
+  return parseValue(value).year
+}
+
+/**
+ * Convert a partial EC value to a Gregorian ISO string for the backend.
+ * Missing month/day default to Meskerem 1 (the first day of the EC year).
+ */
+export function ecPartialToGregorianISO(value: string | undefined): string | undefined {
+  const { year, month, day } = parseValue(value)
+  if (!year) return undefined
+  const gc = toGC(year, month ?? 1, day ?? 1)
+  return new Date(Date.UTC(gc.year, gc.month - 1, gc.day)).toISOString()
+}
+
+/**
+ * Convert a Gregorian ISO date (from the backend) to a partial EC value.
+ * If the stored Gregorian date is exactly Meskerem 1 of `knownEcYear`, the
+ * entry was almost certainly year-only — reconstruct it as such.
+ */
+export function gregorianISOToEcPartial(
+  iso: string | undefined,
+  knownEcYear?: number,
+): string {
+  if (!iso) return ""
+  const d = new Date(iso)
+  if (Number.isNaN(d.getTime())) return ""
+  const ec = toEC(d.getUTCFullYear(), d.getUTCMonth() + 1, d.getUTCDate())
+  if (knownEcYear && ec.year === knownEcYear && ec.month === 1 && ec.day === 1) {
+    return String(ec.year)
+  }
+  return `${ec.year}-${pad(ec.month)}-${pad(ec.day)}`
+}
+
+/** Approximate age in years from a partial EC birth value. */
+export function ageFromEcPartial(value: string | undefined): number | undefined {
+  const { year, month, day } = parseValue(value)
+  if (!year) return undefined
+  const today = new Kenat().getEthiopian()
+  let age = today.year - year
+  if (month) {
+    if (today.month < month || (today.month === month && day && today.day < day)) {
+      age--
+    }
+  }
+  return Math.max(age, 0)
 }
