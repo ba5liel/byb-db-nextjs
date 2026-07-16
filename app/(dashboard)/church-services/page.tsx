@@ -4,7 +4,7 @@
  * Church Services List Page
  * 
  * Displays all church services/ministries with filtering and pagination.
- * Only accessible to superAdmin users.
+ * Protected by permission guards - requires READ permission on CHURCH_SERVICE.
  */
 
 import { useState, useEffect } from "react"
@@ -18,6 +18,9 @@ import { Skeleton } from "@/components/ui/skeleton"
 import { Plus, Search, Edit, Eye } from "lucide-react"
 import { useChurchServices } from "@/lib/church-services-context"
 import type { ServiceType } from "@/lib/types"
+import { PermissionGuard } from "@/components/auth/permission-guard"
+import { Resource, Action } from "@/lib/permissions"
+import { useAuth } from "@/lib/auth-context"
 
 // Service type labels
 const SERVICE_TYPE_LABELS: Record<ServiceType, { en: string; am: string }> = {
@@ -35,6 +38,7 @@ const SERVICE_TYPE_LABELS: Record<ServiceType, { en: string; am: string }> = {
 
 export default function ChurchServicesPage() {
   const { services, loading, error, fetchServices } = useChurchServices()
+  const { hasPermission } = useAuth()
   
   // Filter and search states
   const [searchTerm, setSearchTerm] = useState("")
@@ -68,21 +72,24 @@ export default function ChurchServicesPage() {
   }, [typeFilter, statusFilter, searchTerm])
 
   return (
-    <div className="container mx-auto py-8 px-4">
-      {/* Header */}
-      <div className="flex items-center justify-between mb-6">
-        <div>
-          <h1 className="text-3xl font-bold">Church Services</h1>
-          <p className="text-muted-foreground mt-1">
-            Manage church services and ministries
-          </p>
-        </div>
-        <Link href="/church-services/new">
-          <Button>
-            <Plus className="mr-2 h-4 w-4" />
-            New Service
-          </Button>
-        </Link>
+    <PermissionGuard resource={Resource.CHURCH_SERVICE} action={Action.READ}>
+      <div className="container mx-auto py-8 px-4">
+        {/* Header */}
+        <div className="flex items-center justify-between mb-6">
+          <div>
+            <h1 className="text-3xl font-bold">Church Services</h1>
+            <p className="text-muted-foreground mt-1">
+              Manage church services and ministries
+            </p>
+          </div>
+          <PermissionGuard resource={Resource.CHURCH_SERVICE} action={Action.CREATE} showError={false}>
+            <Link href="/church-services/new">
+              <Button>
+                <Plus className="mr-2 h-4 w-4" />
+                New Service
+              </Button>
+            </Link>
+          </PermissionGuard>
       </div>
 
       {/* Filters */}
@@ -222,19 +229,22 @@ export default function ChurchServicesPage() {
                       View
                     </Button>
                   </Link>
-                  <Link href={`/church-services/${service._id}/edit`} className="flex-1">
-                    <Button variant="outline" className="w-full">
-                      <Edit className="mr-2 h-4 w-4" />
-                      Edit
-                    </Button>
-                  </Link>
+                  {hasPermission(Resource.CHURCH_SERVICE, Action.UPDATE) && (
+                    <Link href={`/church-services/${service._id}/edit`} className="flex-1">
+                      <Button variant="outline" className="w-full">
+                        <Edit className="mr-2 h-4 w-4" />
+                        Edit
+                      </Button>
+                    </Link>
+                  )}
                 </div>
               </CardContent>
             </Card>
           ))}
         </div>
       )}
-    </div>
+      </div>
+    </PermissionGuard>
   )
 }
 

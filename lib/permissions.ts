@@ -14,7 +14,8 @@ import { defaultStatements } from "better-auth/plugins/admin/access"
 export enum Resource {
   USER = "user",
   SESSION = "session",
-  MEMBER = "member",
+  CONFIG = "config",
+  CHURCH_MEMBER = "church_member",
   CHURCH_SERVICE = "church_service",
   MINISTER = "minister",
   ANALYTICS = "analytics",
@@ -38,6 +39,9 @@ export enum Action {
  */
 export const statement = {
   ...defaultStatements,
+
+  // Config resource permissions - System configuration
+  [Resource.CONFIG]: [Action.CREATE, Action.READ, Action.UPDATE, Action.DELETE],
 
   // Member resource permissions - CRUD only
   [Resource.CHURCH_MEMBER]: [Action.CREATE, Action.READ, Action.UPDATE, Action.DELETE],
@@ -102,18 +106,19 @@ export type RoleName = (typeof ROLES)[keyof typeof ROLES]
  * Get role badge color based on role
  */
 export function getRoleBadgeColor(role: string): string {
+  // Notion-style restrained tints: soft background + readable colored text
   const colors: Record<string, string> = {
-    superAdmin: "bg-red-600",
-    churchPastor: "bg-purple-600",
-    admin: "bg-blue-600",
-    minister: "bg-green-600",
-    viewer: "bg-gray-600",
+    superAdmin: "bg-red-50 text-red-700 dark:bg-red-950 dark:text-red-300",
+    churchPastor: "bg-purple-50 text-purple-700 dark:bg-purple-950 dark:text-purple-300",
+    admin: "bg-blue-50 text-blue-700 dark:bg-blue-950 dark:text-blue-300",
+    minister: "bg-green-50 text-green-700 dark:bg-green-950 dark:text-green-300",
+    viewer: "bg-muted text-muted-foreground",
     // Additional dynamic roles
-    youth_minister: "bg-indigo-600",
-    worship_leader: "bg-pink-600",
-    finance_manager: "bg-yellow-600",
+    youth_minister: "bg-indigo-50 text-indigo-700 dark:bg-indigo-950 dark:text-indigo-300",
+    worship_leader: "bg-pink-50 text-pink-700 dark:bg-pink-950 dark:text-pink-300",
+    finance_manager: "bg-amber-50 text-amber-700 dark:bg-amber-950 dark:text-amber-300",
   }
-  return colors[role] || "bg-gray-600"
+  return colors[role] || "bg-muted text-muted-foreground"
 }
 
 /**

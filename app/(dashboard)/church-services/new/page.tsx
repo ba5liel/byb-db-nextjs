@@ -235,7 +235,7 @@ export default function NewChurchServicePage() {
               <Input
                 id="leadership_start"
                 type="date"
-                value={formData.leadership_start}
+                value={formData.leadership_start as string}
                 onChange={(e) =>
                   handleChange("leadership_start", e.target.value)
                 }
@@ -251,7 +251,7 @@ export default function NewChurchServicePage() {
               <Input
                 id="leadership_end"
                 type="date"
-                value={formData.leadership_end || ""}
+                value={(formData.leadership_end as string) || ""}
                 onChange={(e) =>
                   handleChange("leadership_end", e.target.value || undefined)
                 }

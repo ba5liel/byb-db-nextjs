@@ -11,7 +11,7 @@ import {
 import { Badge } from "@/components/ui/badge"
 import { useRoles, usePermissions } from "@/lib/api/hooks"
 import { PermissionGuard } from "@/components/auth/permission-guard"
-import { getRoleBadgeColor } from "@/lib/permissions"
+import { getRoleBadgeColor, Resource, Action } from "@/lib/permissions"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import {
   Accordion,
@@ -29,7 +29,7 @@ export default function RolesPage() {
   const resources = permissionsData?.resources || {}
 
   return (
-    <PermissionGuard resource="role" action="read">
+    <PermissionGuard resource={Resource.ROLE} action={Action.READ}>
       <div className="flex flex-col gap-6 p-8">
         <div className="flex justify-between items-center">
           <div>
@@ -50,7 +50,7 @@ export default function RolesPage() {
 
           {/* Roles Tab */}
           <TabsContent value="roles" className="space-y-6">
-            <Card className="glass-card border-white/10">
+            <Card className="bg-card border border-border">
               <CardHeader>
                 <CardTitle>System Roles</CardTitle>
                 <CardDescription>
@@ -65,12 +65,12 @@ export default function RolesPage() {
                 ) : (
                   <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
                     {roles.map((role) => (
-                      <Card key={role.id} className="glass-card border-white/10 hover:border-white/20 transition-all">
+                      <Card key={role.id} className="bg-card border border-border hover:border-foreground/20 transition-all">
                         <CardHeader>
                           <div className="flex items-center justify-between">
                             <Badge
                               variant="outline"
-                              className={`${getRoleBadgeColor(role.id)} text-white border-none px-3 py-1`}
+                              className={`${getRoleBadgeColor(role.id)} text-primary-foreground border-none px-3 py-1`}
                             >
                               <Shield className="h-4 w-4 mr-2" />
                               {role.name}
@@ -89,7 +89,7 @@ export default function RolesPage() {
                             <div className="text-sm font-semibold">Permissions:</div>
                             <Accordion type="single" collapsible className="w-full">
                               {Object.entries(role.permissions.statements).map(([resource, actions]) => (
-                                <AccordionItem key={resource} value={resource} className="border-white/10">
+                                <AccordionItem key={resource} value={resource} className="border-border">
                                   <AccordionTrigger className="text-sm hover:no-underline">
                                     <div className="flex items-center gap-2">
                                       <Badge variant="outline" className="text-xs">
@@ -106,7 +106,7 @@ export default function RolesPage() {
                                         <Badge
                                           key={action}
                                           variant="secondary"
-                                          className="text-xs bg-white/5"
+                                          className="text-xs bg-muted"
                                         >
                                           {action}
                                         </Badge>
@@ -128,7 +128,7 @@ export default function RolesPage() {
 
           {/* Permissions Tab */}
           <TabsContent value="permissions" className="space-y-6">
-            <Card className="glass-card border-white/10">
+            <Card className="bg-card border border-border">
               <CardHeader>
                 <CardTitle>Available Permissions</CardTitle>
                 <CardDescription>
@@ -143,7 +143,7 @@ export default function RolesPage() {
                 ) : (
                   <div className="grid gap-6 md:grid-cols-2">
                     {Object.entries(resources).map(([resource, actions]) => (
-                      <Card key={resource} className="glass-card border-white/10">
+                      <Card key={resource} className="bg-card border border-border">
                         <CardHeader>
                           <CardTitle className="text-lg flex items-center gap-2">
                             <Shield className="h-5 w-5 text-primary" />
@@ -159,7 +159,7 @@ export default function RolesPage() {
                               <Badge
                                 key={action}
                                 variant="outline"
-                                className="bg-white/5 border-primary/20"
+                                className="bg-muted border-primary/20"
                               >
                                 <Eye className="h-3 w-3 mr-1" />
                                 {action}
@@ -177,7 +177,7 @@ export default function RolesPage() {
         </Tabs>
 
         {/* Role Permissions Matrix */}
-        <Card className="glass-card border-white/10">
+        <Card className="bg-card border border-border">
           <CardHeader>
             <CardTitle>Permissions Matrix</CardTitle>
             <CardDescription>
@@ -193,13 +193,13 @@ export default function RolesPage() {
               <div className="overflow-x-auto">
                 <table className="w-full border-collapse">
                   <thead>
-                    <tr className="border-b border-white/10">
+                    <tr className="border-b border-border">
                       <th className="text-left p-4 font-semibold">Resource</th>
                       {roles.map((role) => (
                         <th key={role.id} className="text-center p-4">
                           <Badge
                             variant="outline"
-                            className={`${getRoleBadgeColor(role.id)} text-white border-none text-xs`}
+                            className={`${getRoleBadgeColor(role.id)} text-primary-foreground border-none text-xs`}
                           >
                             {role.name}
                           </Badge>
@@ -209,9 +209,9 @@ export default function RolesPage() {
                   </thead>
                   <tbody>
                     {Object.keys(resources).map((resource) => (
-                      <tr key={resource} className="border-b border-white/5 hover:bg-white/5">
+                      <tr key={resource} className="border-b border-border hover:bg-muted">
                         <td className="p-4 font-medium">
-                          <Badge variant="outline" className="bg-white/5">
+                          <Badge variant="outline" className="bg-muted">
                             {resource}
                           </Badge>
                         </td>
@@ -219,7 +219,7 @@ export default function RolesPage() {
                           <td key={role.id} className="text-center p-4">
                             {role.permissions.statements[resource] ? (
                               <div className="flex flex-col items-center gap-1">
-                                <Shield className="h-4 w-4 text-green-500" />
+                                <Shield className="h-4 w-4 text-green-700 dark:text-green-400" />
                                 <span className="text-xs text-muted-foreground">
                                   {(role.permissions.statements[resource] as string[]).length} actions
                                 </span>
@@ -240,10 +240,10 @@ export default function RolesPage() {
 
         {/* Role Description Cards */}
         <div className="grid gap-6 md:grid-cols-2">
-          <Card className="glass-card border-white/10">
+          <Card className="bg-card border border-border">
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
-                <Shield className="h-5 w-5 text-purple-500" />
+                <Shield className="h-5 w-5 text-primary" />
                 Super Admin
               </CardTitle>
               <CardDescription>ሱፐር አድሚን</CardDescription>
@@ -259,10 +259,10 @@ export default function RolesPage() {
             </CardContent>
           </Card>
 
-          <Card className="glass-card border-white/10">
+          <Card className="bg-card border border-border">
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
-                <Shield className="h-5 w-5 text-blue-500" />
+                <Shield className="h-5 w-5 text-primary" />
                 Church Pastor
               </CardTitle>
               <CardDescription>የቤተ ክርስቲያን ፓስተር</CardDescription>
@@ -278,10 +278,10 @@ export default function RolesPage() {
             </CardContent>
           </Card>
 
-          <Card className="glass-card border-white/10">
+          <Card className="bg-card border border-border">
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
-                <Shield className="h-5 w-5 text-orange-500" />
+                <Shield className="h-5 w-5 text-primary" />
                 Minister
               </CardTitle>
               <CardDescription>ሚኒስተር</CardDescription>
@@ -297,10 +297,10 @@ export default function RolesPage() {
             </CardContent>
           </Card>
 
-          <Card className="glass-card border-white/10">
+          <Card className="bg-card border border-border">
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
-                <Shield className="h-5 w-5 text-gray-500" />
+                <Shield className="h-5 w-5 text-muted-foreground" />
                 Viewer
               </CardTitle>
               <CardDescription>ተመልካች</CardDescription>

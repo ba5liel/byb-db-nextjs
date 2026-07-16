@@ -70,7 +70,7 @@ import {
   useDeleteUser,
   useRoles,
 } from "@/lib/api/hooks"
-import { getRoleDisplayName, getRoleBadgeColor } from "@/lib/permissions"
+import { getRoleDisplayName, getRoleBadgeColor, Resource, Action } from "@/lib/permissions"
 import { PermissionGuard } from "@/components/auth/permission-guard"
 import { PasswordInput } from "@/components/ui/password-input"
 
@@ -254,7 +254,7 @@ export default function UsersPage() {
   }
 
   return (
-    <PermissionGuard resource="user" action="list">
+    <PermissionGuard resource={"user" as Resource} action={"list" as Action}>
       <div className="flex flex-col gap-6 p-8">
         <div className="flex justify-between items-center">
           <div>
@@ -266,7 +266,7 @@ export default function UsersPage() {
             </p>
           </div>
 
-          <PermissionGuard resource="user" action="create" fallback={<div />}>
+          <PermissionGuard resource={"user" as Resource} action={"create" as Action} fallback={<div />}>
             <Dialog open={createDialogOpen} onOpenChange={setCreateDialogOpen}>
               <DialogTrigger asChild>
                 <Button className="gap-2">
@@ -374,7 +374,7 @@ export default function UsersPage() {
         </div>
 
         {/* Users Table */}
-        <Card className="glass-card border-white/10">
+        <Card className="bg-card border border-border">
           <CardHeader>
             <CardTitle>System Users</CardTitle>
             <CardDescription>
@@ -403,7 +403,7 @@ export default function UsersPage() {
                       <TableCell>
                         <div className="flex items-center gap-3">
                           <Avatar>
-                            <AvatarFallback className="bg-gradient-to-br from-primary/20 to-accent/20">
+                            <AvatarFallback className="bg-secondary text-secondary-foreground">
                               {user.name.split(" ").map((n: string) => n[0]).join("").toUpperCase()}
                             </AvatarFallback>
                           </Avatar>
@@ -419,7 +419,7 @@ export default function UsersPage() {
                       <TableCell>
                         <Badge
                           variant="outline"
-                          className={`${getRoleBadgeColor(user.role || "")} text-white border-none`}
+                          className={`${getRoleBadgeColor(user.role || "")} text-primary-foreground border-none`}
                         >
                           <Shield className="h-3 w-3 mr-1" />
                           {getRoleDisplayName(user.role || "")}
@@ -432,7 +432,7 @@ export default function UsersPage() {
                             Banned
                           </Badge>
                         ) : (
-                          <Badge variant="outline" className="bg-green-500/20 text-green-500 border-green-500/50">
+                          <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200 dark:bg-green-950 dark:text-green-300 dark:border-green-900">
                             Active
                           </Badge>
                         )}
@@ -444,35 +444,35 @@ export default function UsersPage() {
                               <MoreHorizontal className="h-4 w-4" />
                             </Button>
                           </DropdownMenuTrigger>
-                          <DropdownMenuContent align="end" className="glass-card border-white/10">
+                          <DropdownMenuContent align="end" className="bg-card border border-border">
                             <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                            <DropdownMenuSeparator className="bg-white/10" />
-                            <PermissionGuard resource="user" action="create" fallback={<div />}>
+                            <DropdownMenuSeparator className="bg-border" />
+                            <PermissionGuard resource={"user" as Resource} action={"create" as Action} fallback={<div />}>
                               <DropdownMenuItem onClick={() => openEditDialog(user)}>
                                 <Edit className="mr-2 h-4 w-4" />
                                 Edit User
                               </DropdownMenuItem>
                             </PermissionGuard>
-                            <PermissionGuard resource="role" action="assign" fallback={<div />}>
+                            <PermissionGuard resource={"role" as Resource} action={"assign" as Action} fallback={<div />}>
                               <DropdownMenuItem onClick={() => openRoleDialog(user)}>
                                 <Shield className="mr-2 h-4 w-4" />
                                 Assign Role
                               </DropdownMenuItem>
                             </PermissionGuard>
-                            <PermissionGuard resource="user" action="set-password" fallback={<div />}>
+                            <PermissionGuard resource={"user" as Resource} action={"set-password" as Action} fallback={<div />}>
                               <DropdownMenuItem onClick={() => openPasswordDialog(user)}>
                                 <Key className="mr-2 h-4 w-4" />
                                 Reset Password
                               </DropdownMenuItem>
                             </PermissionGuard>
-                            <PermissionGuard resource="session" action="revoke" fallback={<div />}>
+                            <PermissionGuard resource={"session" as Resource} action={"revoke" as Action} fallback={<div />}>
                               <DropdownMenuItem onClick={() => handleRevokeSessions(user.id)}>
                                 <LogOut className="mr-2 h-4 w-4" />
                                 Revoke Sessions
                               </DropdownMenuItem>
                             </PermissionGuard>
-                            <DropdownMenuSeparator className="bg-white/10" />
-                            <PermissionGuard resource="user" action="ban" fallback={<div />}>
+                            <DropdownMenuSeparator className="bg-border" />
+                            <PermissionGuard resource={"user" as Resource} action={"ban" as Action} fallback={<div />}>
                               {user.banned ? (
                                 <DropdownMenuItem onClick={() => handleUnbanUser(user.id)}>
                                   <Ban className="mr-2 h-4 w-4" />
@@ -485,10 +485,10 @@ export default function UsersPage() {
                                 </DropdownMenuItem>
                               )}
                             </PermissionGuard>
-                            <PermissionGuard resource="user" action="delete" fallback={<div />}>
+                            <PermissionGuard resource={"user" as Resource} action={"delete" as Action} fallback={<div />}>
                               <DropdownMenuItem
                                 onClick={() => handleDeleteUser(user.id)}
-                                className="text-red-500 focus:text-red-500"
+                                className="text-destructive focus:text-destructive"
                               >
                                 <Trash2 className="mr-2 h-4 w-4" />
                                 Delete User
@@ -572,7 +572,7 @@ export default function UsersPage() {
                 >
                   <Badge
                     variant="outline"
-                    className={`${getRoleBadgeColor(role.id)} text-white border-none`}
+                    className={`${getRoleBadgeColor(role.id)} text-primary-foreground border-none`}
                   >
                     <Shield className="h-3 w-3 mr-1" />
                     {role.name}

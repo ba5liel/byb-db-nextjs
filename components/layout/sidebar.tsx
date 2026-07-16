@@ -8,7 +8,6 @@ import {
   Home,
   Settings,
   LogOut,
-  Heart,
   Briefcase,
   FileText,
   BarChart3,
@@ -22,6 +21,21 @@ import { usePermissions } from "@/lib/use-permissions"
 import { Button } from "@/components/ui/button"
 import Image from "next/image"
 
+interface NavChild {
+  name: string
+  href: string
+  /** Custom active predicate; defaults to exact or prefix match on href. */
+  isActive?: (pathname: string) => boolean
+}
+
+interface NavItem {
+  name: string
+  href?: string
+  icon: typeof Home
+  section: string
+  children?: NavChild[]
+}
+
 export function Sidebar() {
   const pathname = usePathname()
   const { logout, user } = useAuth()
@@ -33,10 +47,30 @@ export function Sidebar() {
     checkPermission({ user: ["list"] }).then(setCanAccessSystemAdmin)
   }, [checkPermission])
 
-  const navigation = [
+  const navigation: NavItem[] = [
     { name: "Dashboard", href: "/", icon: Home, section: "Main" },
-    { name: "Members", href: "/members", icon: Users, section: "Main" },
-    { name: "Family Relationships", href: "/families", icon: Heart, section: "Relationships" },
+    {
+      name: "Members",
+      icon: Users,
+      section: "Main",
+      children: [
+        {
+          name: "All Members",
+          href: "/members",
+          isActive: (p) => p.startsWith("/members") && !p.startsWith("/members/analytics"),
+        },
+        {
+          name: "Member Analytics",
+          href: "/members/analytics",
+          isActive: (p) => p.startsWith("/members/analytics"),
+        },
+        {
+          name: "Families",
+          href: "/families",
+          isActive: (p) => p.startsWith("/families"),
+        },
+      ],
+    },
     { name: "Ministers & Leadership", href: "/ministers", icon: Shield, section: "Leadership" },
     { name: "Services & Ministries", href: "/church-services", icon: Briefcase, section: "Ministry" },
     { name: "Administrative Files", href: "/files", icon: FileText, section: "Admin" },
@@ -44,18 +78,24 @@ export function Sidebar() {
     { name: "Notifications", href: "/notifications", icon: Bell, section: "Communication" },
     { name: "User Management", href: "/users", icon: UserCog, section: "System" },
     { name: "Role Management", href: "/roles", icon: Lock, section: "System" },
-    // Conditionally add System Admin link based on permissions
+    // Conditionally add System Admin links based on permissions
     ...(canAccessSystemAdmin
-      ? [{ name: "System Administration", href: "/system-admin/users", icon: UserCog, section: "System" }]
+      ? [
+          { name: "System Administration", href: "/system-admin/users", icon: UserCog, section: "System" },
+          { name: "Sefer Management", href: "/system-admin/sefers", icon: Home, section: "System" },
+        ]
       : []),
     { name: "Settings", href: "/settings", icon: Settings, section: "System" },
   ]
 
   const sections = Array.from(new Set(navigation.map((item) => item.section)))
 
+  const isLinkActive = (href: string) =>
+    pathname === href || pathname?.startsWith(`${href}/`)
+
   return (
-    <div className="flex h-screen w-64 flex-col border-r border-white/10 bg-sidebar/95 backdrop-blur-xl">
-      <div className="flex h-16 items-center border-b border-white/10 px-6 gap-3">
+    <div className="flex h-screen w-64 flex-col border-r border-sidebar-border bg-sidebar">
+      <div className="flex h-16 items-center border-b border-sidebar-border px-6 gap-3">
         <div className="w-8 h-8 flex items-center justify-center">
           <Image src="/logo.png" alt="BYB Logo" width={32} height={32} />
         </div>
@@ -69,15 +109,47 @@ export function Sidebar() {
             {navigation
               .filter((item) => item.section === section)
               .map((item) => {
-                const isActive = pathname === item.href || pathname?.startsWith(`${item.href}/`)
+                // Group with indented sub-items (always expanded).
+                if (item.children) {
+                  return (
+                    <div key={item.name} className="mb-1">
+                      <div className="flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-semibold text-foreground">
+                        <item.icon className="h-5 w-5" />
+                        {item.name}
+                      </div>
+                      <div className="mt-0.5 space-y-0.5">
+                        {item.children.map((child) => {
+                          const active = child.isActive
+                            ? child.isActive(pathname || "")
+                            : isLinkActive(child.href)
+                          return (
+                            <Link
+                              key={child.name}
+                              href={child.href}
+                              className={`flex items-center rounded-lg pl-9 pr-3 py-2 text-[13px] font-medium transition-smooth ${
+                                active
+                                  ? "bg-sidebar-accent text-foreground"
+                                  : "text-muted-foreground hover:bg-sidebar-accent hover:text-foreground"
+                              }`}
+                            >
+                              {child.name}
+                            </Link>
+                          )
+                        })}
+                      </div>
+                    </div>
+                  )
+                }
+
+                const isActive = isLinkActive(item.href!)
                 return (
                   <Link
                     key={item.name}
-                    href={item.href}
+                    href={item.href!}
                     className={`flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-semibold transition-smooth ${
                       isActive
-                        ? "bg-primary text-primary-foreground shadow-flat-lg"
-                        : "text-muted-foreground hover:bg-accent/50 hover:text-foreground"
+                        ? "bg-sidebar-accent text-foreground"
+                        : "text-muted-foreground hover:bg-sidebar-accent hover:text-foreground"
                     }`}
                   >
                     <item.icon className="h-5 w-5" />
@@ -89,10 +161,10 @@ export function Sidebar() {
         ))}
       </nav>
 
-      <div className="border-t border-white/10 p-4 glass-card">
+      <div className="border-t border-sidebar-border p-4">
         <div className="mb-3 px-3">
           <p className="text-sm font-bold">
-            {user?.firstName} {user?.lastName}
+            {user?.name}
           </p>
           <p className="text-xs text-muted-foreground">{user?.email}</p>
         </div>
