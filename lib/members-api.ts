@@ -31,8 +31,9 @@ async function apiRequest<T>(
     throw new Error(errorData.message || `HTTP error! status: ${response.status}`)
   }
 
-  const data = await response.json()
-  return data.data || data // Some endpoints return { success: true, data: ... }, others just return data
+  // Return the full JSON body. Callers decide whether to use `.data`.
+  // Unwrapping here caused getMembers to double-unwrap and always get [].
+  return (await response.json()) as T
 }
 
 /**

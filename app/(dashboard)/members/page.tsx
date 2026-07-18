@@ -31,6 +31,7 @@ import {
   AlertCircle,
   BarChart3,
   MoreHorizontal,
+  FileSpreadsheet,
 } from "lucide-react"
 import {
   DropdownMenu,
@@ -285,6 +286,12 @@ export default function MembersPage() {
                 {locale === "am" ? "የአባላት ትንታኔ" : "Member Analytics"}
               </Button>
             </Link>
+            <Link href="/members/import">
+              <Button variant="secondary" size="sm" className="gap-2">
+                <FileSpreadsheet className="w-4 h-4" />
+                {locale === "am" ? "ከ Excel አስገባ" : "Import Excel"}
+              </Button>
+            </Link>
             <PermissionGuard resource={Resource.CHURCH_MEMBER} action={Action.CREATE} showError={false}>
               <Link href="/members/new">
                 <Button size="sm" className="gap-2">
@@ -438,12 +445,20 @@ export default function MembersPage() {
                           {t.members.clearFilters}
                         </Button>
                       ) : (
-                        <Link href="/members/new">
-                          <Button size="sm" className="gap-2">
-                            <Plus className="w-4 h-4" />
-                            {t.members.addMember}
-                          </Button>
-                        </Link>
+                        <div className="flex items-center justify-center gap-2">
+                          <Link href="/members/import">
+                            <Button variant="secondary" size="sm" className="gap-2">
+                              <FileSpreadsheet className="w-4 h-4" />
+                              {locale === "am" ? "ከ Excel አስገባ" : "Import Excel"}
+                            </Button>
+                          </Link>
+                          <Link href="/members/new">
+                            <Button size="sm" className="gap-2">
+                              <Plus className="w-4 h-4" />
+                              {t.members.addMember}
+                            </Button>
+                          </Link>
+                        </div>
                       )}
                     </div>
                   </TableCell>

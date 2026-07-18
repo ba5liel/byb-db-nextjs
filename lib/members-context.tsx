@@ -333,7 +333,11 @@ export function MembersProvider({ children }: { children: ReactNode }) {
     try {
       setLoading(true)
       setError(null)
-      const response = await membersAPI.getMembers(filters)
+      const response = await membersAPI.getMembers({
+        page: 1,
+        limit: 1000,
+        ...filters,
+      })
       const mappedMembers = response.data.map(mapBackendMemberToMember)
       setMembers(mappedMembers)
     } catch (err) {
