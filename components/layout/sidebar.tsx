@@ -57,7 +57,17 @@ export function Sidebar() {
         {
           name: "All Members",
           href: "/members",
-          isActive: (p) => p.startsWith("/members") && !p.startsWith("/members/analytics"),
+          isActive: (p) =>
+            p === "/members" ||
+            (/^\/members\/[^/]+/.test(p) &&
+              !p.startsWith("/members/analytics") &&
+              !p.startsWith("/members/import") &&
+              !p.startsWith("/members/new")),
+        },
+        {
+          name: "Import from Excel",
+          href: "/members/import",
+          isActive: (p) => p.startsWith("/members/import"),
         },
         {
           name: "Member Analytics",
