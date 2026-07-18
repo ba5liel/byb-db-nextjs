@@ -2,9 +2,6 @@
  * Analytics and dashboard statistics DTOs
  */
 
-/**
- * Dashboard overview statistics
- */
 export interface DashboardOverview {
   totalMembers: number
   maleCount: number
@@ -12,11 +9,12 @@ export interface DashboardOverview {
   activeMembers: number
   inactiveMembers: number
   newMembersThisMonth: number
+  totalFamilies: number
+  tithePayersCount: number
+  transferredMembers: number
+  baptizedMembers: number
 }
 
-/**
- * Demographics statistics
- */
 export interface Demographics {
   sexDistribution: {
     male: number
@@ -25,6 +23,8 @@ export interface Demographics {
   ageGroupStats: Array<{
     ageGroup: string
     count: number
+    male?: number
+    female?: number
     percentage: number
   }>
   maritalStatusStats: Array<{
@@ -34,13 +34,12 @@ export interface Demographics {
   }>
 }
 
-/**
- * Community statistics
- */
 export interface CommunityStats {
   subCommunityStats: Array<{
     subCommunity: string
     count: number
+    male?: number
+    female?: number
     percentage: number
   }>
   groupTypeStats: Array<{
@@ -48,20 +47,22 @@ export interface CommunityStats {
     count: number
     percentage: number
   }>
+  seferStats: Array<{
+    sefer: string
+    seferId?: string | null
+    count: number
+    male?: number
+    female?: number
+    percentage: number
+  }>
 }
 
-/**
- * Complete dashboard statistics
- */
 export interface DashboardStatistics {
   overview: DashboardOverview
   demographics: Demographics
   community: CommunityStats
 }
 
-/**
- * Sub-community specific statistics
- */
 export interface SubCommunityStatistics {
   subCommunity: string
   totalMembers: number
@@ -76,35 +77,40 @@ export interface SubCommunityStatistics {
     groupType: string
     count: number
   }>
+  cellGroups?: Array<{
+    cellGroupNumber: number
+    count: number
+  }>
 }
 
-/**
- * Registration trends data point
- */
 export interface RegistrationTrendData {
   month: string
   year: number
   count: number
+  male?: number
+  female?: number
   cumulativeCount: number
 }
 
-/**
- * Registration trends response
- */
 export interface RegistrationTrends {
   trends: RegistrationTrendData[]
   totalRegistrations: number
   averagePerMonth: number
 }
 
-/**
- * Service enrollment statistics
- */
 export interface ServiceStatistics {
   totalServices: number
   activeServices: number
   totalEnrollments: number
   averageMembersPerService: number
+  totalServing: number
+  wantingToServe: number
+  serviceStats: Array<{
+    serviceName: string
+    count: number
+    male: number
+    female: number
+  }>
   serviceTypeBreakdown: Array<{
     type: string
     count: number
@@ -116,14 +122,13 @@ export interface ServiceStatistics {
   }>
 }
 
-/**
- * Financial statistics
- */
 export interface FinancialStatistics {
   titheStats: {
     totalTithePayers: number
     totalMonthlyTithe: number
     averageTithe: number
+    minTithe?: number
+    maxTithe?: number
   }
   frequencyStats: Array<{
     frequency: string
@@ -131,4 +136,3 @@ export interface FinancialStatistics {
     totalAmount: number
   }>
 }
-
