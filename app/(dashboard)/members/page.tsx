@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useMemo, useState } from "react"
+import { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
@@ -9,7 +9,6 @@ import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Badge } from "@/components/ui/badge"
 import { Skeleton } from "@/components/ui/skeleton"
-import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import {
   Table,
   TableBody,
@@ -24,14 +23,13 @@ import {
   Trash2,
   Eye,
   Search,
-  ChevronLeft,
-  ChevronRight,
   Users,
   X,
   AlertCircle,
   BarChart3,
   MoreHorizontal,
   FileSpreadsheet,
+  Loader2,
 } from "lucide-react"
 import {
   DropdownMenu,
@@ -62,7 +60,7 @@ import { PermissionGuard } from "@/components/auth/permission-guard"
 import { Resource, Action } from "@/lib/permissions"
 import { useAuth } from "@/lib/auth-context"
 
-const PAGE_SIZE = 20
+const BATCH_SIZE = 30
 
 const CHURCH_GROUPS: Member["subCommunity"][] = ["Jemmo", "Bethel", "Weyira", "Alpha"]
 const AGE_GROUPS: NonNullable<Member["ageGroup"]>[] = [
@@ -95,7 +93,8 @@ export default function MembersPage() {
   const [seferFilter, setSeferFilter] = useState("all")
   const [ageGroupFilter, setAgeGroupFilter] = useState("all")
 
-  const [page, setPage] = useState(1)
+  const [visibleCount, setVisibleCount] = useState(BATCH_SIZE)
+  const loadMoreRef = useRef<HTMLDivElement | null>(null)
 
   // Sefer options + member -> family map (fetched once)
   const [sefers, setSefers] = useState<Sefer[]>([])
@@ -173,14 +172,32 @@ export default function MembersPage() {
     })
   }, [members, statusFilter, genderFilter, groupFilter, seferFilter, ageGroupFilter, search])
 
-  // Reset to first page whenever the result set changes.
+  // Reset visible window whenever the result set changes.
   useEffect(() => {
-    setPage(1)
+    setVisibleCount(BATCH_SIZE)
   }, [statusFilter, genderFilter, groupFilter, seferFilter, ageGroupFilter, search])
 
-  const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE))
-  const currentPage = Math.min(page, totalPages)
-  const pageItems = filtered.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE)
+  const visibleItems = filtered.slice(0, visibleCount)
+  const hasMore = visibleCount < filtered.length
+
+  const loadMore = useCallback(() => {
+    setVisibleCount((prev) => Math.min(prev + BATCH_SIZE, filtered.length))
+  }, [filtered.length])
+
+  useEffect(() => {
+    const node = loadMoreRef.current
+    if (!node || !hasMore) return
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0]?.isIntersecting) loadMore()
+      },
+      { root: null, rootMargin: "200px", threshold: 0 },
+    )
+
+    observer.observe(node)
+    return () => observer.disconnect()
+  }, [hasMore, loadMore, visibleItems.length])
 
   function handleDeleteClick(id: string) {
     setMemberToDelete(id)
@@ -390,48 +407,58 @@ export default function MembersPage() {
 
         {/* Table */}
         <Card className="overflow-hidden">
-          <Table>
+          <Table className="w-full text-base">
             <TableHeader>
               <TableRow className="hover:bg-transparent">
-                <TableHead>{locale === "am" ? "አባል" : "Member"}</TableHead>
-                <TableHead>{locale === "am" ? "ስልክ" : "Phone"}</TableHead>
-                <TableHead>{locale === "am" ? "ሰፈር" : "Sefer"}</TableHead>
-                <TableHead>{locale === "am" ? "የቤተክርስቲያን ቡድን" : "Church Group"}</TableHead>
-                <TableHead>{locale === "am" ? "ቤተሰብ" : "Family"}</TableHead>
-                <TableHead>{t.members.ageGroup}</TableHead>
-                <TableHead>{t.members.membershipStatus}</TableHead>
-                <TableHead className="w-[52px] text-right"></TableHead>
+                <TableHead className="w-[1%] px-3 text-sm font-semibold whitespace-nowrap">
+                  {locale === "am" ? "ተ.ቁ" : "No."}
+                </TableHead>
+                <TableHead className="px-3 text-sm font-semibold">
+                  {locale === "am" ? "አባል" : "Member"}
+                </TableHead>
+                <TableHead className="w-[1%] px-3 text-sm font-semibold whitespace-nowrap">
+                  {locale === "am" ? "ስልክ" : "Phone"}
+                </TableHead>
+                <TableHead className="w-[1%] px-3 text-sm font-semibold whitespace-nowrap">
+                  {locale === "am" ? "ሰፈር" : "Sefer"}
+                </TableHead>
+                <TableHead className="w-[1%] px-3 text-sm font-semibold whitespace-nowrap">
+                  {locale === "am" ? "የቤተክርስቲያን ቡድን" : "Church Group"}
+                </TableHead>
+                <TableHead className="w-[1%] px-3 text-sm font-semibold whitespace-nowrap">
+                  {locale === "am" ? "ቤተሰብ" : "Family"}
+                </TableHead>
+                <TableHead className="w-[1%] px-3 text-sm font-semibold whitespace-nowrap">
+                  {t.members.ageGroup}
+                </TableHead>
+                <TableHead className="w-[1%] px-3 text-sm font-semibold whitespace-nowrap">
+                  {t.members.membershipStatus}
+                </TableHead>
+                <TableHead className="w-[1%] px-2 text-right"></TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {loading ? (
                 [...Array(8)].map((_, i) => (
                   <TableRow key={i} className="hover:bg-transparent">
-                    <TableCell>
-                      <div className="flex items-center gap-3">
-                        <Skeleton className="h-9 w-9 rounded-full" />
-                        <div className="space-y-1.5">
-                          <Skeleton className="h-3.5 w-32" />
-                          <Skeleton className="h-3 w-20" />
-                        </div>
-                      </div>
-                    </TableCell>
-                    <TableCell><Skeleton className="h-3.5 w-24" /></TableCell>
-                    <TableCell><Skeleton className="h-3.5 w-20" /></TableCell>
-                    <TableCell><Skeleton className="h-5 w-16 rounded-full" /></TableCell>
-                    <TableCell><Skeleton className="h-3.5 w-20" /></TableCell>
-                    <TableCell><Skeleton className="h-3.5 w-16" /></TableCell>
-                    <TableCell><Skeleton className="h-5 w-16 rounded-full" /></TableCell>
-                    <TableCell></TableCell>
+                    <TableCell className="px-3"><Skeleton className="h-4 w-6" /></TableCell>
+                    <TableCell className="px-3"><Skeleton className="h-4 w-40" /></TableCell>
+                    <TableCell className="px-3"><Skeleton className="h-4 w-28" /></TableCell>
+                    <TableCell className="px-3"><Skeleton className="h-4 w-24" /></TableCell>
+                    <TableCell className="px-3"><Skeleton className="h-6 w-20 rounded-full" /></TableCell>
+                    <TableCell className="px-3"><Skeleton className="h-4 w-24" /></TableCell>
+                    <TableCell className="px-3"><Skeleton className="h-4 w-20" /></TableCell>
+                    <TableCell className="px-3"><Skeleton className="h-6 w-20 rounded-full" /></TableCell>
+                    <TableCell className="px-2"></TableCell>
                   </TableRow>
                 ))
-              ) : pageItems.length === 0 ? (
+              ) : visibleItems.length === 0 ? (
                 <TableRow className="hover:bg-transparent">
-                  <TableCell colSpan={8}>
+                  <TableCell colSpan={9}>
                     <div className="text-center py-14">
                       <Users className="w-10 h-10 text-muted-foreground/50 mx-auto mb-3" />
-                      <h3 className="text-sm font-semibold mb-1">{t.members.noMembers}</h3>
-                      <p className="text-sm text-muted-foreground mb-4">
+                      <h3 className="text-base font-semibold mb-1">{t.members.noMembers}</h3>
+                      <p className="text-base text-muted-foreground mb-4">
                         {hasActiveFilters
                           ? locale === "am"
                             ? "ማጣሪያዎችን ያስተካክሉ"
@@ -464,7 +491,7 @@ export default function MembersPage() {
                   </TableCell>
                 </TableRow>
               ) : (
-                pageItems.map((member) => {
+                visibleItems.map((member, index) => {
                   const name = displayName(member)
                   const family = familyByMember[member.id]
                   return (
@@ -473,57 +500,48 @@ export default function MembersPage() {
                       className="cursor-pointer"
                       onClick={() => router.push(`/members/${member.id}`)}
                     >
-                      <TableCell>
-                        <div className="flex items-center gap-3">
-                          <Avatar className="h-9 w-9">
-                            <AvatarFallback className="bg-primary/10 text-primary text-xs font-semibold">
-                              {name.charAt(0).toUpperCase()}
-                            </AvatarFallback>
-                          </Avatar>
-                          <div className="min-w-0">
-                            <p className="text-sm font-medium truncate">{name}</p>
-                            {member.membershipNumber && (
-                              <p className="text-xs text-muted-foreground truncate">
-                                {member.membershipNumber}
-                              </p>
-                            )}
-                          </div>
-                        </div>
+                      <TableCell className="px-3 text-base font-semibold tabular-nums text-muted-foreground">
+                        {index + 1}
                       </TableCell>
-                      <TableCell className="text-sm text-muted-foreground">
+                      <TableCell className="px-3">
+                        <p className="text-base font-medium">{name}</p>
+                      </TableCell>
+                      <TableCell className="px-3 text-base text-muted-foreground whitespace-nowrap">
                         {member.phone || "—"}
                       </TableCell>
-                      <TableCell className="text-sm text-muted-foreground">
+                      <TableCell className="px-3 text-base text-muted-foreground whitespace-nowrap">
                         {member.sefer || "—"}
                       </TableCell>
-                      <TableCell>
+                      <TableCell className="px-3 whitespace-nowrap">
                         {member.subCommunity ? (
-                          <Badge variant="outline" className="font-normal">
+                          <Badge variant="outline" className="text-sm font-normal">
                             {groupLabel(member.subCommunity)}
                           </Badge>
                         ) : (
-                          <span className="text-sm text-muted-foreground">—</span>
+                          <span className="text-base text-muted-foreground">—</span>
                         )}
                       </TableCell>
-                      <TableCell onClick={(e) => e.stopPropagation()}>
+                      <TableCell className="px-3 whitespace-nowrap" onClick={(e) => e.stopPropagation()}>
                         {family ? (
                           <Link href={`/families/${family.familyId}`}>
                             <Badge
                               variant="outline"
-                              className="font-normal hover:bg-accent transition-colors"
+                              className="text-sm font-normal hover:bg-accent transition-colors"
                             >
                               {family.familyName}
                             </Badge>
                           </Link>
                         ) : (
-                          <span className="text-sm text-muted-foreground">—</span>
+                          <span className="text-base text-muted-foreground">—</span>
                         )}
                       </TableCell>
-                      <TableCell className="text-sm text-muted-foreground">
+                      <TableCell className="px-3 text-base text-muted-foreground whitespace-nowrap">
                         {ageGroupLabel(member.ageGroup)}
                       </TableCell>
-                      <TableCell>{statusBadge(member.membershipStatus)}</TableCell>
-                      <TableCell className="text-right" onClick={(e) => e.stopPropagation()}>
+                      <TableCell className="px-3 whitespace-nowrap">
+                        {statusBadge(member.membershipStatus)}
+                      </TableCell>
+                      <TableCell className="px-2 text-right" onClick={(e) => e.stopPropagation()}>
                         <DropdownMenu>
                           <DropdownMenuTrigger asChild>
                             <Button variant="ghost" size="icon" className="h-8 w-8">
@@ -569,47 +587,24 @@ export default function MembersPage() {
               )}
             </TableBody>
           </Table>
+
+          {!loading && hasMore && (
+            <div ref={loadMoreRef} className="flex items-center justify-center gap-2 py-4 text-sm text-muted-foreground">
+              <Loader2 className="h-4 w-4 animate-spin" />
+              {locale === "am" ? "ተጨማሪ በመጫን ላይ..." : "Loading more..."}
+            </div>
+          )}
         </Card>
 
-        {/* Footer: count + pagination */}
+        {/* Footer: count */}
         {!loading && filtered.length > 0 && (
-          <div className="flex flex-wrap items-center justify-between gap-3">
-            <p className="text-sm text-muted-foreground">
-              {locale === "am"
-                ? `ከ${members.length} ${pageItems.length} ማሳየት`
-                : `Showing ${(currentPage - 1) * PAGE_SIZE + 1}–${Math.min(
-                    currentPage * PAGE_SIZE,
-                    filtered.length,
-                  )} of ${filtered.length}${
-                    filtered.length !== members.length ? ` (${members.length} total)` : ""
-                  }`}
-            </p>
-            {totalPages > 1 && (
-              <div className="flex items-center gap-2">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setPage(currentPage - 1)}
-                  disabled={currentPage === 1}
-                >
-                  <ChevronLeft className="w-4 h-4 mr-1" />
-                  {locale === "am" ? "ቀዳሚ" : "Previous"}
-                </Button>
-                <span className="text-sm text-muted-foreground px-1">
-                  {currentPage} / {totalPages}
-                </span>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setPage(currentPage + 1)}
-                  disabled={currentPage === totalPages}
-                >
-                  {locale === "am" ? "ቀጣይ" : "Next"}
-                  <ChevronRight className="w-4 h-4 ml-1" />
-                </Button>
-              </div>
-            )}
-          </div>
+          <p className="text-sm text-muted-foreground">
+            {locale === "am"
+              ? `${visibleItems.length} ከ ${filtered.length} አባላት`
+              : `Showing ${visibleItems.length} of ${filtered.length}${
+                  filtered.length !== members.length ? ` (${members.length} total)` : ""
+                }`}
+          </p>
         )}
 
         {/* Delete confirmation */}
