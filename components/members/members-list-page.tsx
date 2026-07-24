@@ -30,6 +30,8 @@ import {
   MoreHorizontal,
   FileSpreadsheet,
   Loader2,
+  Printer,
+  ChevronDown,
 } from "lucide-react"
 import {
   DropdownMenu,
@@ -176,6 +178,12 @@ export function MembersListPage({
   const displayName = (m: Member) =>
     m.fullName || [m.firstName, m.middleName, m.lastName].filter(Boolean).join(" ") || "—"
 
+  // All members in scope (community-locked or entire church), ignoring other filters.
+  const allInScope = useMemo(() => {
+    if (!lockedSubCommunity) return members
+    return members.filter((m) => m.subCommunity === lockedSubCommunity)
+  }, [members, lockedSubCommunity])
+
   // Client-side filtering over all loaded members.
   const filtered = useMemo(() => {
     return members.filter((m) => {
@@ -320,6 +328,157 @@ export function MembersListPage({
 
   const addHref = newMemberHref(lockedCommunity)
 
+  function escapeHtml(value: string) {
+    return value
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;")
+  }
+
+  function printMembers(mode: "all" | "filtered") {
+    const rows = mode === "all" ? allInScope : filtered
+    if (rows.length === 0) {
+      toast({
+        title: locale === "am" ? "ምንም አባል የለም" : "No members to print",
+        description:
+          locale === "am"
+            ? "ለመታተም የሚያስችል አባል አልተገኘም"
+            : "There are no members in this selection.",
+        variant: "destructive",
+      })
+      return
+    }
+
+    const showGroup = !lockedSubCommunity
+    const subtitle =
+      mode === "filtered" && hasActiveFilters
+        ? locale === "am"
+          ? "የተጣራ ዝርዝር"
+          : "Filtered list"
+        : locale === "am"
+          ? "ሙሉ ዝርዝር"
+          : "Full list"
+    const printedAt = new Date().toLocaleString(locale === "am" ? "am-ET" : undefined)
+
+    const headers = [
+      locale === "am" ? "ተ.ቁ" : "No.",
+      locale === "am" ? "አባል" : "Member",
+      locale === "am" ? "ስልክ" : "Phone",
+      locale === "am" ? "ሰፈር" : "Sefer",
+      ...(showGroup ? [locale === "am" ? "የቤተክርስቲያን ቡድን" : "Church Group"] : []),
+      locale === "am" ? "ቤተሰብ" : "Family",
+      t.members.ageGroup,
+      t.members.membershipStatus,
+    ]
+
+    const body = rows
+      .map((member, index) => {
+        const family = familyByMember[member.id]
+        const cells = [
+          String(index + 1),
+          displayName(member),
+          member.phone || "—",
+          member.sefer || "—",
+          ...(showGroup ? [groupLabel(member.subCommunity)] : []),
+          family?.familyName || "—",
+          ageGroupLabel(member.ageGroup),
+          member.membershipStatus || "—",
+        ]
+        return `<tr>${cells.map((cell) => `<td>${escapeHtml(cell)}</td>`).join("")}</tr>`
+      })
+      .join("")
+
+    const html = `<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <title>${escapeHtml(pageTitle)}</title>
+  <style>
+    @page { margin: 12mm; }
+    body { font-family: Arial, Helvetica, sans-serif; color: #111; margin: 0; padding: 16px; }
+    h1 { font-size: 20px; margin: 0 0 4px; }
+    .meta { font-size: 12px; color: #555; margin-bottom: 16px; }
+    table { width: 100%; border-collapse: collapse; font-size: 11px; }
+    th, td { border: 1px solid #ccc; padding: 6px 8px; text-align: left; vertical-align: top; }
+    th { background: #f3f3f3; font-weight: 700; }
+    tr:nth-child(even) td { background: #fafafa; }
+  </style>
+</head>
+<body>
+  <h1>${escapeHtml(pageTitle)}</h1>
+  <div class="meta">
+    ${escapeHtml(subtitle)} · ${rows.length} ${locale === "am" ? "አባላት" : "members"} · ${escapeHtml(printedAt)}
+  </div>
+  <table>
+    <thead>
+      <tr>${headers.map((h) => `<th>${escapeHtml(h)}</th>`).join("")}</tr>
+    </thead>
+    <tbody>${body}</tbody>
+  </table>
+</body>
+</html>`
+
+    const iframe = document.createElement("iframe")
+    iframe.setAttribute("title", "Print members")
+    iframe.style.position = "fixed"
+    iframe.style.right = "0"
+    iframe.style.bottom = "0"
+    iframe.style.width = "0"
+    iframe.style.height = "0"
+    iframe.style.border = "0"
+    iframe.style.opacity = "0"
+    iframe.style.pointerEvents = "none"
+    document.body.appendChild(iframe)
+
+    const frameWindow = iframe.contentWindow
+    const frameDocument = frameWindow?.document
+    if (!frameWindow || !frameDocument) {
+      iframe.remove()
+      toast({
+        title: locale === "am" ? "ማተም አልተቻለም" : "Unable to print",
+        description:
+          locale === "am"
+            ? "እባክዎ እንደገና ይሞክሩ"
+            : "Please try again.",
+        variant: "destructive",
+      })
+      return
+    }
+
+    frameDocument.open()
+    frameDocument.write(html)
+    frameDocument.close()
+
+    const cleanup = () => {
+      setTimeout(() => iframe.remove(), 1000)
+    }
+
+    const triggerPrint = () => {
+      try {
+        frameWindow.focus()
+        frameWindow.print()
+      } catch {
+        toast({
+          title: locale === "am" ? "ማተም አልተቻለም" : "Unable to print",
+          description:
+            locale === "am"
+              ? "እባክዎ እንደገና ይሞክሩ"
+              : "Please try again.",
+          variant: "destructive",
+        })
+      } finally {
+        cleanup()
+      }
+    }
+
+    if (frameDocument.readyState === "complete") {
+      setTimeout(triggerPrint, 50)
+    } else {
+      iframe.onload = () => setTimeout(triggerPrint, 50)
+    }
+  }
+
   if (error) {
     return (
       <div className="flex items-center justify-center min-h-[400px]">
@@ -360,6 +519,31 @@ export function MembersListPage({
                 </Link>
               </>
             )}
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="outline" size="sm" className="gap-2" disabled={loading}>
+                  <Printer className="w-4 h-4" />
+                  {locale === "am" ? "አትም" : "Print"}
+                  <ChevronDown className="w-3.5 h-3.5 opacity-70" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuLabel>
+                  {locale === "am" ? "የህትመት አማራጮች" : "Print options"}
+                </DropdownMenuLabel>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem onClick={() => printMembers("all")}>
+                  {locale === "am"
+                    ? `ሁሉንም አትም (${allInScope.length})`
+                    : `Print all (${allInScope.length})`}
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => printMembers("filtered")}>
+                  {locale === "am"
+                    ? `የተጣራውን አትም (${filtered.length})`
+                    : `Print filtered (${filtered.length})`}
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
             <PermissionGuard resource={Resource.CHURCH_MEMBER} action={Action.CREATE} showError={false}>
               <Link href={addHref}>
                 <Button size="sm" className="gap-2">
