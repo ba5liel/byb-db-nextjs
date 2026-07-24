@@ -70,7 +70,9 @@ export function FamilyTreeView({ tree, locale }: { tree: FamilyTree; locale: Loc
     return locale === "am" ? "ዘመድ" : "Relative"
   }
 
-  // Group nodes by level, ancestors (lowest number) first.
+  // Group nodes by level, ancestors (lowest number) first: parents sit
+  // on the top row, children on the bottom. Within a row, men come
+  // first so a couple reads father-then-mother.
   const levels = new Map<number, string[]>()
   for (const node of tree.nodes) {
     const lvl = level.get(node._id) ?? 0
@@ -78,6 +80,29 @@ export function FamilyTreeView({ tree, locale }: { tree: FamilyTree; locale: Loc
     ;(levels.get(lvl) as string[]).push(node._id)
   }
   const sortedLevels = Array.from(levels.keys()).sort((a, b) => a - b)
+  for (const ids of levels.values()) {
+    ids.sort((a, b) => {
+      const sexA = nodeById.get(a)?.sex === "male" ? 0 : 1
+      const sexB = nodeById.get(b)?.sex === "male" ? 0 : 1
+      if (sexA !== sexB) return sexA - sexB
+      return (nodeById.get(a)?.fullName ?? "").localeCompare(nodeById.get(b)?.fullName ?? "")
+    })
+  }
+
+  // Muted blue for men, muted pink for women.
+  const genderClasses = (sex?: string) =>
+    sex === "male"
+      ? "border-blue-200 bg-blue-50 hover:bg-blue-100 dark:border-blue-900 dark:bg-blue-950/40 dark:hover:bg-blue-950/60"
+      : sex === "female"
+        ? "border-pink-200 bg-pink-50 hover:bg-pink-100 dark:border-pink-900 dark:bg-pink-950/40 dark:hover:bg-pink-950/60"
+        : "border-border bg-card hover:bg-muted"
+
+  const avatarClasses = (sex?: string) =>
+    sex === "male"
+      ? "bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-200"
+      : sex === "female"
+        ? "bg-pink-100 text-pink-700 dark:bg-pink-900 dark:text-pink-200"
+        : ""
 
   return (
     <div className="flex flex-col items-center gap-6 overflow-x-auto py-2">
@@ -92,13 +117,15 @@ export function FamilyTreeView({ tree, locale }: { tree: FamilyTree; locale: Loc
                 <Link
                   key={id}
                   href={`/members/${id}`}
-                  className={`flex w-40 flex-col items-center gap-2 rounded-lg border p-3 text-center transition-colors hover:bg-muted ${
-                    isRoot ? "border-primary bg-primary/5" : "border-border bg-card"
+                  className={`flex w-40 flex-col items-center gap-2 rounded-lg border p-3 text-center transition-colors ${genderClasses(node.sex)} ${
+                    isRoot ? "ring-2 ring-primary ring-offset-1 ring-offset-background" : ""
                   }`}
                 >
                   <Avatar className="h-10 w-10">
                     <AvatarImage src={node.memberPicture} alt={node.fullName} />
-                    <AvatarFallback>{initial(node.fullName)}</AvatarFallback>
+                    <AvatarFallback className={avatarClasses(node.sex)}>
+                      {initial(node.fullName)}
+                    </AvatarFallback>
                   </Avatar>
                   <div className="min-w-0">
                     <p className="truncate text-sm font-medium text-foreground">{node.fullName}</p>

@@ -44,8 +44,8 @@ type SubCommunityStat = {
   percentage: number
 }
 
-function normalizeKey(value: string) {
-  return value.trim().toLowerCase().replace(/\s+/g, "_")
+function normalizeKey(value: string | null | undefined) {
+  return (value ?? "").trim().toLowerCase().replace(/\s+/g, "_")
 }
 
 function findAgeCount(

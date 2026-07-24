@@ -1,6 +1,11 @@
 /**
- * Members Excel import API
+ * Members Excel import API (family-structure sheet)
  * POST /api/members/import (multipart/form-data)
+ *
+ * The sheet carries the household structure: role letters (F=father,
+ * M=mother, C=child, I=independent), a family number per household and
+ * the Eregenet (sub community / church group) per row — so no sefer or
+ * sub-community pre-selection is needed.
  */
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3000"
@@ -11,6 +16,11 @@ export interface ImportRowResult {
   status: "created" | "skipped" | "error"
   membershipNumber?: string
   memberId?: string
+  familyNumber?: number
+  familyName?: string
+  familyRole?: "father" | "mother" | "child" | "independent" | "other"
+  extendedFamily?: boolean
+  warnings?: string[]
   message?: string
 }
 
@@ -19,6 +29,8 @@ export interface ImportMembersResult {
   created: number
   skipped: number
   failed: number
+  familiesCreated: number
+  extendedTagged: number
   dryRun: boolean
   results: ImportRowResult[]
 }
@@ -26,24 +38,11 @@ export interface ImportMembersResult {
 export async function importMembersFromExcel(options: {
   file: File
   dryRun?: boolean
-  seferId?: string
-  defaultSubCommunity?: "jemmo" | "bethel" | "weyira" | "alpha"
 }): Promise<ImportMembersResult> {
   const form = new FormData()
   form.append("file", options.file)
-  if (options.dryRun) form.append("dryRun", "true")
-  if (options.seferId) form.append("seferId", options.seferId)
-  if (options.defaultSubCommunity) {
-    form.append("defaultSubCommunity", options.defaultSubCommunity)
-  }
 
-  const params = new URLSearchParams()
-  if (options.dryRun) params.set("dryRun", "true")
-  if (options.seferId) params.set("seferId", options.seferId)
-  if (options.defaultSubCommunity) {
-    params.set("defaultSubCommunity", options.defaultSubCommunity)
-  }
-  const query = params.toString() ? `?${params.toString()}` : ""
+  const query = options.dryRun ? "?dryRun=true" : ""
 
   const response = await fetch(`${API_BASE_URL}/api/members/import${query}`, {
     method: "POST",
