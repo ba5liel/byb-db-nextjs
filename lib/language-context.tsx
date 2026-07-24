@@ -25,7 +25,14 @@ export function LanguageProvider({ children }: { children: React.ReactNode }) {
   const setLocale = (newLocale: Locale) => {
     setLocaleState(newLocale)
     localStorage.setItem("locale", newLocale)
+    if (typeof document !== "undefined") {
+      document.documentElement.lang = newLocale === "am" ? "am" : "en"
+    }
   }
+
+  useEffect(() => {
+    document.documentElement.lang = locale === "am" ? "am" : "en"
+  }, [locale])
 
   return <LanguageContext.Provider value={{ locale, setLocale }}>{children}</LanguageContext.Provider>
 }

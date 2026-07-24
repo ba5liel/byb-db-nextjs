@@ -249,9 +249,9 @@ function NewMemberPageContent() {
     if (age === undefined) return
     let ageGroup: Member["ageGroup"]
     if (age <= 13) ageGroup = "Children"
-    else if (age <= 17) ageGroup = "Teenagers"
-    else if (age <= 35) ageGroup = "Youth"
-    else if (age <= 65) ageGroup = "Adults"
+    else if (age <= 18) ageGroup = "Teenagers"
+    else if (age <= 30) ageGroup = "Youth"
+    else if (age <= 50) ageGroup = "Adults"
     else ageGroup = "Seniors"
     setFormData((prev) => (prev.ageGroup === ageGroup ? prev : { ...prev, ageGroup }))
   }, [age])

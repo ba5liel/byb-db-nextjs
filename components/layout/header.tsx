@@ -48,7 +48,7 @@ export function Header() {
           <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
           <Input
             type="search"
-            placeholder={t.members.searchPlaceholder}
+            placeholder={t.navigation.searchPlaceholder}
             className="pl-10 h-10 font-medium"
           />
         </div>
@@ -101,15 +101,15 @@ export function Header() {
             <DropdownMenuSeparator />
             <DropdownMenuItem onClick={() => router.push("/profile")}>
               <User className="mr-2 h-4 w-4" />
-              <span>{locale === "am" ? "መገለጫ" : "Profile"}</span>
+              <span>{t.navigation.profile}</span>
             </DropdownMenuItem>
             <DropdownMenuItem onClick={() => router.push("/settings")}>
               <Shield className="mr-2 h-4 w-4" />
-              <span>{locale === "am" ? "ቅንብሮች" : "Settings"}</span>
+              <span>{t.navigation.settings}</span>
             </DropdownMenuItem>
             <DropdownMenuSeparator />
             <DropdownMenuItem onClick={handleLogout} className="text-destructive focus:text-destructive">
-              <span>{locale === "am" ? "ውጣ" : "Logout"}</span>
+              <span>{t.navigation.logout}</span>
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>

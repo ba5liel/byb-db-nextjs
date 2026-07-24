@@ -35,6 +35,7 @@ import {
   useServiceStats,
 } from "@/lib/api/hooks"
 import { useLanguage } from "@/lib/language-context"
+import { getTranslation } from "@/lib/translations"
 
 const CHART_COLORS = [
   "var(--chart-1)",
@@ -93,11 +94,13 @@ function ChartCard({
   description,
   children,
   empty,
+  emptyLabel,
 }: {
   title: string
   description: string
   children: ReactNode
   empty?: boolean
+  emptyLabel?: string
 }) {
   return (
     <Card>
@@ -108,7 +111,7 @@ function ChartCard({
       <CardContent>
         {empty ? (
           <p className="text-sm text-muted-foreground py-16 text-center">
-            No data available yet
+            {emptyLabel || "No data available yet"}
           </p>
         ) : (
           <div className="h-[320px] w-full">{children}</div>
@@ -120,7 +123,8 @@ function ChartCard({
 
 export default function AnalyticsPage() {
   const { locale } = useLanguage()
-  const am = locale === "am"
+  const t = getTranslation(locale)
+  const a = t.analytics
 
   const {
     data: dashboardResponse,
@@ -144,50 +148,59 @@ export default function AnalyticsPage() {
   const services = serviceResponse?.data
 
   const sexData = [
-    { name: am ? "ወንድ" : "Male", value: overview?.maleCount || 0 },
-    { name: am ? "ሴት" : "Female", value: overview?.femaleCount || 0 },
+    { name: a.male, value: overview?.maleCount || 0 },
+    { name: a.female, value: overview?.femaleCount || 0 },
   ].filter((item) => item.value > 0)
 
-  const ageData = (demographics?.ageGroupStats || []).map((item) => ({
-    name: titleCase(item.ageGroup),
+  const ageData = (demographics?.ageGroupStats || []).map((item: any) => ({
+    name: titleCase(item.ageGroup ?? item._id ?? "unknown"),
     value: item.count,
     percentage: item.percentage,
   }))
 
-  const maritalData = (demographics?.maritalStatusStats || []).map((item) => ({
-    name: titleCase(item.status),
+  const maritalData = (demographics?.maritalStatusStats || []).map((item: any) => ({
+    name: titleCase(item.status ?? item._id ?? "unknown"),
     value: item.count,
     percentage: item.percentage,
   }))
 
-  const subCommunityData = (community?.subCommunityStats || []).map((item) => ({
-    name: titleCase(item.subCommunity),
+  const subCommunityData = (community?.subCommunityStats || []).map((item: any) => ({
+    name: titleCase(item.subCommunity ?? item._id ?? "unknown"),
     count: item.count,
     male: item.male || 0,
     female: item.female || 0,
   }))
 
-  const seferData = (community?.seferStats || []).map((item) => ({
-    name: item.sefer,
+  const seferData = (community?.seferStats || []).map((item: any) => ({
+    name: item.sefer ?? item._id ?? "Unknown",
     count: item.count,
     male: item.male || 0,
     female: item.female || 0,
   }))
 
-  const groupTypeData = (community?.groupTypeStats || []).map((item) => ({
-    name: titleCase(item.groupType),
+  const groupTypeData = (community?.groupTypeStats || []).map((item: any) => ({
+    name: titleCase(item.groupType ?? item._id ?? "unknown"),
     count: item.count,
   }))
 
-  const trendData = (trends?.trends || []).map((item) => ({
-    label: `${item.month} ${item.year}`,
+  const trendData = (
+    trends?.trends ||
+    (Array.isArray(trends) ? trends : []) ||
+    []
+  ).map((item: any) => ({
+    label:
+      item.month && item.year
+        ? `${item.month} ${item.year}`
+        : item._id
+          ? `${item._id.month}/${item._id.year}`
+          : "Unknown",
     count: item.count,
-    cumulative: item.cumulativeCount,
+    cumulative: item.cumulativeCount ?? item.count,
   }))
 
   const serviceData = (services?.topServices || services?.serviceStats || []).map(
     (item: any) => ({
-      name: item.serviceName || item.type || "Unknown",
+      name: item.serviceName || item._id || item.type || "Unknown",
       count: item.memberCount ?? item.count ?? 0,
     }),
   )
@@ -201,13 +214,13 @@ export default function AnalyticsPage() {
           <div className="flex flex-col items-center gap-4 text-center">
             <AlertCircle className="w-12 h-12 text-destructive" />
             <h2 className="text-2xl font-bold">
-              {am ? "ትንታኔ ማምጣት አልተቻለም" : "Failed to load analytics"}
+              {a.failedTitle}
             </h2>
             <p className="text-muted-foreground">
-              {am ? "ገጹን እንደገና ይሞክሩ" : "Please refresh the page and try again"}
+              {a.failedHint}
             </p>
             <Button asChild>
-              <Link href="/analytics">Retry</Link>
+              <Link href="/analytics">{a.retry}</Link>
             </Button>
           </div>
         </Card>
@@ -220,16 +233,14 @@ export default function AnalyticsPage() {
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <h1 className="text-3xl font-semibold tracking-tight">
-            {am ? "ትንታኔ" : "Analytics"}
+            {a.title}
           </h1>
           <p className="text-muted-foreground">
-            {am
-              ? "የቤተክርስቲያን አባላት፣ ቤተሰቦች፣ ሰፈሮች እና አገልግሎት ስታቲስቲክስ"
-              : "Church-wide member, family, sefer, and ministry statistics"}
+            {a.subtitle}
           </p>
         </div>
         <Button asChild variant="outline">
-          <Link href="/members">View members</Link>
+          <Link href="/members">{a.viewMembers}</Link>
         </Button>
       </div>
 
@@ -248,43 +259,43 @@ export default function AnalyticsPage() {
         ) : (
           <>
             <StatCard
-              label={am ? "ጠቅላላ አባላት" : "Total Members"}
+              label={a.totalMembers}
               value={overview?.totalMembers || 0}
               icon={Users}
             />
             <StatCard
-              label={am ? "ንቁ አባላት" : "Active Members"}
+              label={a.activeMembers}
               value={overview?.activeMembers || 0}
               icon={UserCheck}
-              hint={`${overview?.inactiveMembers || 0} inactive`}
+              hint={`${overview?.inactiveMembers || 0} ${a.inactive}`}
             />
             <StatCard
-              label={am ? "ቤተሰቦች" : "Total Families"}
+              label={a.families}
               value={overview?.totalFamilies || 0}
               icon={Home}
             />
             <StatCard
-              label={am ? "አዲስ በዚህ ወር" : "New This Month"}
+              label={a.newThisMonth}
               value={overview?.newMembersThisMonth || 0}
               icon={TrendingUp}
             />
             <StatCard
-              label={am ? "ወንድ / ሴት" : "Male / Female"}
+              label={a.maleFemale}
               value={`${overview?.maleCount || 0} / ${overview?.femaleCount || 0}`}
               icon={Users2}
             />
             <StatCard
-              label={am ? "ጥምቀት የተቀበሉ" : "Baptized"}
+              label={a.baptized}
               value={overview?.baptizedMembers || 0}
               icon={Heart}
             />
             <StatCard
-              label={am ? "በማስተላለፍ" : "Transferred In"}
+              label={a.transferredIn}
               value={overview?.transferredMembers || 0}
               icon={Users}
             />
             <StatCard
-              label={am ? "አስራት ከፋዮች" : "Tithe Payers"}
+              label={a.tithePayers}
               value={overview?.tithePayersCount || 0}
               icon={Heart}
             />
@@ -294,9 +305,10 @@ export default function AnalyticsPage() {
 
       <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
         <ChartCard
-          title={am ? "የእድሜ ቡድን" : "Age Group Distribution"}
-          description={am ? "የአባላት እድሜ ቡድን ክፍፍል" : "Share of members by age group"}
+          title={a.ageGroupTitle}
+          description={a.ageGroupDesc}
           empty={!isLoading && ageData.length === 0}
+          emptyLabel={a.noData}
         >
           <ResponsiveContainer width="100%" height="100%">
             <PieChart>
@@ -329,9 +341,10 @@ export default function AnalyticsPage() {
         </ChartCard>
 
         <ChartCard
-          title={am ? "ጾታ ክፍፍል" : "Gender Distribution"}
-          description={am ? "ወንድ እና ሴት አባላት" : "Male vs female members"}
+          title={a.genderTitle}
+          description={a.genderDesc}
           empty={!isLoading && sexData.length === 0}
+          emptyLabel={a.noData}
         >
           <ResponsiveContainer width="100%" height="100%">
             <PieChart>
@@ -357,11 +370,12 @@ export default function AnalyticsPage() {
         </ChartCard>
 
         <ChartCard
-          title={am ? "የሰፈር ስርጭት" : "Sefer Distribution"}
+          title={a.seferTitle}
           description={
-            am ? "አባላት በሰፈር" : "Members by neighborhood / sefer"
+            a.seferDesc
           }
           empty={!isLoading && seferData.length === 0}
+          emptyLabel={a.noData}
         >
           <ResponsiveContainer width="100%" height="100%">
             <BarChart data={seferData} layout="vertical" margin={{ left: 24 }}>
@@ -380,11 +394,12 @@ export default function AnalyticsPage() {
         </ChartCard>
 
         <ChartCard
-          title={am ? "የቤተክርስቲያን ቡድን" : "Church Group Distribution"}
+          title={a.subCommunityTitle}
           description={
-            am ? "Jemmo / Bethel / Weyira / Alpha" : "Members by church group"
+            a.subCommunityHint
           }
           empty={!isLoading && subCommunityData.length === 0}
+          emptyLabel={a.noData}
         >
           <ResponsiveContainer width="100%" height="100%">
             <BarChart data={subCommunityData}>
@@ -393,16 +408,17 @@ export default function AnalyticsPage() {
               <YAxis allowDecimals={false} />
               <Tooltip />
               <Legend />
-              <Bar dataKey="male" stackId="a" fill={CHART_COLORS[0]} name={am ? "ወንድ" : "Male"} />
-              <Bar dataKey="female" stackId="a" fill={CHART_COLORS[1]} name={am ? "ሴት" : "Female"} />
+              <Bar dataKey="male" stackId="a" fill={CHART_COLORS[0]} name={a.male} />
+              <Bar dataKey="female" stackId="a" fill={CHART_COLORS[1]} name={a.female} />
             </BarChart>
           </ResponsiveContainer>
         </ChartCard>
 
         <ChartCard
-          title={am ? "የጋብቻ ሁኔታ" : "Marital Status"}
-          description={am ? "የአባላት የጋብቻ ሁኔታ" : "Members by marital status"}
+          title={a.maritalTitle}
+          description={a.maritalDesc}
           empty={!isLoading && maritalData.length === 0}
+          emptyLabel={a.noData}
         >
           <ResponsiveContainer width="100%" height="100%">
             <PieChart>
@@ -428,11 +444,12 @@ export default function AnalyticsPage() {
         </ChartCard>
 
         <ChartCard
-          title={am ? "የቡድን አይነት" : "Group Types"}
+          title={a.groupTypeTitle}
           description={
-            am ? "ሴል፣ ወጣቶች፣ ጸሎት፣ ወዘተ" : "Cell groups, youth groups, and more"
+            a.groupTypeDesc
           }
           empty={!isLoading && groupTypeData.length === 0}
+          emptyLabel={a.noData}
         >
           <ResponsiveContainer width="100%" height="100%">
             <BarChart data={groupTypeData}>
@@ -446,11 +463,12 @@ export default function AnalyticsPage() {
         </ChartCard>
 
         <ChartCard
-          title={am ? "የምዝገባ አዝማሚያ" : "Registration Trends"}
+          title={a.trendsTitle}
           description={
-            am ? "ባለፉት 12 ወራት" : "New member registrations over the last 12 months"
+            a.trendsDesc
           }
           empty={!isLoading && trendData.length === 0}
+          emptyLabel={a.noData}
         >
           <ResponsiveContainer width="100%" height="100%">
             <LineChart data={trendData}>
@@ -462,7 +480,7 @@ export default function AnalyticsPage() {
               <Line
                 type="monotone"
                 dataKey="count"
-                name={am ? "አዲስ" : "New"}
+                name={a.newThisMonth}
                 stroke={CHART_COLORS[0]}
                 strokeWidth={2}
                 dot={false}
@@ -470,7 +488,7 @@ export default function AnalyticsPage() {
               <Line
                 type="monotone"
                 dataKey="cumulative"
-                name={am ? "ድምር" : "Cumulative"}
+                name={t.dashboard.total}
                 stroke={CHART_COLORS[3]}
                 strokeWidth={2}
                 dot={false}
@@ -480,13 +498,10 @@ export default function AnalyticsPage() {
         </ChartCard>
 
         <ChartCard
-          title={am ? "አገልግሎት ተሳትፎ" : "Service Participation"}
-          description={
-            am
-              ? "አባላት በአገልግሎት"
-              : "Members currently serving by ministry"
-          }
+          title={a.serviceTitle}
+          description={a.serviceDesc}
           empty={!isLoading && serviceData.length === 0}
+          emptyLabel={a.noData}
         >
           <ResponsiveContainer width="100%" height="100%">
             <BarChart data={serviceData}>
@@ -504,7 +519,7 @@ export default function AnalyticsPage() {
         <Card>
           <CardHeader>
             <CardTitle className="text-lg">
-              {am ? "የቡድን ማጠቃለያ" : "Group Type Summary"}
+              {a.groupTypeTitle}
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-3">
@@ -529,20 +544,20 @@ export default function AnalyticsPage() {
         <Card>
           <CardHeader>
             <CardTitle className="text-lg">
-              {am ? "አገልግሎት ማጠቃለያ" : "Service Summary"}
+              {a.serviceTitle}
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-3">
             <div className="flex items-center justify-between text-sm">
-              <span>{am ? "በአገልግሎት ላይ" : "Currently serving"}</span>
+              <span>{t.dashboard.currentlyServing}</span>
               <span className="tabular-nums">{services?.totalServing || 0}</span>
             </div>
             <div className="flex items-center justify-between text-sm">
-              <span>{am ? "አገልግሎቶች" : "Distinct services"}</span>
+              <span>{t.navigation.services}</span>
               <span className="tabular-nums">{services?.totalServices || 0}</span>
             </div>
             <div className="flex items-center justify-between text-sm">
-              <span>{am ? "ማገልገል የሚፈልጉ" : "Wanting to serve"}</span>
+              <span>{a.wantingToServe}</span>
               <span className="tabular-nums">{services?.wantingToServe || 0}</span>
             </div>
           </CardContent>
