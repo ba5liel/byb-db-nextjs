@@ -62,7 +62,28 @@ export function Sidebar() {
             (/^\/members\/[^/]+/.test(p) &&
               !p.startsWith("/members/analytics") &&
               !p.startsWith("/members/import") &&
-              !p.startsWith("/members/new")),
+              !p.startsWith("/members/new") &&
+              !p.startsWith("/members/community")),
+        },
+        {
+          name: "Jemmo",
+          href: "/members/community/jemmo",
+          isActive: (p) => p.startsWith("/members/community/jemmo"),
+        },
+        {
+          name: "Bethel",
+          href: "/members/community/bethel",
+          isActive: (p) => p.startsWith("/members/community/bethel"),
+        },
+        {
+          name: "Weyira",
+          href: "/members/community/weyira",
+          isActive: (p) => p.startsWith("/members/community/weyira"),
+        },
+        {
+          name: "Alpha",
+          href: "/members/community/alpha",
+          isActive: (p) => p.startsWith("/members/community/alpha"),
         },
         {
           name: "Import from Excel",

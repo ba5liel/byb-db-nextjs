@@ -1,7 +1,7 @@
 "use client"
 
-import React, { useState, useEffect, useRef, useCallback } from "react"
-import { useRouter } from "next/navigation"
+import React, { useState, useEffect, useRef, useCallback, useMemo } from "react"
+import { useRouter, useSearchParams } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
@@ -51,6 +51,12 @@ import {
 } from "@/lib/families-api"
 import { searchMembers } from "@/lib/members-api"
 import type { Member, Sefer, Family, FamilyRole, SubCommunity } from "@/lib/types"
+import {
+  isSubCommunitySlug,
+  SUB_COMMUNITY_BY_SLUG,
+  subCommunityHref,
+  type SubCommunitySlug,
+} from "@/lib/sub-communities"
 
 const CHURCH_GROUP_TO_SUB_COMMUNITY: Record<string, SubCommunity> = {
   jemmo: "Jemmo",
@@ -102,7 +108,27 @@ function SubHeading({ children }: { children: React.ReactNode }) {
 }
 
 export default function NewMemberPage() {
+  return (
+    <React.Suspense fallback={<div className="p-6 text-sm text-muted-foreground">Loading...</div>}>
+      <NewMemberPageContent />
+    </React.Suspense>
+  )
+}
+
+function NewMemberPageContent() {
   const router = useRouter()
+  const searchParams = useSearchParams()
+  const communityParam = searchParams.get("community")?.trim().toLowerCase() || ""
+  const lockedCommunity: SubCommunitySlug | undefined = isSubCommunitySlug(communityParam)
+    ? communityParam
+    : undefined
+  const lockedSubCommunity = lockedCommunity
+    ? SUB_COMMUNITY_BY_SLUG[lockedCommunity].label
+    : undefined
+  const lockedChurchGroup = lockedCommunity
+    ? SUB_COMMUNITY_BY_SLUG[lockedCommunity].churchGroup
+    : undefined
+
   const { addMember } = useMembers()
   const { toast } = useToast()
   const { locale } = useLanguage()
@@ -188,6 +214,34 @@ export default function NewMemberPage() {
       })
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
+
+  const availableSefers = useMemo(() => {
+    if (!lockedChurchGroup) return sefers
+    return sefers.filter((s) => s.churchGroup === lockedChurchGroup)
+  }, [sefers, lockedChurchGroup])
+
+  // Lock church group when creating from a sub-community page.
+  useEffect(() => {
+    if (!lockedSubCommunity) return
+    setFormData((prev) => {
+      if (prev.subCommunity === lockedSubCommunity) return prev
+      return { ...prev, subCommunity: lockedSubCommunity }
+    })
+  }, [lockedSubCommunity])
+
+  // If the selected sefer no longer belongs to the locked community, clear it.
+  useEffect(() => {
+    if (!lockedChurchGroup || !formData.seferId) return
+    const selected = sefers.find((s) => s._id === formData.seferId)
+    if (selected && selected.churchGroup !== lockedChurchGroup) {
+      setFormData((prev) => ({
+        ...prev,
+        seferId: "",
+        sefer: "",
+        subCommunity: lockedSubCommunity,
+      }))
+    }
+  }, [lockedChurchGroup, lockedSubCommunity, formData.seferId, sefers])
 
   // Age group derived from the EC birth date
   const age = ageFromEcPartial(formData.dateOfBirth)
@@ -300,12 +354,16 @@ export default function NewMemberPage() {
   }
 
   const handleSeferChange = (seferId: string) => {
-    const sefer = sefers.find((s) => s._id === seferId)
+    const sefer = availableSefers.find((s) => s._id === seferId)
     setFormData((prev) => ({
       ...prev,
       seferId,
       sefer: sefer?.name || "",
-      subCommunity: sefer ? CHURCH_GROUP_TO_SUB_COMMUNITY[sefer.churchGroup] : undefined,
+      subCommunity: lockedSubCommunity
+        ? lockedSubCommunity
+        : sefer
+          ? CHURCH_GROUP_TO_SUB_COMMUNITY[sefer.churchGroup]
+          : undefined,
     }))
   }
 
@@ -399,6 +457,7 @@ export default function NewMemberPage() {
         paysTithe: formData.paysTithe!,
         joinDate: formData.joinDate!,
         membershipStatus: formData.membershipStatus!,
+        subCommunity: lockedSubCommunity || formData.subCommunity,
       } as Omit<Member, "id" | "createdAt" | "updatedAt">
 
       const created = await addMember(memberData)
@@ -425,7 +484,7 @@ export default function NewMemberPage() {
           en ? "has been added to the system" : "ወደ ስርዓቱ ታክሏል"
         }`,
       })
-      router.push("/members")
+      router.push(lockedCommunity ? subCommunityHref(lockedCommunity) : "/members")
     } catch (error) {
       console.error("Error creating member:", error)
       setConfirmOpen(false)
@@ -696,7 +755,7 @@ export default function NewMemberPage() {
                     <SelectValue placeholder={en ? "Select sefer" : "ሰፈር ይምረጡ"} />
                   </SelectTrigger>
                   <SelectContent>
-                    {sefers.map((s) => (
+                    {availableSefers.map((s) => (
                       <SelectItem key={s._id} value={s._id}>
                         {locale === "am" && s.nameAmharic ? s.nameAmharic : s.name}
                       </SelectItem>
@@ -706,7 +765,7 @@ export default function NewMemberPage() {
               </Field>
               <Field label={t.basicInfo.churchGroup}>
                 <div className="flex h-9 items-center rounded-md border border-border bg-muted px-3 text-sm">
-                  {derivedChurchGroup ?? (
+                  {lockedSubCommunity || derivedChurchGroup || (
                     <span className="text-muted-foreground">{en ? "Derived from sefer" : "ከሰፈር የሚወሰን"}</span>
                   )}
                 </div>
