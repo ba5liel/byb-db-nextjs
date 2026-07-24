@@ -8,6 +8,7 @@ export interface DashboardOverview {
   femaleCount: number
   activeMembers: number
   inactiveMembers: number
+  leftMembers?: number
   newMembersThisMonth: number
   totalFamilies: number
   tithePayersCount: number
@@ -40,6 +41,13 @@ export interface CommunityStats {
     count: number
     male?: number
     female?: number
+    baptized?: number
+    children?: number
+    childrenMale?: number
+    childrenFemale?: number
+    youth?: number
+    youthMale?: number
+    youthFemale?: number
     percentage: number
   }>
   groupTypeStats: Array<{
