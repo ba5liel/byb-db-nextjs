@@ -218,6 +218,10 @@ function mapBackendMemberToMember(backendMember: any): Member {
       ? STATUS_TO_UI[backendMember.memberStatus] || "Active"
       : "Active",
     membershipType: backendMember.membershipType || "Regular",
+    statusChangeDate: backendMember.statusChangeDate
+      ? new Date(backendMember.statusChangeDate).toISOString()
+      : undefined,
+    leaveReason: backendMember.removalReason,
     joinDate: registrationDate || new Date().toISOString().split("T")[0],
     notes: backendMember.notes,
     createdAt: backendMember.createdAt || new Date().toISOString(),

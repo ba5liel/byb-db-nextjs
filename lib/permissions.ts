@@ -67,6 +67,10 @@ export const statement = {
 
   // Role management permissions - CRUD operations
   [Resource.ROLE]: [Action.CREATE, Action.READ, Action.UPDATE, Action.DELETE],
+
+  // System Administration
+  [Resource.USER]: [Action.CREATE, Action.READ, Action.UPDATE, Action.DELETE],
+  [Resource.SESSION]: [Action.CREATE, Action.READ, Action.UPDATE, Action.DELETE],
 } as const
 
 /**
@@ -95,6 +99,12 @@ export const ROLES = {
   ADMIN: "admin",
   MINISTER: "minister",
   VIEWER: "viewer",
+  BETHEL_ADMIN: "bethelAdmin",
+  JEMMO_ADMIN: "jemmoAdmin",
+  YOUTH_ADMIN: "youthAdmin",
+  CHILDREN_ADMIN: "childrenAdmin",
+  WEYIRA_ADMIN: "weyiraAdmin",
+  ALPHA_ADMIN: "alphaAdmin",
 } as const
 
 /**
@@ -117,6 +127,12 @@ export function getRoleBadgeColor(role: string): string {
     youth_minister: "bg-indigo-50 text-indigo-700 dark:bg-indigo-950 dark:text-indigo-300",
     worship_leader: "bg-pink-50 text-pink-700 dark:bg-pink-950 dark:text-pink-300",
     finance_manager: "bg-amber-50 text-amber-700 dark:bg-amber-950 dark:text-amber-300",
+    bethelAdmin: "bg-teal-50 text-teal-700 dark:bg-teal-950 dark:text-teal-300",
+    jemmoAdmin: "bg-cyan-50 text-cyan-700 dark:bg-cyan-950 dark:text-cyan-300",
+    youthAdmin: "bg-orange-50 text-orange-700 dark:bg-orange-950 dark:text-orange-300",
+    childrenAdmin: "bg-sky-50 text-sky-700 dark:bg-sky-950 dark:text-sky-300",
+    weyiraAdmin: "bg-lime-50 text-lime-700 dark:bg-lime-950 dark:text-lime-300",
+    alphaAdmin: "bg-fuchsia-50 text-fuchsia-700 dark:bg-fuchsia-950 dark:text-fuchsia-300",
   }
   return colors[role] || "bg-muted text-muted-foreground"
 }
@@ -135,6 +151,12 @@ export function getRoleDisplayName(role: string): string {
     youth_minister: "Youth Minister",
     worship_leader: "Worship Leader",
     finance_manager: "Finance Manager",
+    bethelAdmin: "Bethel Admin",
+    jemmoAdmin: "Jemmo Admin",
+    youthAdmin: "Youth Admin",
+    childrenAdmin: "Children Admin",
+    weyiraAdmin: "Weyira Admin",
+    alphaAdmin: "Alpha Admin",
     member: "Member",
   }
   return names[role] || role
@@ -154,6 +176,12 @@ export function getRoleDisplayNameAmharic(role: string): string {
     youth_minister: "የወጣቶች አገልጋይ",
     worship_leader: "የአምልኮ መሪ",
     finance_manager: "የፋይናንስ አስተዳዳሪ",
+    bethelAdmin: "የቤቴል አስተዳዳሪ",
+    jemmoAdmin: "የጀሞ አስተዳዳሪ",
+    youthAdmin: "የወጣቶች አስተዳዳሪ",
+    childrenAdmin: "የልጆች አስተዳዳሪ",
+    weyiraAdmin: "የወይራ አስተዳዳሪ",
+    alphaAdmin: "የአልፋ አስተዳዳሪ",
     member: "አባል",
   }
   return names[role] || role

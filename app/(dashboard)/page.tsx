@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useMemo, type ReactNode } from "react"
+import { useEffect, useMemo, useState, type ReactNode } from "react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
@@ -18,11 +18,19 @@ import {
   UserMinus,
   HandHeart,
   VenusAndMars,
+  Network,
 } from "lucide-react"
 import { useAuth } from "@/lib/auth-context"
 import { useDashboardStats, useServiceStats } from "@/lib/api/hooks"
 import { useLanguage } from "@/lib/language-context"
 import { getTranslation } from "@/lib/translations"
+import {
+  isAgeScopedAdmin,
+  isChildrenAdmin,
+  normalizeRoleName,
+  subCommunityForRole,
+} from "@/lib/role-utils"
+import { getCellGroupStats, type CellGroupStats } from "@/lib/cell-groups-api"
 
 const SUB_COMMUNITY_IDS = [
   { id: "jemmo", key: "jemmo" as const },
@@ -121,6 +129,32 @@ function StatPill({
   )
 }
 
+function StatGroup({
+  totalLabel,
+  totalValue,
+  maleLabel,
+  maleValue,
+  femaleLabel,
+  femaleValue,
+}: {
+  totalLabel: string
+  totalValue: number
+  maleLabel: string
+  maleValue: number
+  femaleLabel: string
+  femaleValue: number
+}) {
+  return (
+    <div className="space-y-2">
+      <StatPill label={totalLabel} value={totalValue} />
+      <div className="grid grid-cols-2 gap-2">
+        <StatPill label={maleLabel} value={maleValue} />
+        <StatPill label={femaleLabel} value={femaleValue} />
+      </div>
+    </div>
+  )
+}
+
 function MetricCard({
   title,
   children,
@@ -153,12 +187,37 @@ export default function Home() {
   const d = t.dashboard
   const { data: dashboardData, isLoading, error } = useDashboardStats()
   const { data: serviceData, isLoading: servicesLoading } = useServiceStats()
+  const [cellStats, setCellStats] = useState<CellGroupStats | null>(null)
+  const [cellStatsLoading, setCellStatsLoading] = useState(false)
+  const showCellGroups = !isChildrenAdmin(user?.role)
 
   useEffect(() => {
     if (!isAuthenticated) {
       router.push("/login")
     }
   }, [isAuthenticated, router])
+
+  useEffect(() => {
+    if (!isAuthenticated || !showCellGroups) {
+      setCellStats(null)
+      return
+    }
+    let active = true
+    setCellStatsLoading(true)
+    getCellGroupStats()
+      .then((data) => {
+        if (active) setCellStats(data)
+      })
+      .catch(() => {
+        if (active) setCellStats(null)
+      })
+      .finally(() => {
+        if (active) setCellStatsLoading(false)
+      })
+    return () => {
+      active = false
+    }
+  }, [isAuthenticated, showCellGroups])
 
   const overview = dashboardData?.data?.overview
   const demographics = dashboardData?.data?.demographics
@@ -275,7 +334,13 @@ export default function Home() {
       <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
         {isLoading
           ? [...Array(4)].map((_, i) => <Skeleton key={i} className="h-44 rounded-xl" />)
-          : SUB_COMMUNITY_IDS.map((group) => {
+          : SUB_COMMUNITY_IDS.filter((group) => {
+              const role = normalizeRoleName(user?.role) ?? user?.role
+              if (isAgeScopedAdmin(role)) return false
+              const scoped = subCommunityForRole(role)
+              if (scoped) return group.id === scoped
+              return true
+            }).map((group) => {
               const aliases = "aliases" in group ? group.aliases : []
               const label =
                 group.key === "alpha"
@@ -298,26 +363,94 @@ export default function Home() {
                     </div>
                   </CardHeader>
                   <CardContent className="pt-4 space-y-3">
-                    <div className="grid grid-cols-3 gap-2">
-                      <StatPill label={d.baptized} value={stat?.baptized ?? 0} />
-                      <StatPill label={d.men} value={stat?.male ?? 0} />
-                      <StatPill label={d.women} value={stat?.female ?? 0} />
-                    </div>
-                    <div className="grid grid-cols-3 gap-2">
-                      <StatPill label={d.children} value={stat?.children ?? 0} />
-                      <StatPill label={d.male} value={stat?.childrenMale ?? 0} />
-                      <StatPill label={d.female} value={stat?.childrenFemale ?? 0} />
-                    </div>
-                    <div className="grid grid-cols-3 gap-2">
-                      <StatPill label={d.youth} value={stat?.youth ?? 0} />
-                      <StatPill label={d.male} value={stat?.youthMale ?? 0} />
-                      <StatPill label={d.female} value={stat?.youthFemale ?? 0} />
-                    </div>
+                    <StatGroup
+                      totalLabel={d.baptized}
+                      totalValue={stat?.baptized ?? 0}
+                      maleLabel={d.men}
+                      maleValue={stat?.male ?? 0}
+                      femaleLabel={d.women}
+                      femaleValue={stat?.female ?? 0}
+                    />
+                    <StatGroup
+                      totalLabel={d.children}
+                      totalValue={stat?.children ?? 0}
+                      maleLabel={d.male}
+                      maleValue={stat?.childrenMale ?? 0}
+                      femaleLabel={d.female}
+                      femaleValue={stat?.childrenFemale ?? 0}
+                    />
+                    <StatGroup
+                      totalLabel={d.youth}
+                      totalValue={stat?.youth ?? 0}
+                      maleLabel={d.male}
+                      maleValue={stat?.youthMale ?? 0}
+                      femaleLabel={d.female}
+                      femaleValue={stat?.youthFemale ?? 0}
+                    />
                   </CardContent>
                 </Card>
               )
             })}
       </div>
+
+      {/* Cell groups summary — hidden for children admins */}
+      {showCellGroups && (
+        <Card variant="glass" hover="lift">
+          <CardHeader className="pb-3 border-b border-border/60">
+            <div className="flex items-center justify-between gap-3">
+              <CardTitle className="text-sm font-bold uppercase tracking-wide text-muted-foreground">
+                {locale === "am" ? "ሴል ግሩፖች" : "Cell Groups"}
+              </CardTitle>
+              <Network className="h-5 w-5 text-muted-foreground/40" />
+            </div>
+          </CardHeader>
+          <CardContent className="pt-4">
+            {cellStatsLoading ? (
+              <Skeleton className="h-24 w-full rounded-lg" />
+            ) : (
+              <div className="space-y-4">
+                <div className="flex items-end justify-between gap-3">
+                  <div>
+                    <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                      {locale === "am" ? "ጠቅላላ" : "Total"}
+                    </p>
+                    <p className="text-3xl font-bold tabular-nums">
+                      {cellStats?.total ?? 0}
+                    </p>
+                  </div>
+                  <Link href="/cell-groups" className="text-sm font-medium text-primary hover:underline">
+                    {locale === "am" ? "ሁሉንም ይመልከቱ" : "View all"}
+                  </Link>
+                </div>
+                <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+                  {SUB_COMMUNITY_IDS.filter((group) => {
+                    const scoped = subCommunityForRole(user?.role)
+                    if (scoped) return group.id === scoped
+                    return true
+                  }).map((group) => {
+                    const label =
+                      group.key === "alpha"
+                        ? t.navigation.alpha
+                        : t.navigation[group.key]
+                    const count = cellStats?.bySubCommunity?.[group.id]?.count ?? 0
+                    return (
+                      <div
+                        key={group.id}
+                        className="rounded-lg bg-muted/70 px-3 py-2.5"
+                      >
+                        <p className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground truncate">
+                          {label}
+                        </p>
+                        <p className="text-xl font-bold tabular-nums leading-tight">{count}</p>
+                      </div>
+                    )
+                  })}
+                </div>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      )}
 
       {/* Rows 3–4: Six insight containers (2 × 3) */}
       <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">

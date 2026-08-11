@@ -5,6 +5,7 @@ import { authClient } from "./auth-client"
 import { useRouter } from "next/navigation"
 import { toast } from "sonner"
 import { Resource, Action } from "./permissions"
+import { normalizeRoleName } from "./role-utils"
 
 // Type definitions
 type User = {
@@ -65,6 +66,8 @@ const PREDEFINED_ROLES: Record<string, Record<string, string[]>> = {
     [Resource.MINISTER]: ["create", "read", "update", "delete"],
     [Resource.ANALYTICS]: ["read"],
     [Resource.ROLE]: ["create", "read", "update", "delete"],
+    [Resource.USER]: ["create", "read", "update", "delete", "list"],
+    [Resource.SESSION]: ["create", "read", "update", "delete"],
   },
   churchPastor: {
     organization: ["read", "update"],
@@ -105,6 +108,42 @@ const PREDEFINED_ROLES: Record<string, Record<string, string[]>> = {
     [Resource.MINISTER]: ["read"],
     [Resource.ANALYTICS]: ["read"],
   },
+  bethelAdmin: {
+    organization: ["read"],
+    member: ["read"],
+    [Resource.CHURCH_MEMBER]: ["create", "read", "update", "delete"],
+    [Resource.ANALYTICS]: ["read"],
+  },
+  jemmoAdmin: {
+    organization: ["read"],
+    member: ["read"],
+    [Resource.CHURCH_MEMBER]: ["create", "read", "update", "delete"],
+    [Resource.ANALYTICS]: ["read"],
+  },
+  youthAdmin: {
+    organization: ["read"],
+    member: ["read"],
+    [Resource.CHURCH_MEMBER]: ["create", "read", "update", "delete"],
+    [Resource.ANALYTICS]: ["read"],
+  },
+  childrenAdmin: {
+    organization: ["read"],
+    member: ["read"],
+    [Resource.CHURCH_MEMBER]: ["create", "read", "update", "delete"],
+    [Resource.ANALYTICS]: ["read"],
+  },
+  weyiraAdmin: {
+    organization: ["read"],
+    member: ["read"],
+    [Resource.CHURCH_MEMBER]: ["create", "read", "update", "delete"],
+    [Resource.ANALYTICS]: ["read"],
+  },
+  alphaAdmin: {
+    organization: ["read"],
+    member: ["read"],
+    [Resource.CHURCH_MEMBER]: ["create", "read", "update", "delete"],
+    [Resource.ANALYTICS]: ["read"],
+  },
 }
 
 export function AuthProvider({ children }: { children: ReactNode }) {
@@ -119,22 +158,23 @@ export function AuthProvider({ children }: { children: ReactNode }) {
    * This function retrieves permissions and adds them to the session
    */
   const fetchPermissions = useCallback(async (organizationId: string | null | undefined) => {
-    if (!organizationId) return {}
+    if (!organizationId) return { role: null as string | null, permissions: {} as Record<string, string[]> }
 
     try {
-      // Get active member role
       const memberRoleResponse = await authClient.organization.getActiveMemberRole()
 
-      if (!memberRoleResponse.data?.role) return {}
-
-      const roleName = memberRoleResponse.data.role
-
-      // Check if it's a predefined role
-      if (PREDEFINED_ROLES[roleName]) {
-        return PREDEFINED_ROLES[roleName]
+      if (!memberRoleResponse.data?.role) {
+        return { role: null, permissions: {} }
       }
 
-      // For dynamic roles, fetch role details
+      const roleName =
+        normalizeRoleName(memberRoleResponse.data.role) ??
+        memberRoleResponse.data.role
+
+      if (PREDEFINED_ROLES[roleName]) {
+        return { role: roleName, permissions: PREDEFINED_ROLES[roleName] }
+      }
+
       const roleResponse = await authClient.organization.getRole({
         query: {
           roleName: roleName,
@@ -143,13 +183,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       })
 
       if (roleResponse.data?.permission) {
-        return roleResponse.data.permission as Record<string, string[]>
+        return {
+          role: roleName,
+          permissions: roleResponse.data.permission as Record<string, string[]>,
+        }
       }
 
-      return {}
+      return { role: roleName, permissions: {} }
     } catch (error) {
       console.error("Error fetching permissions:", error)
-      return {}
+      return { role: null, permissions: {} }
     }
   }, [])
 
@@ -167,22 +210,25 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         const sessionData = sessionResponse.data.session
         const activeOrgId = sessionData.activeOrganizationId || null
 
+        // Prefer org role for UI/RBAC; keep admin-plugin superAdmin as-is
+        const adminPluginRole = normalizeRoleName(userData.role) ?? userData.role
+        const { role: orgRole, permissions } = await fetchPermissions(activeOrgId)
+        const effectiveRole =
+          adminPluginRole === "superAdmin"
+            ? "superAdmin"
+            : orgRole || adminPluginRole || "member"
+
         setUser({
           ...userData,
-          role: userData.role || "member",
+          role: effectiveRole,
         })
 
-        // Fetch permissions for active organization and add to session
-        const permissions = await fetchPermissions(activeOrgId)
-
-        // Set session with permissions included
         setSession({
           ...sessionData,
           activeOrganizationId: activeOrgId,
-          permissions, // Permissions added here
+          permissions,
         })
 
-        // Get active organization
         if (activeOrgId) {
           try {
             const orgResponse = await authClient.organization.getFullOrganization({
@@ -199,7 +245,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           }
         }
       } else {
-        // No session - clear state
         setUser(null)
         setSession(null)
         setActiveOrganization(null)
