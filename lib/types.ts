@@ -74,11 +74,15 @@ export interface Member {
   // Member Status & History (የአባል ሁኔታ)
   membershipStatus: "Active" | "Inactive" | "Removed" | "Transferred Out" | "Deceased"
   membershipType?: "Regular" | "Guest" | "Transferred" | string
+  /** When status last changed (leave / restore date). */
+  statusChangeDate?: string
+  /** Reason recorded when the member left / was removed. */
+  leaveReason?: string
 
   // Join/Registration
   joinDate: string
 
-  // Notes
+  // Legacy single notes field (kept for older data; prefer MemberNote)
   notes?: string
 
   // Metadata
@@ -86,6 +90,20 @@ export interface Member {
   updatedAt: string
   createdBy?: string
   updatedBy?: string
+}
+
+/** Per-user note on a member. Private notes are author-only; public notes are shared. */
+export interface MemberNote {
+  id: string
+  memberId: string
+  body: string
+  visibility: "private" | "public"
+  status: "not_started" | "in_progress" | "done"
+  createdBy: string
+  createdByName?: string
+  createdAt: string
+  updatedAt: string
+  isMine?: boolean
 }
 
 /**
@@ -167,6 +185,12 @@ export type AdminUserRole =
   | 'reportViewer'
   | 'dataEntry'
   | 'user'
+  | 'bethelAdmin'
+  | 'jemmoAdmin'
+  | 'youthAdmin'
+  | 'childrenAdmin'
+  | 'weyiraAdmin'
+  | 'alphaAdmin'
 
 /**
  * Admin User Status

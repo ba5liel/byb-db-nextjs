@@ -339,8 +339,8 @@ export default function UsersPage() {
                             </FormControl>
                             <SelectContent>
                               {rolesData?.roles.map((role) => (
-                                <SelectItem key={role.id} value={role.id}>
-                                  {role.name}
+                                <SelectItem key={role.id} value={role.name}>
+                                  {getRoleDisplayName(role.name)}
                                 </SelectItem>
                               ))}
                             </SelectContent>
@@ -567,15 +567,15 @@ export default function UsersPage() {
                   key={role.id}
                   variant="outline"
                   className="w-full justify-start gap-2"
-                  onClick={() => handleAssignRole(role.id)}
+                  onClick={() => handleAssignRole(role.name)}
                   disabled={assignRole.isPending}
                 >
                   <Badge
                     variant="outline"
-                    className={`${getRoleBadgeColor(role.id)} text-primary-foreground border-none`}
+                    className={`${getRoleBadgeColor(role.name)} text-primary-foreground border-none`}
                   >
                     <Shield className="h-3 w-3 mr-1" />
-                    {role.name}
+                    {getRoleDisplayName(role.name)}
                   </Badge>
                   <span className="text-muted-foreground text-sm">{role.description}</span>
                 </Button>

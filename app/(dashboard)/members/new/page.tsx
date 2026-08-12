@@ -55,9 +55,13 @@ import { searchMembers } from "@/lib/members-api"
 import type { Member, Sefer, Family, FamilyRole, SubCommunity } from "@/lib/types"
 import {
   isSubCommunitySlug,
+  isAgeGroupSlug,
   SUB_COMMUNITY_BY_SLUG,
+  AGE_GROUP_BY_SLUG,
   subCommunityHref,
+  ageGroupHref,
   type SubCommunitySlug,
+  type AgeGroupSlug,
 } from "@/lib/sub-communities"
 
 const CHURCH_GROUP_TO_SUB_COMMUNITY: Record<string, SubCommunity> = {
@@ -172,15 +176,18 @@ function NewMemberPageContent() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const communityParam = searchParams.get("community")?.trim().toLowerCase() || ""
+  const ageParam = searchParams.get("age")?.trim().toLowerCase() || ""
   const lockedCommunity: SubCommunitySlug | undefined = isSubCommunitySlug(communityParam)
     ? communityParam
     : undefined
+  const lockedAge: AgeGroupSlug | undefined = isAgeGroupSlug(ageParam) ? ageParam : undefined
   const lockedSubCommunity = lockedCommunity
     ? SUB_COMMUNITY_BY_SLUG[lockedCommunity].label
     : undefined
   const lockedChurchGroup = lockedCommunity
     ? SUB_COMMUNITY_BY_SLUG[lockedCommunity].churchGroup
     : undefined
+  const lockedAgeGroup = lockedAge ? AGE_GROUP_BY_SLUG[lockedAge].label : undefined
 
   const { addMember } = useMembers()
   const { toast } = useToast()
@@ -282,6 +289,15 @@ function NewMemberPageContent() {
     })
   }, [lockedSubCommunity])
 
+  // Prefill age group when creating from Youth/Children pages.
+  useEffect(() => {
+    if (!lockedAgeGroup) return
+    setFormData((prev) => {
+      if (prev.ageGroup === lockedAgeGroup) return prev
+      return { ...prev, ageGroup: lockedAgeGroup }
+    })
+  }, [lockedAgeGroup])
+
   // If the selected sefer no longer belongs to the locked community, clear it.
   useEffect(() => {
     if (!lockedChurchGroup || !formData.seferId) return
@@ -302,9 +318,9 @@ function NewMemberPageContent() {
     if (age === undefined) return
     let ageGroup: Member["ageGroup"]
     if (age <= 13) ageGroup = "Children"
-    else if (age <= 17) ageGroup = "Teenagers"
-    else if (age <= 35) ageGroup = "Youth"
-    else if (age <= 65) ageGroup = "Adults"
+    else if (age <= 18) ageGroup = "Teenagers"
+    else if (age <= 30) ageGroup = "Youth"
+    else if (age <= 50) ageGroup = "Adults"
     else ageGroup = "Seniors"
     setFormData((prev) => (prev.ageGroup === ageGroup ? prev : { ...prev, ageGroup }))
   }, [age])
@@ -537,7 +553,13 @@ function NewMemberPageContent() {
           en ? "has been added to the system" : "ወደ ስርዓቱ ታክሏል"
         }`,
       })
-      router.push(lockedCommunity ? subCommunityHref(lockedCommunity) : "/members")
+      router.push(
+        lockedCommunity
+          ? subCommunityHref(lockedCommunity)
+          : lockedAge
+            ? ageGroupHref(lockedAge)
+            : "/members",
+      )
     } catch (error) {
       console.error("Error creating member:", error)
       setConfirmOpen(false)

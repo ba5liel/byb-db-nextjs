@@ -12,39 +12,86 @@ import type {
 } from '../types'
 
 /**
- * Get all roles from Better Auth organization
+ * Get all roles from Better Auth organization, merged with predefined system roles
  */
 export async function getRoles(): Promise<RolesListResponse> {
+  const SYSTEM_ROLES = [
+    'owner',
+    'churchPastor',
+    'admin',
+    'minister',
+    'member',
+    'bethelAdmin',
+    'jemmoAdmin',
+    'youthAdmin',
+    'childrenAdmin',
+    'weyiraAdmin',
+    'alphaAdmin',
+  ] as const
+
   try {
     const response = await authClient.organization.listRoles()
-    
+
     if (response.error) {
       throw new Error(response.error.message || 'Failed to fetch roles')
     }
 
-    // Better Auth returns roles with structure: { id, organizationId, role, permission, createdAt, updatedAt? }
     const betterAuthRoles = response.data || []
-    
-    const transformedRoles = betterAuthRoles.map((betterAuthRole) => ({
-      id: betterAuthRole.id,
-      name: betterAuthRole.role, // Better Auth uses 'role' field for the role name
-      nameAmharic: betterAuthRole.role, // Better Auth doesn't have Amharic names
-      description: `Role: ${betterAuthRole.role}`,
-      descriptionAmharic: '',
-      permissions: {
-        statements: betterAuthRole.permission || {}, // Better Auth uses 'permission' field
-      },
-      isSystemRole: ['owner', 'member', 'superAdmin', 'churchPastor', 'admin', 'minister', 'viewer'].includes(betterAuthRole.role),
-      createdAt: betterAuthRole.createdAt?.toISOString() || new Date().toISOString(),
-    }))
-    
+    const seen = new Set<string>()
+
+    const transformedRoles = betterAuthRoles.map((betterAuthRole) => {
+      const name = betterAuthRole.role
+      seen.add(name)
+      return {
+        id: betterAuthRole.id,
+        name,
+        nameAmharic: name,
+        description: `Role: ${name}`,
+        descriptionAmharic: '',
+        permissions: {
+          statements: betterAuthRole.permission || {},
+        },
+        isSystemRole: SYSTEM_ROLES.includes(name as (typeof SYSTEM_ROLES)[number]),
+        createdAt: betterAuthRole.createdAt?.toISOString() || new Date().toISOString(),
+      }
+    })
+
+    // Ensure predefined org roles appear even if not stored as dynamic roles
+    for (const name of SYSTEM_ROLES) {
+      if (seen.has(name)) continue
+      transformedRoles.push({
+        id: name,
+        name,
+        nameAmharic: name,
+        description: `Role: ${name}`,
+        descriptionAmharic: '',
+        permissions: { statements: {} },
+        isSystemRole: true,
+        createdAt: new Date().toISOString(),
+      })
+    }
+
     return {
       roles: transformedRoles,
       totalRoles: transformedRoles.length,
     }
   } catch (error) {
     console.error('Error fetching roles:', error)
-    throw error
+    // Fallback: still return system roles so user creation is not blocked
+    const fallbackRoles = SYSTEM_ROLES.map((name) => ({
+      id: name,
+      name,
+      nameAmharic: name,
+      description: `Role: ${name}`,
+      descriptionAmharic: '',
+      permissions: { statements: {} },
+      isSystemRole: true,
+      createdAt: new Date().toISOString(),
+    }))
+    return {
+      roles: fallbackRoles,
+      totalRoles: fallbackRoles.length,
+    }
   }
 }
 
@@ -146,6 +193,12 @@ export async function getRoleConstants(): Promise<RoleConstantsResponse> {
       ADMIN: 'admin',
       MINISTER: 'minister',
       VIEWER: 'viewer',
+      BETHEL_ADMIN: 'bethelAdmin',
+      JEMMO_ADMIN: 'jemmoAdmin',
+      YOUTH_ADMIN: 'youthAdmin',
+      CHILDREN_ADMIN: 'childrenAdmin',
+      WEYIRA_ADMIN: 'weyiraAdmin',
+      ALPHA_ADMIN: 'alphaAdmin',
     },
     metadata: {
       superAdmin: {
@@ -177,6 +230,42 @@ export async function getRoleConstants(): Promise<RoleConstantsResponse> {
         nameAmharic: 'ተመልካች',
         description: 'Read-only access to church information',
         descriptionAmharic: 'የቤተክርስቲያን መረጃ ለማንበብ ብቻ መዳረሻ',
+      },
+      bethelAdmin: {
+        name: 'Bethel Admin',
+        nameAmharic: 'የቤቴል አስተዳዳሪ',
+        description: 'Admin for Bethel sub-community',
+        descriptionAmharic: 'የቤቴል አስተዳዳሪ',
+      },
+      jemmoAdmin: {
+        name: 'Jemmo Admin',
+        nameAmharic: 'የጀሞ አስተዳዳሪ',
+        description: 'Admin for Jemmo sub-community',
+        descriptionAmharic: 'የጀሞ አስተዳዳሪ',
+      },
+      youthAdmin: {
+        name: 'Youth Admin',
+        nameAmharic: 'የወጣቶች አስተዳዳሪ',
+        description: 'Admin for Youth (19-30)',
+        descriptionAmharic: 'የወጣቶች አስተዳዳሪ (19-30)',
+      },
+      childrenAdmin: {
+        name: 'Children Admin',
+        nameAmharic: 'የልጆች አስተዳዳሪ',
+        description: 'Admin for Children members',
+        descriptionAmharic: 'የልጆች አስተዳዳሪ',
+      },
+      weyiraAdmin: {
+        name: 'Weyira Admin',
+        nameAmharic: 'የወይራ አስተዳዳሪ',
+        description: 'Admin for Weyira sub-community',
+        descriptionAmharic: 'የወይራ አስተዳዳሪ',
+      },
+      alphaAdmin: {
+        name: 'Alpha Admin',
+        nameAmharic: 'የአልፋ አስተዳዳሪ',
+        description: 'Admin for Alpha sub-community',
+        descriptionAmharic: 'የአልፋ አስተዳዳሪ',
       },
     },
   }

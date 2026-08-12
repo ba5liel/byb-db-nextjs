@@ -41,10 +41,11 @@ async function apiRequest<T>(
  */
 export interface MemberFilterDto {
   search?: string
-  subCommunity?: 'jemmo' | 'bethel' | 'weyira' | 'alfa'
+  subCommunity?: 'jemmo' | 'bethel' | 'weyira' | 'alfa' | 'alpha'
   ageGroup?: 'children' | 'teenagers' | 'youth' | 'adults' | 'seniors'
   sex?: 'male' | 'female'
   memberStatus?: 'active' | 'inactive' | 'removed' | 'transferred_out' | 'deceased'
+  leftOnly?: boolean
   page?: number
   limit?: number
 }
@@ -80,6 +81,7 @@ export async function getMembers(
   if (filters?.ageGroup) params.append('ageGroup', filters.ageGroup)
   if (filters?.sex) params.append('sex', filters.sex)
   if (filters?.memberStatus) params.append('memberStatus', filters.memberStatus)
+  if (filters?.leftOnly) params.append('leftOnly', 'true')
   if (filters?.page) params.append('page', String(filters.page))
   if (filters?.limit) params.append('limit', String(filters.limit))
 
@@ -187,5 +189,115 @@ export async function getMemberStatistics(): Promise<any> {
     method: 'GET',
   })
   return response.data || response
+}
+
+export async function updateMemberStatus(
+  memberId: string,
+  status: 'active' | 'inactive' | 'removed' | 'transferred_out' | 'deceased',
+  reason?: string,
+): Promise<any> {
+  const response = await apiRequest<{ success: boolean; data: any }>(
+    `/api/members/${memberId}/status`,
+    {
+      method: 'PATCH',
+      body: JSON.stringify({ status, reason }),
+    },
+  )
+  return response.data || response
+}
+
+export async function restoreMember(memberId: string): Promise<any> {
+  const response = await apiRequest<{ success: boolean; data: any }>(
+    `/api/members/${memberId}/restore`,
+    { method: 'POST' },
+  )
+  return response.data || response
+}
+
+export type NoteTaskStatus = 'not_started' | 'in_progress' | 'done'
+
+export interface MemberNoteDto {
+  _id: string
+  memberId:
+    | string
+    | {
+        _id: string
+        fullName?: string
+        phoneNumber?: string
+        memberStatus?: string
+        membershipNumber?: string
+      }
+  body: string
+  visibility: 'private' | 'public'
+  status?: NoteTaskStatus
+  createdBy: string
+  createdByName?: string
+  createdAt: string
+  updatedAt: string
+}
+
+export async function getMemberNotes(memberId: string): Promise<MemberNoteDto[]> {
+  const response = await apiRequest<{ success: boolean; data: MemberNoteDto[] }>(
+    `/api/members/${memberId}/notes`,
+    { method: 'GET' },
+  )
+  return response.data || []
+}
+
+export async function getMyNotes(): Promise<MemberNoteDto[]> {
+  const response = await apiRequest<{ success: boolean; data: MemberNoteDto[] }>(
+    `/api/members/notes/mine`,
+    { method: 'GET' },
+  )
+  return response.data || []
+}
+
+export async function getMyNotedMemberIds(): Promise<string[]> {
+  const response = await apiRequest<{ success: boolean; data: string[] }>(
+    `/api/members/notes/mine/member-ids`,
+    { method: 'GET' },
+  )
+  return response.data || []
+}
+
+export async function createMemberNote(
+  memberId: string,
+  body: string,
+  isPublic = false,
+  status: NoteTaskStatus = 'not_started',
+): Promise<MemberNoteDto> {
+  const response = await apiRequest<{ success: boolean; data: MemberNoteDto }>(
+    `/api/members/${memberId}/notes`,
+    {
+      method: 'POST',
+      body: JSON.stringify({ body, isPublic, status }),
+    },
+  )
+  return response.data
+}
+
+export async function updateMemberNote(
+  memberId: string,
+  noteId: string,
+  data: { body?: string; isPublic?: boolean; status?: NoteTaskStatus },
+): Promise<MemberNoteDto> {
+  const response = await apiRequest<{ success: boolean; data: MemberNoteDto }>(
+    `/api/members/${memberId}/notes/${noteId}`,
+    {
+      method: 'PATCH',
+      body: JSON.stringify(data),
+    },
+  )
+  return response.data
+}
+
+export async function deleteMemberNote(
+  memberId: string,
+  noteId: string,
+): Promise<void> {
+  await apiRequest<{ success: boolean }>(
+    `/api/members/${memberId}/notes/${noteId}`,
+    { method: 'DELETE' },
+  )
 }
 

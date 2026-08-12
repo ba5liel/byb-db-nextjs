@@ -29,6 +29,7 @@ import {
   LayoutGrid,
   Plus,
   Search,
+  StickyNote,
   Table as TableIcon,
   Users,
   UsersRound,
@@ -37,9 +38,10 @@ import { useLanguage } from "@/lib/language-context"
 import { searchFamilies } from "@/lib/families-api"
 import type { Family, FamilyMember } from "@/lib/types"
 import { initial, memberInfo, roleLabel } from "@/components/families/family-labels"
+import { useMyNotedFamilyIds } from "@/hooks/use-my-noted-family-ids"
 
 type ViewMode = "table" | "card"
-const VIEW_STORAGE_KEY = "families-view-mode"
+const VIEW_STORAGE_KEY = "families-view-mode-v2"
 
 /** Prefer the household head for the row's contact line, else fall back to the first member. */
 function primaryContact(members: FamilyMember[]) {
@@ -53,6 +55,8 @@ function primaryContact(members: FamilyMember[]) {
 export default function FamiliesPage() {
   const router = useRouter()
   const { locale } = useLanguage()
+  const { notedFamilyIds } = useMyNotedFamilyIds()
+  const en = locale !== "am"
 
   const [searchInput, setSearchInput] = useState("")
   const [search, setSearch] = useState("")
@@ -62,10 +66,10 @@ export default function FamiliesPage() {
   const [page, setPage] = useState(1)
   const [totalPages, setTotalPages] = useState(1)
   const [total, setTotal] = useState(0)
-  const [view, setView] = useState<ViewMode>("table")
+  const [view, setView] = useState<ViewMode>("card")
   const limit = 12
 
-  // Restore the user's last-picked view (table is the default for first-time visitors).
+  // Restore the user's last-picked view (card/box is the default for first-time visitors).
   useEffect(() => {
     const stored = localStorage.getItem(VIEW_STORAGE_KEY)
     if (stored === "table" || stored === "card") setView(stored)
@@ -176,9 +180,9 @@ export default function FamiliesPage() {
             </div>
           </Card>
         ) : (
-          <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
-            {[...Array(6)].map((_, i) => (
-              <Skeleton key={i} className="h-40 w-full rounded-lg" />
+          <div className="flex flex-col gap-4">
+            {[...Array(4)].map((_, i) => (
+              <Skeleton key={i} className="h-28 w-full rounded-lg" />
             ))}
           </div>
         )
@@ -246,6 +250,15 @@ export default function FamiliesPage() {
                               <UsersRound className="h-4 w-4 text-muted-foreground" />
                             </div>
                             <span className="truncate font-medium text-foreground">{name}</span>
+                            {notedFamilyIds.has(family._id) && (
+                              <span
+                                title={en ? "You have a note" : "የእርስዎ ማስታወሻ አለ"}
+                                className="inline-flex text-amber-600 dark:text-amber-400"
+                                onClick={(e) => e.stopPropagation()}
+                              >
+                                <StickyNote className="h-4 w-4" />
+                              </span>
+                            )}
                           </div>
                         </TableCell>
                         <TableCell className="px-4 py-2.5">
@@ -282,53 +295,96 @@ export default function FamiliesPage() {
               </Table>
             </Card>
           ) : (
-            <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
+            <div className="flex flex-col gap-4">
               {families.map((family) => {
                 const name =
                   family.name ||
                   (locale === "am" ? "ያልተሰየመ ቤተሰብ" : "Unnamed family")
+                const father = family.members.find((m) => m.role === "father")
+                const mother = family.members.find((m) => m.role === "mother")
+                const children = family.members.filter((m) => m.role === "child")
+                const others = family.members.filter(
+                  (m) => m.role !== "father" && m.role !== "mother" && m.role !== "child",
+                )
+
+                const PersonChip = ({ fm }: { fm: FamilyMember }) => {
+                  const info = memberInfo(fm)
+                  return (
+                    <div className="flex max-w-full items-center gap-2">
+                      <Avatar className="h-8 w-8 shrink-0">
+                        <AvatarImage src={info.memberPicture} alt={info.fullName} />
+                        <AvatarFallback className="text-xs">
+                          {initial(info.fullName)}
+                        </AvatarFallback>
+                      </Avatar>
+                      <span className="min-w-0 truncate text-sm font-medium text-foreground">
+                        {info.fullName || (locale === "am" ? "አባል" : "Member")}
+                      </span>
+                      <Badge variant="secondary" className="shrink-0 text-xs font-normal">
+                        {roleLabel(fm.role, locale)}
+                      </Badge>
+                    </div>
+                  )
+                }
+
                 return (
                   <button
                     key={family._id}
                     type="button"
                     onClick={() => router.push(`/families/${family._id}`)}
-                    className="group flex flex-col rounded-lg border border-border bg-card p-4 text-left shadow-sm transition-all hover:-translate-y-0.5 hover:border-primary/40 hover:shadow-md"
+                    className="group flex w-full flex-col rounded-lg border border-border bg-card px-5 py-4 text-left shadow-sm transition-all hover:-translate-y-0.5 hover:border-primary/40 hover:shadow-md"
                   >
-                    <div className="mb-3 flex items-center justify-between gap-2">
-                      <h3 className="truncate font-semibold text-foreground">{name}</h3>
+                    <div className="mb-4 flex items-center justify-between gap-2">
+                      <div className="flex min-w-0 items-center gap-2">
+                        <h3 className="truncate text-base font-semibold text-foreground">{name}</h3>
+                        {notedFamilyIds.has(family._id) && (
+                          <span
+                            title={en ? "You have a note" : "የእርስዎ ማስታወሻ አለ"}
+                            className="inline-flex shrink-0 text-amber-600 dark:text-amber-400"
+                          >
+                            <StickyNote className="h-4 w-4" />
+                          </span>
+                        )}
+                      </div>
                       <span className="flex shrink-0 items-center gap-1 text-xs text-muted-foreground">
                         <Users className="h-3.5 w-3.5" />
                         {family.members.length}
                       </span>
                     </div>
-                    <div className="flex flex-col gap-2">
-                      {family.members.slice(0, 4).map((fm, i) => {
-                        const info = memberInfo(fm)
-                        return (
-                          <div key={info.id || i} className="flex items-center gap-2">
-                            <Avatar className="h-7 w-7">
-                              <AvatarImage src={info.memberPicture} alt={info.fullName} />
-                              <AvatarFallback className="text-xs">
-                                {initial(info.fullName)}
-                              </AvatarFallback>
-                            </Avatar>
-                            <span className="min-w-0 flex-1 truncate text-sm text-foreground">
-                              {info.fullName || (locale === "am" ? "አባል" : "Member")}
-                            </span>
-                            <Badge variant="secondary" className="shrink-0 text-xs font-normal">
-                              {roleLabel(fm.role, locale)}
-                            </Badge>
-                          </div>
-                        )
-                      })}
-                      {family.members.length > 4 && (
-                        <p className="text-xs text-muted-foreground">
-                          {locale === "am"
-                            ? `+${family.members.length - 4} ተጨማሪ`
-                            : `+${family.members.length - 4} more`}
-                        </p>
-                      )}
+
+                    <div className="grid grid-cols-1 gap-4 sm:grid-cols-3 sm:items-start">
+                      {/* Father — left */}
+                      <div className="flex justify-start">
+                        {father ? (
+                          <PersonChip fm={father} />
+                        ) : (
+                          <span className="text-xs text-muted-foreground">—</span>
+                        )}
+                      </div>
+
+                      {/* Mother — center */}
+                      <div className="flex justify-start sm:justify-center">
+                        {mother ? (
+                          <PersonChip fm={mother} />
+                        ) : (
+                          <span className="text-xs text-muted-foreground">—</span>
+                        )}
+                      </div>
+
+                      {/* Children — right / bottom */}
+                      <div className="flex flex-col items-start gap-2 sm:items-end">
+                        {children.map((fm, i) => (
+                          <PersonChip key={memberInfo(fm).id || `c-${i}`} fm={fm} />
+                        ))}
+                        {others.map((fm, i) => (
+                          <PersonChip key={memberInfo(fm).id || `o-${i}`} fm={fm} />
+                        ))}
+                        {children.length === 0 && others.length === 0 && (
+                          <span className="text-xs text-muted-foreground">—</span>
+                        )}
+                      </div>
                     </div>
+
                     <div className="mt-3 flex items-center gap-1 border-t border-border pt-2 text-xs font-medium text-primary opacity-0 transition-opacity group-hover:opacity-100">
                       {locale === "am" ? "ዝርዝር ይመልከቱ" : "View details"}
                       <ChevronRight className="h-3.5 w-3.5" />
