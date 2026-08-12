@@ -17,6 +17,13 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Skeleton } from "@/components/ui/skeleton"
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group"
 import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
+import {
   Table,
   TableBody,
   TableCell,
@@ -34,11 +41,15 @@ import {
   Users,
   UsersRound,
 } from "lucide-react"
+import { useAuth } from "@/lib/auth-context"
 import { useLanguage } from "@/lib/language-context"
+import { getTranslation } from "@/lib/translations"
 import { searchFamilies } from "@/lib/families-api"
 import type { Family, FamilyMember } from "@/lib/types"
 import { initial, memberInfo, roleLabel } from "@/components/families/family-labels"
 import { useMyNotedFamilyIds } from "@/hooks/use-my-noted-family-ids"
+import { SUB_COMMUNITY_SLUGS } from "@/lib/sub-communities"
+import { subCommunityForRole } from "@/lib/role-utils"
 
 type ViewMode = "table" | "card"
 const VIEW_STORAGE_KEY = "families-view-mode-v2"
@@ -54,12 +65,16 @@ function primaryContact(members: FamilyMember[]) {
 
 export default function FamiliesPage() {
   const router = useRouter()
+  const { user } = useAuth()
   const { locale } = useLanguage()
+  const t = getTranslation(locale)
   const { notedFamilyIds } = useMyNotedFamilyIds()
   const en = locale !== "am"
+  const scopedCommunity = subCommunityForRole(user?.role)
 
   const [searchInput, setSearchInput] = useState("")
   const [search, setSearch] = useState("")
+  const [subCommunity, setSubCommunity] = useState<string>("all")
   const [families, setFamilies] = useState<Family[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -81,18 +96,21 @@ export default function FamiliesPage() {
 
   // Debounce the search input.
   useEffect(() => {
-    const t = setTimeout(() => {
+    const timer = setTimeout(() => {
       setSearch(searchInput)
       setPage(1)
     }, 350)
-    return () => clearTimeout(t)
+    return () => clearTimeout(timer)
   }, [searchInput])
 
   useEffect(() => {
     let active = true
     setLoading(true)
     setError(null)
-    searchFamilies(search, page, limit)
+    const filter =
+      scopedCommunity ||
+      (subCommunity !== "all" ? subCommunity : undefined)
+    searchFamilies(search, page, limit, filter)
       .then((res) => {
         if (!active) return
         setFamilies(res.data)
@@ -109,7 +127,15 @@ export default function FamiliesPage() {
     return () => {
       active = false
     }
-  }, [search, page])
+  }, [search, page, subCommunity, scopedCommunity])
+
+  const communityLabel = (slug: string) => {
+    if (slug === "jemmo") return t.navigation.jemmo
+    if (slug === "bethel") return t.navigation.bethel
+    if (slug === "weyira") return t.navigation.weyira
+    if (slug === "alpha") return t.navigation.alpha
+    return slug
+  }
 
   return (
     <div className="container mx-auto px-4 py-8">
@@ -132,17 +158,42 @@ export default function FamiliesPage() {
         </Link>
       </div>
 
-      <div className="mb-6 flex items-center justify-between gap-4">
-        <div className="relative max-w-md flex-1">
-          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-          <Input
-            placeholder={
-              locale === "am" ? "በቤተሰብ ወይም በአባል ስም ይፈልጉ..." : "Search by family or member name..."
-            }
-            value={searchInput}
-            onChange={(e) => setSearchInput(e.target.value)}
-            className="pl-10"
-          />
+      <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex flex-1 flex-col gap-3 sm:flex-row sm:items-center">
+          <div className="relative max-w-md flex-1">
+            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+            <Input
+              placeholder={
+                locale === "am" ? "በቤተሰብ ወይም በአባል ስም ይፈልጉ..." : "Search by family or member name..."
+              }
+              value={searchInput}
+              onChange={(e) => setSearchInput(e.target.value)}
+              className="pl-10"
+            />
+          </div>
+          {!scopedCommunity && (
+            <Select
+              value={subCommunity}
+              onValueChange={(value) => {
+                setSubCommunity(value)
+                setPage(1)
+              }}
+            >
+              <SelectTrigger className="w-full sm:w-45">
+                <SelectValue
+                  placeholder={en ? "Sub-community" : "ንዑስ ማህበረሰብ"}
+                />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">{en ? "All communities" : "ሁሉም"}</SelectItem>
+                {SUB_COMMUNITY_SLUGS.map((slug) => (
+                  <SelectItem key={slug} value={slug}>
+                    {communityLabel(slug)}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          )}
         </div>
         <ToggleGroup
           type="single"
