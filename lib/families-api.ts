@@ -189,3 +189,84 @@ export async function getFamilyTree(memberId: string): Promise<FamilyTree> {
   )
   return res.data
 }
+
+export type NoteTaskStatus = "not_started" | "in_progress" | "done"
+
+export interface FamilyNoteDto {
+  _id: string
+  familyId:
+    | string
+    | {
+        _id: string
+        name?: string
+        subCommunity?: string
+      }
+  body: string
+  visibility: "private" | "public"
+  status?: NoteTaskStatus
+  createdBy: string
+  createdByName?: string
+  createdAt: string
+  updatedAt: string
+}
+
+export async function getFamilyNotes(familyId: string): Promise<FamilyNoteDto[]> {
+  const res = await request<{ success: boolean; data: FamilyNoteDto[] }>(
+    `/api/families/${familyId}/notes`,
+  )
+  return res.data || []
+}
+
+export async function getMyFamilyNotes(): Promise<FamilyNoteDto[]> {
+  const res = await request<{ success: boolean; data: FamilyNoteDto[] }>(
+    `/api/families/notes/mine`,
+  )
+  return res.data || []
+}
+
+export async function getMyNotedFamilyIds(): Promise<string[]> {
+  const res = await request<{ success: boolean; data: string[] }>(
+    `/api/families/notes/mine/family-ids`,
+  )
+  return res.data || []
+}
+
+export async function createFamilyNote(
+  familyId: string,
+  body: string,
+  isPublic = false,
+  status: NoteTaskStatus = "not_started",
+): Promise<FamilyNoteDto> {
+  const res = await request<{ success: boolean; data: FamilyNoteDto }>(
+    `/api/families/${familyId}/notes`,
+    {
+      method: "POST",
+      body: JSON.stringify({ body, isPublic, status }),
+    },
+  )
+  return res.data
+}
+
+export async function updateFamilyNote(
+  familyId: string,
+  noteId: string,
+  data: { body?: string; isPublic?: boolean; status?: NoteTaskStatus },
+): Promise<FamilyNoteDto> {
+  const res = await request<{ success: boolean; data: FamilyNoteDto }>(
+    `/api/families/${familyId}/notes/${noteId}`,
+    {
+      method: "PATCH",
+      body: JSON.stringify(data),
+    },
+  )
+  return res.data
+}
+
+export async function deleteFamilyNote(
+  familyId: string,
+  noteId: string,
+): Promise<void> {
+  await request(`/api/families/${familyId}/notes/${noteId}`, {
+    method: "DELETE",
+  })
+}

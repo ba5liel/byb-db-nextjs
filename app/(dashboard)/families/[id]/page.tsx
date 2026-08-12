@@ -60,6 +60,7 @@ import {
   roleLabel,
 } from "@/components/families/family-labels"
 import { FamilyTreeView } from "@/components/families/family-tree"
+import { FamilyNotesPanel } from "@/components/families/family-notes-panel"
 
 export default function FamilyDetailPage() {
   const params = useParams()
@@ -350,7 +351,7 @@ export default function FamilyDetailPage() {
       </Card>
 
       {/* Family tree */}
-      <Card>
+      <Card className="mb-6">
         <CardHeader>
           <CardTitle className="text-base">
             {locale === "am" ? "የቤተሰብ ዛፍ" : "Family tree"}
@@ -373,6 +374,10 @@ export default function FamilyDetailPage() {
           )}
         </CardContent>
       </Card>
+
+      <div className="mb-6">
+        <FamilyNotesPanel familyId={familyId} />
+      </div>
 
       {/* Add member dialog */}
       <Dialog
