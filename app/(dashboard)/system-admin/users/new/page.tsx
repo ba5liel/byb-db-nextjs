@@ -30,6 +30,12 @@ const ROLES: { value: AdminUserRole; label: string }[] = [
   { value: "reportViewer", label: "Report Viewer" },
   { value: "dataEntry", label: "Data Entry" },
   { value: "user", label: "User" },
+  { value: "bethelAdmin", label: "Bethel Admin" },
+  { value: "jemmoAdmin", label: "Jemmo Admin" },
+  { value: "weyiraAdmin", label: "Weyira Admin" },
+  { value: "alphaAdmin", label: "Alpha Admin" },
+  { value: "youthAdmin", label: "Youth Admin" },
+  { value: "childrenAdmin", label: "Children Admin" },
 ]
 
 export default function NewAdminUserPage() {

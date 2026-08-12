@@ -41,7 +41,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
-import { ArrowLeft, Plus, Search, Trash2, UserPlus } from "lucide-react"
+import { ArrowLeft, Building2, Plus, Search, Trash2, UserPlus } from "lucide-react"
 import { useLanguage } from "@/lib/language-context"
 import { useToast } from "@/hooks/use-toast"
 import {
@@ -51,7 +51,7 @@ import {
   removeFamilyMember,
   type FamilyTree,
 } from "@/lib/families-api"
-import { getMembers } from "@/lib/members-api"
+import { getMemberById, getMembers } from "@/lib/members-api"
 import type { Family, FamilyRole } from "@/lib/types"
 import {
   FAMILY_ROLES,
@@ -73,6 +73,8 @@ export default function FamilyDetailPage() {
 
   const [tree, setTree] = useState<FamilyTree | null>(null)
   const [treeLoading, setTreeLoading] = useState(false)
+
+  const [subCommunity, setSubCommunity] = useState<string | null>(null)
 
   // Add-member dialog state.
   const [addOpen, setAddOpen] = useState(false)
@@ -123,6 +125,27 @@ export default function FamilyDetailPage() {
       })
       .finally(() => {
         if (active) setTreeLoading(false)
+      })
+    return () => {
+      active = false
+    }
+  }, [family])
+
+  // Households share one sub-community; read it off the first member with one set.
+  useEffect(() => {
+    if (!family || family.members.length === 0) {
+      setSubCommunity(null)
+      return
+    }
+    const firstId = memberInfo(family.members[0]).id
+    if (!firstId) return
+    let active = true
+    getMemberById(firstId)
+      .then((m) => {
+        if (active) setSubCommunity(m?.subCommunity ?? null)
+      })
+      .catch(() => {
+        if (active) setSubCommunity(null)
       })
     return () => {
       active = false
@@ -246,11 +269,19 @@ export default function FamilyDetailPage() {
       <div className="mb-6 flex items-center justify-between gap-4">
         <div>
           <h1 className="text-3xl font-bold text-foreground">{familyName}</h1>
-          <p className="mt-1 text-muted-foreground">
-            {locale === "am"
-              ? `${family.members.length} አባላት`
-              : `${family.members.length} member${family.members.length === 1 ? "" : "s"}`}
-          </p>
+          <div className="mt-1 flex flex-wrap items-center gap-2 text-muted-foreground">
+            <p>
+              {locale === "am"
+                ? `${family.members.length} አባላት`
+                : `${family.members.length} member${family.members.length === 1 ? "" : "s"}`}
+            </p>
+            {subCommunity && (
+              <Badge variant="secondary" className="gap-1 font-normal">
+                <Building2 className="h-3 w-3" />
+                {subCommunity}
+              </Badge>
+            )}
+          </div>
         </div>
         <Button onClick={() => setAddOpen(true)}>
           <UserPlus className="mr-2 h-4 w-4" />

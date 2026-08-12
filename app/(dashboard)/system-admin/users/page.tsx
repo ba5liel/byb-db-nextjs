@@ -61,6 +61,12 @@ const ROLE_LABELS: Record<AdminUserRole, string> = {
   reportViewer: "Report Viewer",
   dataEntry: "Data Entry",
   user: "User",
+  bethelAdmin: "Bethel Admin",
+  jemmoAdmin: "Jemmo Admin",
+  weyiraAdmin: "Weyira Admin",
+  alphaAdmin: "Alpha Admin",
+  youthAdmin: "Youth Admin",
+  childrenAdmin: "Children Admin",
 }
 
 // Status badge variants

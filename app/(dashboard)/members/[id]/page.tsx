@@ -22,17 +22,59 @@ import {
   DollarSign,
   Home,
   AlertCircle,
+  UserMinus,
+  RotateCcw,
 } from "lucide-react"
+import { Textarea } from "@/components/ui/textarea"
+import { Label } from "@/components/ui/label"
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog"
 import { useMembers } from "@/lib/members-context"
+import { useLanguage } from "@/lib/language-context"
+import { useToast } from "@/hooks/use-toast"
+import { MemberNotesPanel } from "@/components/members/member-notes-panel"
+import { restoreMember, updateMemberStatus } from "@/lib/members-api"
 import type { Member } from "@/lib/types"
+
+const LEAVE_STATUS_OPTIONS = [
+  { value: "inactive", labelEn: "Inactive", labelAm: "እንቅስቃሴ የለውም" },
+  { value: "transferred_out", labelEn: "Transferred Out", labelAm: "ተዛውሯል" },
+  { value: "removed", labelEn: "Removed", labelAm: "ተወግዷል" },
+  { value: "deceased", labelEn: "Deceased", labelAm: "አልፏል" },
+] as const
 
 export default function MemberDetailPage() {
   const params = useParams()
   const router = useRouter()
   const memberId = params.id as string
-  const { getMember } = useMembers()
+  const { getMember, refreshMembers } = useMembers()
+  const { locale } = useLanguage()
+  const { toast } = useToast()
+  const en = locale !== "am"
   const [member, setMember] = useState<Member | null>(null)
   const [loading, setLoading] = useState(true)
+  const [leaveOpen, setLeaveOpen] = useState(false)
+  const [leaveStatus, setLeaveStatus] = useState("inactive")
+  const [leaveReason, setLeaveReason] = useState("")
+  const [savingStatus, setSavingStatus] = useState(false)
+
+  async function reload() {
+    const foundMember = await getMember(memberId)
+    setMember(foundMember || null)
+  }
 
   useEffect(() => {
     async function loadMember() {
@@ -47,6 +89,59 @@ export default function MemberDetailPage() {
     }
     loadMember()
   }, [memberId, getMember, router])
+
+  async function handleMarkLeft() {
+    if (!leaveReason.trim()) {
+      toast({
+        title: en ? "Reason required" : "ምክንያት ያስፈልጋል",
+        variant: "destructive",
+      })
+      return
+    }
+    setSavingStatus(true)
+    try {
+      await updateMemberStatus(
+        memberId,
+        leaveStatus as "inactive" | "removed" | "transferred_out" | "deceased",
+        leaveReason.trim(),
+      )
+      await refreshMembers()
+      await reload()
+      setLeaveOpen(false)
+      setLeaveReason("")
+      toast({ title: en ? "Member marked as left" : "አባሉ እንደወጣ ተመዝግቧል" })
+    } catch (error) {
+      toast({
+        title: en ? "Could not update status" : "ሁኔታ ማዘመን አልተቻለም",
+        description: error instanceof Error ? error.message : undefined,
+        variant: "destructive",
+      })
+    } finally {
+      setSavingStatus(false)
+    }
+  }
+
+  async function handleRestore() {
+    setSavingStatus(true)
+    try {
+      if (member?.membershipStatus === "Removed") {
+        await restoreMember(memberId)
+      } else {
+        await updateMemberStatus(memberId, "active")
+      }
+      await refreshMembers()
+      await reload()
+      toast({ title: en ? "Member restored" : "አባሉ ተመልሷል" })
+    } catch (error) {
+      toast({
+        title: en ? "Could not restore member" : "አባልን መመለስ አልተቻለም",
+        description: error instanceof Error ? error.message : undefined,
+        variant: "destructive",
+      })
+    } finally {
+      setSavingStatus(false)
+    }
+  }
 
   if (loading) {
     return (
@@ -68,6 +163,9 @@ export default function MemberDetailPage() {
     )
   }
 
+  const isLeft = member.membershipStatus !== "Active"
+  const backHref = isLeft ? "/members/left" : "/members"
+
   const calculateAge = (dob: string) => {
     const birthDate = new Date(dob)
     const today = new Date()
@@ -84,10 +182,16 @@ export default function MemberDetailPage() {
       <div className="container mx-auto px-4 py-12">
         {/* Header */}
         <div className="mb-8">
-          <Link href="/members">
+          <Link href={backHref}>
             <Button variant="ghost" className="gap-2 mb-4">
               <ArrowLeft className="w-4 h-4" />
-              Back to Members
+              {isLeft
+                ? en
+                  ? "Back to Left Members"
+                  : "ወደ የወጡ አባላት ተመለስ"
+                : en
+                  ? "Back to Members"
+                  : "ወደ አባላት ተመለስ"}
             </Button>
           </Link>
           <div className="flex items-start justify-between">
@@ -134,7 +238,27 @@ export default function MemberDetailPage() {
                 </div>
               </div>
             </div>
-            <div className="flex gap-2">
+            <div className="flex flex-wrap gap-2">
+              {!isLeft ? (
+                <Button
+                  variant="outline"
+                  className="gap-2"
+                  onClick={() => setLeaveOpen(true)}
+                >
+                  <UserMinus className="w-4 h-4" />
+                  {en ? "Mark as left" : "እንደወጣ ምዝገባ"}
+                </Button>
+              ) : (
+                <Button
+                  variant="outline"
+                  className="gap-2"
+                  onClick={handleRestore}
+                  disabled={savingStatus}
+                >
+                  <RotateCcw className="w-4 h-4" />
+                  {en ? "Restore member" : "አባልን መልስ"}
+                </Button>
+              )}
               <Link href={`/members/${memberId}/edit`}>
                 <Button className="gap-2">
                   <Edit className="w-4 h-4" />
@@ -149,6 +273,45 @@ export default function MemberDetailPage() {
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* Left Column - Main Info */}
           <div className="lg:col-span-2 space-y-6">
+            {isLeft && (
+              <Card className="border-0 shadow-lg border-l-4 border-l-amber-500">
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <UserMinus className="w-5 h-5" />
+                    {en ? "Leave details" : "የመውጫ ዝርዝር"}
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <p className="text-sm text-muted-foreground mb-1">
+                      {en ? "Left on" : "የወጡበት ቀን"}
+                    </p>
+                    <p className="font-medium">
+                      {member.statusChangeDate
+                        ? new Date(member.statusChangeDate).toLocaleString(
+                            locale === "am" ? "am-ET" : undefined,
+                          )
+                        : "—"}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-muted-foreground mb-1">
+                      {en ? "Status" : "ሁኔታ"}
+                    </p>
+                    <p className="font-medium">{member.membershipStatus}</p>
+                  </div>
+                  <div className="md:col-span-2">
+                    <p className="text-sm text-muted-foreground mb-1">
+                      {en ? "Reason" : "ምክንያት"}
+                    </p>
+                    <p className="font-medium whitespace-pre-wrap">
+                      {member.leaveReason || "—"}
+                    </p>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+
             {/* Personal Information */}
             <Card className="border-0 shadow-lg">
               <CardHeader>
@@ -320,6 +483,19 @@ export default function MemberDetailPage() {
                       </div>
                     )}
                   </div>
+                </CardContent>
+              </Card>
+            )}
+
+            <MemberNotesPanel memberId={memberId} />
+
+            {member.notes && (
+              <Card className="border-0 shadow-lg">
+                <CardHeader>
+                  <CardTitle>{en ? "Legacy notes" : "የቀድሞ ማስታወሻ"}</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <p className="text-foreground whitespace-pre-wrap">{member.notes}</p>
                 </CardContent>
               </Card>
             )}
@@ -496,21 +672,56 @@ export default function MemberDetailPage() {
                 </CardContent>
               </Card>
             )}
-
-            {/* Additional Notes */}
-            {member.notes && (
-              <Card className="border-0 shadow-lg">
-                <CardHeader>
-                  <CardTitle>Notes</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <p className="text-foreground whitespace-pre-wrap">{member.notes}</p>
-                </CardContent>
-              </Card>
-            )}
           </div>
         </div>
       </div>
+
+      <Dialog open={leaveOpen} onOpenChange={setLeaveOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>{en ? "Mark member as left" : "አባልን እንደወጣ ምዝገባ"}</DialogTitle>
+            <DialogDescription>
+              {en
+                ? "Their profile is kept. They will appear under Left Members."
+                : "መገለጫቸው ይቀመጣል። በየወጡ አባላት ስር ይታያሉ።"}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-2">
+            <div className="space-y-2">
+              <Label>{en ? "Leave status" : "የመውጫ ሁኔታ"}</Label>
+              <Select value={leaveStatus} onValueChange={setLeaveStatus}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {LEAVE_STATUS_OPTIONS.map((opt) => (
+                    <SelectItem key={opt.value} value={opt.value}>
+                      {en ? opt.labelEn : opt.labelAm}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <Label>{en ? "Reason" : "ምክንያት"}</Label>
+              <Textarea
+                value={leaveReason}
+                onChange={(e) => setLeaveReason(e.target.value)}
+                rows={3}
+                placeholder={en ? "Why did they leave?" : "ለምን ወጡ?"}
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setLeaveOpen(false)}>
+              {en ? "Cancel" : "ሰርዝ"}
+            </Button>
+            <Button onClick={handleMarkLeft} disabled={savingStatus}>
+              {en ? "Confirm" : "አረጋግጥ"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </main>
   )
 }

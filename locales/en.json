@@ -98,18 +98,48 @@
     "all": "All",
     "male": "Male",
     "female": "Female",
-    "other": "Other"
+    "other": "Other",
+    "retry": "Retry",
+    "refresh": "Refresh",
+    "welcomeBack": "Welcome back"
   },
-  
   "navigation": {
     "dashboard": "Dashboard",
     "members": "Members",
+    "leftMembers": "Left Members",
+    "tasks": "Tasks",
+    "allMembers": "All Members",
+    "jemmo": "Jemmo",
+    "bethel": "Bethel",
+    "weyira": "Weyira",
+    "alpha": "Alpha",
+    "importExcel": "Import from Excel",
+    "memberAnalytics": "Member Analytics",
+    "families": "Families",
+    "ministers": "Ministers & Leadership",
+    "churchServices": "Services & Ministries",
+    "files": "Administrative Files",
+    "analytics": "Analytics",
+    "notifications": "Notifications",
+    "userManagement": "User Management",
+    "roleManagement": "Role Management",
+    "systemAdmin": "System Administration",
+    "seferManagement": "Sefer Management",
+    "settings": "Settings",
     "services": "Services",
     "groups": "Groups",
     "reports": "Reports",
-    "settings": "Settings"
+    "generateReport": "Generate Report",
+    "main": "Main",
+    "leadership": "Leadership",
+    "ministry": "Ministry",
+    "admin": "Admin",
+    "communication": "Communication",
+    "system": "System",
+    "logout": "Logout",
+    "profile": "Profile",
+    "searchPlaceholder": "Search members..."
   },
-  
   "members": {
     "title": "Members",
     "subtitle": "Manage all church members",
@@ -154,7 +184,13 @@
     "teenagers": "Teenagers",
     "youth": "Youth",
     "adults": "Adults",
+    "parents": "Parents",
     "seniors": "Seniors",
+    "hasCellGroup": "Have Cell Group",
+    "learnedSalvation": "Learned Salvation",
+    "learnedDiscipleship": "Learned Discipleship",
+    "servingInMinistry": "Serving in Ministry",
+    "notServingInMinistry": "Not Serving in Ministry",
     "groupType": "Group Type",
     "selectGroupType": "Select group type",
     "allGroupTypes": "All Group Types",
@@ -177,7 +213,6 @@
     "cancel": "Cancel",
     "delete": "Delete"
   },
-  
   "memberForm": {
     "createTitle": "Add New Member",
     "createSubtitle": "Create a comprehensive church member profile",
@@ -191,7 +226,6 @@
     "updateError": "Error updating member",
     "requiredFields": "Please fill in all required fields"
   },
-  
   "memberSteps": {
     "basicInfo": "Basic Info",
     "spiritualJourney": "Spiritual Journey",
@@ -202,7 +236,6 @@
     "education": "Education",
     "financial": "Financial"
   },
-  
   "basicInfo": {
     "title": "Basic Information",
     "subtitle": "Enter the member's basic personal information",
@@ -246,7 +279,6 @@
     "membershipStatus": "Membership Status",
     "membershipType": "Membership Type"
   },
-  
   "spiritualJourney": {
     "title": "Spiritual Journey",
     "subtitle": "Record the member's spiritual journey and milestones",
@@ -265,7 +297,6 @@
     "testimony": "Testimony",
     "faithJourneyNotes": "Faith Journey Notes"
   },
-  
   "churchGrouping": {
     "title": "Church Grouping & Community",
     "subtitle": "Assign the member to church groups and communities",
@@ -275,7 +306,6 @@
     "cellGroupNumber": "Cell Group Number",
     "reasonForNoGroup": "Reason for No Group"
   },
-  
   "transferInfo": {
     "title": "Transfer Information",
     "subtitle": "Provide transfer information if applicable",
@@ -287,7 +317,6 @@
     "transferDate": "Transfer Date",
     "transferLetter": "Transfer Letter"
   },
-  
   "serviceMinistry": {
     "title": "Service & Ministry",
     "subtitle": "Select services and ministry participation",
@@ -297,7 +326,6 @@
     "mentorshipBy": "Mentorship By",
     "maxServicesReached": "Maximum of 2 services reached. Uncheck a service to select another."
   },
-  
   "family": {
     "title": "Family & Personal Status",
     "subtitle": "Link this member to a family and add personal status information",
@@ -322,12 +350,10 @@
       "other": "Other"
     }
   },
-
   "nationality": {
     "ethiopian": "Ethiopian",
     "nonEthiopian": "Non-Ethiopian"
   },
-  
   "education": {
     "title": "Education & Professional Information",
     "subtitle": "Enter education and professional details",
@@ -335,7 +361,6 @@
     "jobType": "Job Type",
     "profession": "Profession/Field"
   },
-  
   "financial": {
     "title": "Financial Contribution",
     "subtitle": "Record financial contribution information",
@@ -344,7 +369,6 @@
     "titheAmountInBirr": "Tithe Amount (in Birr)",
     "titheFrequency": "Payment Frequency"
   },
-  
   "status": {
     "active": "Active",
     "inactive": "Inactive",
@@ -353,7 +377,6 @@
     "deceased": "Deceased",
     "suspended": "Suspended"
   },
-  
   "maritalStatus": {
     "unmarried": "Unmarried",
     "married": "Married",
@@ -361,20 +384,17 @@
     "widowed": "Widowed",
     "single": "Single"
   },
-  
   "catechesisStatus": {
     "notStarted": "Not Started",
     "inProgress": "In Progress",
     "completed": "Completed"
   },
-  
   "subCommunity": {
     "jemmo": "Jemmo",
     "bethel": "Bethel",
     "weyira": "Weyira",
     "alfa": "Alfa"
   },
-  
   "groupType": {
     "cellGroup": "Cell Group",
     "youthGroup": "Youth Group",
@@ -382,7 +402,6 @@
     "prayerGroup": "Prayer Group",
     "none": "None"
   },
-  
   "educationLevel": {
     "uneducated": "Uneducated",
     "level1_8": "1-8",
@@ -393,7 +412,6 @@
     "masters": "Masters",
     "phd": "PhD"
   },
-  
   "jobType": {
     "personal": "Personal/Self-employed",
     "government": "Government",
@@ -402,22 +420,19 @@
     "student": "Student",
     "retired": "Retired"
   },
-  
   "frequency": {
     "weekly": "Weekly",
     "monthly": "Monthly",
     "occasionally": "Occasionally",
     "yearly": "Yearly"
   },
-  
   "ageGroup": {
-    "children": "Children (0-13)",
-    "teenagers": "Teenagers (14-17)",
-    "youth": "Youth (18-35)",
-    "adults": "Adults (36-65)",
-    "seniors": "Seniors (65+)"
+    "children": "Children (1–13)",
+    "teenagers": "Teenagers (14–18)",
+    "youth": "Youth (19–30)",
+    "adults": "Adults (31–50)",
+    "seniors": "Seniors (51+)"
   },
-  
   "services": {
     "choir": "Choir",
     "youthMinistry": "Youth Ministry",
@@ -428,7 +443,6 @@
     "worship": "Worship",
     "teaching": "Teaching"
   },
-  
   "documents": {
     "title": "Documents",
     "uploadDocument": "Upload Document",
@@ -439,7 +453,6 @@
     "idCardCopy": "ID Card Copy",
     "other": "Other Documents"
   },
-  
   "servicesPage": {
     "title": "Services & Ministries",
     "subtitle": "Manage member service assignments and ministry participation",
@@ -456,6 +469,102 @@
     "saved": "Changes saved successfully",
     "maxServicesReachedTitle": "Maximum services reached",
     "maxServicesReached": "Maximum of 2 services reached. Uncheck a service to select another."
+  },
+  "dashboard": {
+    "title": "Dashboard",
+    "welcomeBack": "Welcome back, {name}",
+    "totalMembers": "Total Members",
+    "newThisMonth": "New This Month",
+    "addMember": "Add Member",
+    "members": "members",
+    "baptized": "Baptized",
+    "men": "Men",
+    "women": "Women",
+    "children": "Children",
+    "male": "Male",
+    "female": "Female",
+    "youth": "Youth",
+    "demography": "Demography",
+    "ageDistribution": "Age Distribution",
+    "childBand": "Child (1–13)",
+    "teenBand": "Teen (14–18)",
+    "youthBand": "Youth (19–30)",
+    "adultBand": "Adult (31–50)",
+    "seniorBand": "Senior (51+)",
+    "unknownDob": "Unknown DOB",
+    "total": "Total",
+    "servingInChurch": "Serving in Church",
+    "currentlyServing": "Members currently serving",
+    "married": "Married",
+    "marriedMembers": "Married members",
+    "unmarried": "Unmarried",
+    "notMarkedMarried": "Not marked as married",
+    "leftAndActive": "Left & Active",
+    "left": "Left",
+    "active": "Active",
+    "failedTitle": "Failed to load dashboard",
+    "failedHint": "Please try refreshing the page"
+  },
+  "analytics": {
+    "title": "Analytics",
+    "subtitle": "Church membership insights and trends",
+    "failedTitle": "Failed to load analytics",
+    "failedHint": "Please refresh the page and try again",
+    "retry": "Retry",
+    "totalMembers": "Total Members",
+    "activeMembers": "Active Members",
+    "newThisMonth": "New This Month",
+    "families": "Families",
+    "ageDistribution": "Age Distribution",
+    "genderDistribution": "Gender Distribution",
+    "maritalStatus": "Marital Status",
+    "subCommunities": "Sub-Communities",
+    "sefers": "Sefers",
+    "groupTypes": "Group Types",
+    "registrationTrends": "Registration Trends",
+    "serviceParticipation": "Service Participation",
+    "noData": "No data available yet",
+    "male": "Male",
+    "female": "Female",
+    "last12Months": "Last 12 months",
+    "subCommunityHint": "Jemmo / Bethel / Weyira / Alpha",
+    "viewMembers": "View members",
+    "inactive": "inactive",
+    "maleFemale": "Male / Female",
+    "baptized": "Baptized",
+    "transferredIn": "Transferred In",
+    "tithePayers": "Tithe Payers",
+    "ageGroupTitle": "Age Group Distribution",
+    "ageGroupDesc": "Share of members by age group",
+    "genderTitle": "Gender Distribution",
+    "genderDesc": "Male and female membership share",
+    "maritalTitle": "Marital Status",
+    "maritalDesc": "Members by marital status",
+    "subCommunityTitle": "Sub-Community Membership",
+    "subCommunityDesc": "Members by sub-community",
+    "seferTitle": "Sefer Distribution",
+    "seferDesc": "Members by sefer",
+    "groupTypeTitle": "Group Types",
+    "groupTypeDesc": "Members by group type",
+    "trendsTitle": "Registration Trends",
+    "trendsDesc": "Monthly member registrations",
+    "serviceTitle": "Service Participation",
+    "serviceDesc": "Members currently serving by ministry",
+    "wantingToServe": "Wanting to serve"
+  },
+  "auth": {
+    "signIn": "Sign in",
+    "signInTitle": "Sign in to your account",
+    "churchManagement": "Church Management",
+    "email": "Email",
+    "password": "Password",
+    "emailPlaceholder": "you@example.com",
+    "passwordPlaceholder": "Enter your password",
+    "signingIn": "Signing in...",
+    "loginFailed": "Login failed. Please check your credentials.",
+    "logout": "Logout",
+    "welcome": "Welcome",
+    "noAccount": "Don't have an account?",
+    "signUp": "Sign up"
   }
 }
-
