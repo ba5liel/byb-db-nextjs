@@ -29,6 +29,7 @@ import {
   LayoutGrid,
   Plus,
   Search,
+  StickyNote,
   Table as TableIcon,
   Users,
   UsersRound,
@@ -37,6 +38,7 @@ import { useLanguage } from "@/lib/language-context"
 import { searchFamilies } from "@/lib/families-api"
 import type { Family, FamilyMember } from "@/lib/types"
 import { initial, memberInfo, roleLabel } from "@/components/families/family-labels"
+import { useMyNotedFamilyIds } from "@/hooks/use-my-noted-family-ids"
 
 type ViewMode = "table" | "card"
 const VIEW_STORAGE_KEY = "families-view-mode-v2"
@@ -53,6 +55,8 @@ function primaryContact(members: FamilyMember[]) {
 export default function FamiliesPage() {
   const router = useRouter()
   const { locale } = useLanguage()
+  const { notedFamilyIds } = useMyNotedFamilyIds()
+  const en = locale !== "am"
 
   const [searchInput, setSearchInput] = useState("")
   const [search, setSearch] = useState("")
@@ -246,6 +250,15 @@ export default function FamiliesPage() {
                               <UsersRound className="h-4 w-4 text-muted-foreground" />
                             </div>
                             <span className="truncate font-medium text-foreground">{name}</span>
+                            {notedFamilyIds.has(family._id) && (
+                              <span
+                                title={en ? "You have a note" : "የእርስዎ ማስታወሻ አለ"}
+                                className="inline-flex text-amber-600 dark:text-amber-400"
+                                onClick={(e) => e.stopPropagation()}
+                              >
+                                <StickyNote className="h-4 w-4" />
+                              </span>
+                            )}
                           </div>
                         </TableCell>
                         <TableCell className="px-4 py-2.5">
@@ -322,7 +335,17 @@ export default function FamiliesPage() {
                     className="group flex w-full flex-col rounded-lg border border-border bg-card px-5 py-4 text-left shadow-sm transition-all hover:-translate-y-0.5 hover:border-primary/40 hover:shadow-md"
                   >
                     <div className="mb-4 flex items-center justify-between gap-2">
-                      <h3 className="truncate text-base font-semibold text-foreground">{name}</h3>
+                      <div className="flex min-w-0 items-center gap-2">
+                        <h3 className="truncate text-base font-semibold text-foreground">{name}</h3>
+                        {notedFamilyIds.has(family._id) && (
+                          <span
+                            title={en ? "You have a note" : "የእርስዎ ማስታወሻ አለ"}
+                            className="inline-flex shrink-0 text-amber-600 dark:text-amber-400"
+                          >
+                            <StickyNote className="h-4 w-4" />
+                          </span>
+                        )}
+                      </div>
                       <span className="flex shrink-0 items-center gap-1 text-xs text-muted-foreground">
                         <Users className="h-3.5 w-3.5" />
                         {family.members.length}

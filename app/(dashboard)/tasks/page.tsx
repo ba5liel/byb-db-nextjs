@@ -2,15 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react"
 import Link from "next/link"
-import { useRouter } from "next/navigation"
-import {
-  CheckCircle2,
-  Circle,
-  ClipboardList,
-  Loader2,
-  StickyNote,
-  ArrowRight,
-} from "lucide-react"
+import { Loader2, StickyNote, Users, UsersRound } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import {
@@ -20,17 +12,29 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
-import { useAuth } from "@/lib/auth-context"
 import { useLanguage } from "@/lib/language-context"
 import { useToast } from "@/hooks/use-toast"
-import { isSuperAdmin } from "@/lib/role-utils"
 import {
   getMyNotes,
   updateMemberNote,
   type MemberNoteDto,
   type NoteTaskStatus,
 } from "@/lib/members-api"
+import {
+  getMyFamilyNotes,
+  updateFamilyNote,
+  type FamilyNoteDto,
+} from "@/lib/families-api"
 import { cn } from "@/lib/utils"
+
+type TaskKind = "member" | "family"
+
+type UnifiedTask = {
+  kind: TaskKind
+  note: MemberNoteDto | FamilyNoteDto
+  targetId: string
+  targetName: string
+}
 
 function memberIdOf(note: MemberNoteDto): string {
   return typeof note.memberId === "object" ? note.memberId._id : note.memberId
@@ -41,6 +45,17 @@ function memberNameOf(note: MemberNoteDto): string {
     return note.memberId.fullName || "—"
   }
   return "—"
+}
+
+function familyIdOf(note: FamilyNoteDto): string {
+  return typeof note.familyId === "object" ? note.familyId._id : note.familyId
+}
+
+function familyNameOf(note: FamilyNoteDto, en: boolean): string {
+  if (typeof note.familyId === "object") {
+    return note.familyId.name || (en ? "Unnamed family" : "ያልተሰየመ ቤተሰብ")
+  }
+  return en ? "Family" : "ቤተሰብ"
 }
 
 function statusLabel(status: NoteTaskStatus | undefined, en: boolean) {
@@ -54,74 +69,69 @@ function statusLabel(status: NoteTaskStatus | undefined, en: boolean) {
   }
 }
 
-function TaskCard({
-  note,
+function TaskRow({
+  task,
   en,
   locale,
   onStatusChange,
 }: {
-  note: MemberNoteDto
+  task: UnifiedTask
   en: boolean
   locale: string
-  onStatusChange: (note: MemberNoteDto, status: NoteTaskStatus) => void
+  onStatusChange: (task: UnifiedTask, status: NoteTaskStatus) => void
 }) {
-  const status = note.status || "not_started"
-  const mid = memberIdOf(note)
+  const status = task.note.status || "not_started"
+  const href = task.kind === "member" ? `/members/${task.targetId}` : `/families/${task.targetId}`
 
   return (
-    <article
-      className={cn(
-        "group relative overflow-hidden rounded-2xl border border-border/60 bg-card/80 p-4 shadow-sm transition-all hover:-translate-y-0.5 hover:shadow-md",
-        status === "done" && "opacity-80",
-        status === "in_progress" && "border-amber-500/40 bg-amber-500/5",
-        status === "not_started" && "border-sky-500/30 bg-sky-500/5",
-      )}
-    >
-      <div className="absolute -right-6 -top-6 h-20 w-20 rounded-full bg-primary/5 transition-transform group-hover:scale-110" />
-      <div className="relative space-y-3">
-        <div className="flex items-start justify-between gap-3">
-          <div className="min-w-0">
+    <li className="border-b border-border last:border-b-0">
+      <div className="flex flex-col gap-3 px-4 py-4 sm:flex-row sm:items-start sm:justify-between">
+        <div className="min-w-0 flex-1 space-y-2">
+          <div className="flex flex-wrap items-center gap-2">
             <Link
-              href={`/members/${mid}`}
-              className="inline-flex items-center gap-1.5 text-sm font-semibold hover:underline"
+              href={href}
+              className="inline-flex items-center gap-1.5 text-sm font-medium text-foreground hover:underline"
             >
-              {memberNameOf(note)}
-              <ArrowRight className="h-3.5 w-3.5 opacity-0 transition-opacity group-hover:opacity-100" />
+              {task.kind === "member" ? (
+                <Users className="h-3.5 w-3.5 text-muted-foreground" />
+              ) : (
+                <UsersRound className="h-3.5 w-3.5 text-muted-foreground" />
+              )}
+              {task.targetName}
             </Link>
-            <p className="mt-1 text-xs text-muted-foreground">
-              {new Date(note.updatedAt || note.createdAt).toLocaleString(
+            <Badge variant="outline" className="text-[10px] font-normal">
+              {task.kind === "member"
+                ? en
+                  ? "Member"
+                  : "አባል"
+                : en
+                  ? "Family"
+                  : "ቤተሰብ"}
+            </Badge>
+            <span className="text-xs text-muted-foreground">
+              {new Date(task.note.updatedAt || task.note.createdAt).toLocaleString(
                 locale === "am" ? "am-ET" : undefined,
               )}
-            </p>
+            </span>
           </div>
-          <Badge
-            variant="outline"
-            className={cn(
-              "shrink-0 text-[10px]",
-              status === "done" && "border-emerald-500/40 text-emerald-700 dark:text-emerald-400",
-              status === "in_progress" && "border-amber-500/40 text-amber-700 dark:text-amber-400",
-            )}
-          >
-            {statusLabel(status, en)}
-          </Badge>
+          <p className="text-sm leading-relaxed whitespace-pre-wrap text-foreground/90">
+            {task.note.body}
+          </p>
+          <p className="text-xs text-muted-foreground">
+            {task.note.visibility === "public"
+              ? en
+                ? "Public note"
+                : "ህዝባዊ ማስታወሻ"
+              : en
+                ? "Private note"
+                : "የግል ማስታወሻ"}
+          </p>
         </div>
 
-        <p className="text-sm leading-relaxed whitespace-pre-wrap">{note.body}</p>
-
-        <div className="flex items-center justify-between gap-2 pt-1">
-          <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
-            <StickyNote className="h-3.5 w-3.5" />
-            {note.visibility === "public"
-              ? en
-                ? "Public"
-                : "ህዝባዊ"
-              : en
-                ? "Private"
-                : "የግል"}
-          </div>
+        <div className="flex shrink-0 items-center gap-2 sm:flex-col sm:items-end">
           <Select
             value={status}
-            onValueChange={(v) => onStatusChange(note, v as NoteTaskStatus)}
+            onValueChange={(v) => onStatusChange(task, v as NoteTaskStatus)}
           >
             <SelectTrigger className="h-8 w-[140px] text-xs">
               <SelectValue />
@@ -136,32 +146,50 @@ function TaskCard({
               <SelectItem value="done">{en ? "Done" : "ተጠናቋል"}</SelectItem>
             </SelectContent>
           </Select>
+          <span className="text-[11px] text-muted-foreground sm:hidden">
+            {statusLabel(status, en)}
+          </span>
         </div>
       </div>
-    </article>
+    </li>
   )
 }
 
 export default function TasksPage() {
   const { locale } = useLanguage()
   const { toast } = useToast()
-  const { user } = useAuth()
-  const router = useRouter()
   const en = locale !== "am"
 
-  const [notes, setNotes] = useState<MemberNoteDto[]>([])
+  const [tasks, setTasks] = useState<UnifiedTask[]>([])
   const [loading, setLoading] = useState(true)
-
-  useEffect(() => {
-    if (isSuperAdmin(user?.role)) {
-      router.replace("/")
-    }
-  }, [user?.role, router])
+  const [showDone, setShowDone] = useState(false)
 
   const load = useCallback(async () => {
     setLoading(true)
     try {
-      setNotes(await getMyNotes())
+      const [memberNotes, familyNotes] = await Promise.all([
+        getMyNotes(),
+        getMyFamilyNotes(),
+      ])
+      const unified: UnifiedTask[] = [
+        ...memberNotes.map((note) => ({
+          kind: "member" as const,
+          note,
+          targetId: memberIdOf(note),
+          targetName: memberNameOf(note),
+        })),
+        ...familyNotes.map((note) => ({
+          kind: "family" as const,
+          note,
+          targetId: familyIdOf(note),
+          targetName: familyNameOf(note, en),
+        })),
+      ].sort(
+        (a, b) =>
+          new Date(b.note.updatedAt || b.note.createdAt).getTime() -
+          new Date(a.note.updatedAt || a.note.createdAt).getTime(),
+      )
+      setTasks(unified)
     } catch (error) {
       toast({
         title: en ? "Could not load tasks" : "ተግባሮችን መጫን አልተቻለም",
@@ -178,20 +206,28 @@ export default function TasksPage() {
   }, [load])
 
   const pending = useMemo(
-    () => notes.filter((n) => (n.status || "not_started") !== "done"),
-    [notes],
+    () => tasks.filter((t) => (t.note.status || "not_started") !== "done"),
+    [tasks],
   )
   const done = useMemo(
-    () => notes.filter((n) => n.status === "done"),
-    [notes],
+    () => tasks.filter((t) => t.note.status === "done"),
+    [tasks],
   )
+  const visible = showDone ? done : pending
 
-  async function onStatusChange(note: MemberNoteDto, status: NoteTaskStatus) {
-    const mid = memberIdOf(note)
+  async function onStatusChange(task: UnifiedTask, status: NoteTaskStatus) {
     try {
-      await updateMemberNote(mid, note._id, { status })
-      setNotes((prev) =>
-        prev.map((n) => (n._id === note._id ? { ...n, status } : n)),
+      if (task.kind === "member") {
+        await updateMemberNote(task.targetId, task.note._id, { status })
+      } else {
+        await updateFamilyNote(task.targetId, task.note._id, { status })
+      }
+      setTasks((prev) =>
+        prev.map((t) =>
+          t.note._id === task.note._id
+            ? { ...t, note: { ...t.note, status } }
+            : t,
+        ),
       )
     } catch (error) {
       toast({
@@ -203,122 +239,115 @@ export default function TasksPage() {
   }
 
   return (
-    <div className="space-y-8">
-      <div className="relative overflow-hidden rounded-3xl border border-border/50 bg-gradient-to-br from-primary/10 via-background to-sky-500/10 px-6 py-8">
-        <div className="absolute inset-y-0 right-0 w-1/3 bg-[radial-gradient(circle_at_top_right,rgba(255,255,255,0.25),transparent_60%)]" />
-        <div className="relative flex flex-wrap items-end justify-between gap-4">
-          <div>
-            <div className="mb-2 inline-flex items-center gap-2 rounded-full bg-background/70 px-3 py-1 text-xs font-medium text-muted-foreground">
-              <ClipboardList className="h-3.5 w-3.5" />
-              {en ? "Your notes as tasks" : "ማስታወሻዎችዎ እንደ ተግባር"}
-            </div>
-            <h1 className="text-3xl font-bold tracking-tight">
-              {en ? "Tasks" : "ተግባሮች"}
-            </h1>
-            <p className="mt-2 max-w-xl text-sm text-muted-foreground">
-              {en
-                ? "Notes you write on members appear here. Track follow-ups with Not started, In progress, and Done."
-                : "በአባላት ላይ የጻፏቸው ማስታወሻዎች እዚህ ይታያሉ። በአልተጀመረም፣ በሂደት ላይ እና ተጠናቋል ይከታተሉ።"}
-            </p>
-          </div>
-          <div className="flex gap-3">
-            <div className="rounded-2xl bg-background/80 px-4 py-3 text-center shadow-sm">
-              <p className="text-2xl font-bold tabular-nums">{pending.length}</p>
-              <p className="text-xs text-muted-foreground">
-                {en ? "Pending" : "በመጠባበቅ"}
-              </p>
-            </div>
-            <div className="rounded-2xl bg-background/80 px-4 py-3 text-center shadow-sm">
-              <p className="text-2xl font-bold tabular-nums text-emerald-600">
-                {done.length}
-              </p>
-              <p className="text-xs text-muted-foreground">
-                {en ? "Done" : "ተጠናቋል"}
-              </p>
-            </div>
-          </div>
-        </div>
+    <div className="space-y-6">
+      <div>
+        <h1 className="text-2xl font-semibold tracking-tight">
+          {en ? "Tasks" : "ተግባሮች"}
+        </h1>
+        <p className="mt-1 text-sm text-muted-foreground">
+          {en
+            ? "Notes you write on members and families appear here as follow-ups."
+            : "በአባላት እና ቤተሰቦች ላይ የጻፏቸው ማስታወሻዎች እዚህ እንደ ክትትል ይታያሉ።"}
+        </p>
+      </div>
+
+      <div
+        role="tablist"
+        aria-label={en ? "Task status" : "የተግባር ሁኔታ"}
+        className="relative grid w-full grid-cols-2 rounded-lg bg-[#e8e8ed] p-1 shadow-[inset_0_1px_3px_rgba(0,0,0,0.12)] dark:bg-muted"
+      >
+        {/* Sliding white thumb */}
+        <div
+          aria-hidden
+          className={cn(
+            "pointer-events-none absolute inset-y-1 left-1 w-[calc(50%-4px)] rounded-md bg-white shadow-[0_1px_3px_rgba(0,0,0,0.12),0_1px_2px_rgba(0,0,0,0.08)] transition-transform duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] dark:bg-card",
+            showDone && "translate-x-[calc(100%+4px)]",
+          )}
+        />
+
+        <button
+          type="button"
+          role="tab"
+          aria-selected={!showDone}
+          onClick={() => setShowDone(false)}
+          className={cn(
+            "relative z-10 flex items-center justify-center gap-2 rounded-md px-3 py-2.5 text-sm font-medium transition-colors",
+            !showDone
+              ? "text-foreground"
+              : "text-muted-foreground hover:text-foreground/80",
+          )}
+        >
+          {en ? "Pending" : "ያልተጠናቀቁ"}
+          <span className="tabular-nums opacity-60">{pending.length}</span>
+        </button>
+
+        <button
+          type="button"
+          role="tab"
+          aria-selected={showDone}
+          onClick={() => setShowDone(true)}
+          className={cn(
+            "relative z-10 flex items-center justify-center gap-2 rounded-md px-3 py-2.5 text-sm font-medium transition-colors",
+            showDone
+              ? "text-foreground"
+              : "text-muted-foreground hover:text-foreground/80",
+          )}
+        >
+          {en ? "Done" : "የተጠናቀቁ"}
+          <span className="tabular-nums opacity-60">{done.length}</span>
+        </button>
       </div>
 
       {loading ? (
         <div className="flex justify-center py-16 text-muted-foreground">
           <Loader2 className="h-6 w-6 animate-spin" />
         </div>
-      ) : notes.length === 0 ? (
-        <div className="rounded-2xl border border-dashed border-border px-6 py-16 text-center">
-          <StickyNote className="mx-auto mb-3 h-10 w-10 text-muted-foreground/50" />
-          <h2 className="text-lg font-semibold">
+      ) : tasks.length === 0 ? (
+        <div className="rounded-lg border border-dashed border-border px-6 py-16 text-center">
+          <StickyNote className="mx-auto mb-3 h-8 w-8 text-muted-foreground/50" />
+          <h2 className="text-base font-medium">
             {en ? "No tasks yet" : "እስካሁን ተግባር የለም"}
           </h2>
           <p className="mt-1 text-sm text-muted-foreground">
             {en
-              ? "Open a member profile and add a note to start tracking tasks."
-              : "የአባል መገለጫ ይክፈቱ እና ማስታወሻ በመጨመር ተግባር ይጀምሩ።"}
+              ? "Open a member or family and add a note to start tracking tasks."
+              : "የአባል ወይም ቤተሰብ መገለጫ ይክፈቱ እና ማስታወሻ በመጨመር ተግባር ይጀምሩ።"}
           </p>
-          <Link href="/members" className="mt-4 inline-block">
-            <Button size="sm">{en ? "Go to members" : "ወደ አባላት ሂድ"}</Button>
-          </Link>
+          <div className="mt-4 flex justify-center gap-2">
+            <Link href="/members">
+              <Button size="sm" variant="outline">
+                {en ? "Members" : "አባላት"}
+              </Button>
+            </Link>
+            <Link href="/families">
+              <Button size="sm" variant="outline">
+                {en ? "Families" : "ቤተሰቦች"}
+              </Button>
+            </Link>
+          </div>
+        </div>
+      ) : visible.length === 0 ? (
+        <div className="rounded-lg border border-border bg-card px-6 py-12 text-center text-sm text-muted-foreground">
+          {showDone
+            ? en
+              ? "No completed tasks yet."
+              : "እስካሁን የተጠናቀቀ ተግባር የለም።"
+            : en
+              ? "Nothing pending."
+              : "ምንም በመጠባበቅ የለም።"}
         </div>
       ) : (
-        <div className="grid grid-cols-1 gap-8 xl:grid-cols-2">
-          <section className="space-y-4">
-            <div className="flex items-center gap-2">
-              <Circle className="h-4 w-4 text-amber-500" />
-              <h2 className="text-lg font-semibold">
-                {en ? "Pending tasks" : "በመጠባበቅ ላይ ያሉ ተግባሮች"}
-              </h2>
-              <Badge variant="secondary" className="tabular-nums">
-                {pending.length}
-              </Badge>
-            </div>
-            {pending.length === 0 ? (
-              <p className="rounded-xl bg-muted/40 px-4 py-8 text-center text-sm text-muted-foreground">
-                {en ? "Nothing pending — nice work." : "ምንም በመጠባበቅ የለም።"}
-              </p>
-            ) : (
-              <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-1 2xl:grid-cols-2">
-                {pending.map((note) => (
-                  <TaskCard
-                    key={note._id}
-                    note={note}
-                    en={en}
-                    locale={locale}
-                    onStatusChange={onStatusChange}
-                  />
-                ))}
-              </div>
-            )}
-          </section>
-
-          <section className="space-y-4">
-            <div className="flex items-center gap-2">
-              <CheckCircle2 className="h-4 w-4 text-emerald-500" />
-              <h2 className="text-lg font-semibold">
-                {en ? "Done tasks" : "የተጠናቀቁ ተግባሮች"}
-              </h2>
-              <Badge variant="secondary" className="tabular-nums">
-                {done.length}
-              </Badge>
-            </div>
-            {done.length === 0 ? (
-              <p className="rounded-xl bg-muted/40 px-4 py-8 text-center text-sm text-muted-foreground">
-                {en ? "Completed tasks will land here." : "የተጠናቀቁ ተግባሮች እዚህ ይታያሉ።"}
-              </p>
-            ) : (
-              <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-1 2xl:grid-cols-2">
-                {done.map((note) => (
-                  <TaskCard
-                    key={note._id}
-                    note={note}
-                    en={en}
-                    locale={locale}
-                    onStatusChange={onStatusChange}
-                  />
-                ))}
-              </div>
-            )}
-          </section>
-        </div>
+        <ul className="overflow-hidden rounded-lg border border-border bg-card">
+          {visible.map((task) => (
+            <TaskRow
+              key={`${task.kind}-${task.note._id}`}
+              task={task}
+              en={en}
+              locale={locale}
+              onStatusChange={onStatusChange}
+            />
+          ))}
+        </ul>
       )}
     </div>
   )
