@@ -27,6 +27,8 @@ import {
   Search,
   Loader2,
   ArrowDown,
+  ChevronUp,
+  ChevronDown,
   Pencil,
   Trash2,
   UserPlus,
@@ -104,6 +106,57 @@ function Field({
 function SubHeading({ children }: { children: React.ReactNode }) {
   return (
     <h3 className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">{children}</h3>
+  )
+}
+
+/**
+ * Fixed bottom-right step navigator. Shows the active step and doubles as a
+ * two-zone jump control: the top half goes to the previous section, the
+ * bottom half to the next — so the whole form is reachable without scrolling.
+ */
+function FloatingStepNav({
+  sections,
+  activeSection,
+  onNavigate,
+}: {
+  sections: { id: SectionId; title: string; icon: React.ElementType }[]
+  activeSection: SectionId
+  onNavigate: (id: SectionId) => void
+}) {
+  const index = sections.findIndex((s) => s.id === activeSection)
+  const current = sections[index]
+  const prev = sections[index - 1]
+  const next = sections[index + 1]
+
+  return (
+    <div className="fixed bottom-6 right-6 z-30 flex w-16 select-none flex-col overflow-hidden rounded-2xl border border-border bg-card shadow-lg">
+      <button
+        type="button"
+        disabled={!prev}
+        onClick={() => prev && onNavigate(prev.id)}
+        title={prev?.title}
+        aria-label="Previous section"
+        className="flex h-9 items-center justify-center text-muted-foreground transition-colors hover:bg-muted disabled:cursor-not-allowed disabled:opacity-30"
+      >
+        <ChevronUp className="h-4 w-4" />
+      </button>
+      <div className="flex flex-col items-center gap-0.5 border-y border-border bg-muted/40 py-2">
+        {current && <current.icon className="h-4 w-4 text-primary" />}
+        <span className="text-[10px] font-semibold tabular-nums text-muted-foreground">
+          {index + 1}/{sections.length}
+        </span>
+      </div>
+      <button
+        type="button"
+        disabled={!next}
+        onClick={() => next && onNavigate(next.id)}
+        title={next?.title}
+        aria-label="Next section"
+        className="flex h-9 items-center justify-center text-muted-foreground transition-colors hover:bg-muted disabled:cursor-not-allowed disabled:opacity-30"
+      >
+        <ChevronDown className="h-4 w-4" />
+      </button>
+    </div>
   )
 }
 
@@ -627,7 +680,13 @@ function NewMemberPageContent() {
   // ------------------------------------------------------------------ render
 
   return (
-    <main className="flex-1 overflow-y-auto bg-background">
+    <div className="bg-background">
+      {/*
+        No inner scroll container here: the dashboard layout's <main> is the
+        real scrolling ancestor. An `overflow-y-auto` wrapper here would make
+        this div its own (never-overflowing) scroll container, which breaks
+        `sticky` below — it would stop tracking the page's actual scroll.
+      */}
       {/* Sticky header with free section navigation */}
       <div className="sticky top-0 z-20 border-b border-border bg-background/95 backdrop-blur-sm">
         <div className="mx-auto flex max-w-4xl items-center justify-between gap-3 px-4 py-2.5">
@@ -1232,6 +1291,8 @@ function NewMemberPageContent() {
         </Card>
       </div>
 
+      <FloatingStepNav sections={sections} activeSection={activeSection} onNavigate={scrollTo} />
+
       {/* ============ CONFIRMATION DIALOG ============ */}
       <Dialog open={confirmOpen} onOpenChange={setConfirmOpen}>
         <DialogContent className="max-h-[85vh] overflow-y-auto sm:max-w-md">
@@ -1354,6 +1415,6 @@ function NewMemberPageContent() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
-    </main>
+    </div>
   )
 }

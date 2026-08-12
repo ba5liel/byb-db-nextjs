@@ -26,6 +26,7 @@ interface NavChild {
   href: string
   /** Custom active predicate; defaults to exact or prefix match on href. */
   isActive?: (pathname: string) => boolean
+  children?: NavChild[]
 }
 
 interface NavItem {
@@ -64,26 +65,28 @@ export function Sidebar() {
               !p.startsWith("/members/import") &&
               !p.startsWith("/members/new") &&
               !p.startsWith("/members/community")),
-        },
-        {
-          name: "Jemmo",
-          href: "/members/community/jemmo",
-          isActive: (p) => p.startsWith("/members/community/jemmo"),
-        },
-        {
-          name: "Bethel",
-          href: "/members/community/bethel",
-          isActive: (p) => p.startsWith("/members/community/bethel"),
-        },
-        {
-          name: "Weyira",
-          href: "/members/community/weyira",
-          isActive: (p) => p.startsWith("/members/community/weyira"),
-        },
-        {
-          name: "Alpha",
-          href: "/members/community/alpha",
-          isActive: (p) => p.startsWith("/members/community/alpha"),
+          children: [
+            {
+              name: "Jemmo",
+              href: "/members/community/jemmo",
+              isActive: (p) => p.startsWith("/members/community/jemmo"),
+            },
+            {
+              name: "Bethel",
+              href: "/members/community/bethel",
+              isActive: (p) => p.startsWith("/members/community/bethel"),
+            },
+            {
+              name: "Weyira",
+              href: "/members/community/weyira",
+              isActive: (p) => p.startsWith("/members/community/weyira"),
+            },
+            {
+              name: "Alpha",
+              href: "/members/community/alpha",
+              isActive: (p) => p.startsWith("/members/community/alpha"),
+            },
+          ],
         },
         {
           name: "Import from Excel",
@@ -154,17 +157,36 @@ export function Sidebar() {
                             ? child.isActive(pathname || "")
                             : isLinkActive(child.href)
                           return (
-                            <Link
-                              key={child.name}
-                              href={child.href}
-                              className={`flex items-center rounded-lg pl-9 pr-3 py-2 text-[13px] font-medium transition-smooth ${
-                                active
-                                  ? "bg-sidebar-accent text-foreground"
-                                  : "text-muted-foreground hover:bg-sidebar-accent hover:text-foreground"
-                              }`}
-                            >
-                              {child.name}
-                            </Link>
+                            <div key={child.name}>
+                              <Link
+                                href={child.href}
+                                className={`flex items-center rounded-lg pl-9 pr-3 py-2 text-[13px] font-medium transition-smooth ${
+                                  active
+                                    ? "bg-sidebar-accent text-foreground"
+                                    : "text-muted-foreground hover:bg-sidebar-accent hover:text-foreground"
+                                }`}
+                              >
+                                {child.name}
+                              </Link>
+                              {child.children?.map((grandchild) => {
+                                const grandchildActive = grandchild.isActive
+                                  ? grandchild.isActive(pathname || "")
+                                  : isLinkActive(grandchild.href)
+                                return (
+                                  <Link
+                                    key={grandchild.name}
+                                    href={grandchild.href}
+                                    className={`flex items-center rounded-lg pl-14 pr-3 py-1.5 text-[12px] font-medium transition-smooth ${
+                                      grandchildActive
+                                        ? "bg-sidebar-accent text-foreground"
+                                        : "text-muted-foreground hover:bg-sidebar-accent hover:text-foreground"
+                                    }`}
+                                  >
+                                    {grandchild.name}
+                                  </Link>
+                                )
+                              })}
+                            </div>
                           )
                         })}
                       </div>
