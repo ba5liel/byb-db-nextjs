@@ -124,7 +124,7 @@ function StatPill({
       <p className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground truncate">
         {label}
       </p>
-      <p className="text-lg font-bold tabular-nums leading-tight">{value}</p>
+      <p className="text-2xl font-bold tabular-nums leading-tight">{value}</p>
     </div>
   )
 }
@@ -285,21 +285,27 @@ export default function Home() {
           </>
         ) : (
           <>
-            <Card variant="glass" hover="lift">
-              <CardHeader className="pb-2">
-                <CardTitle className="text-sm font-bold uppercase tracking-wide text-muted-foreground">
-                  {d.totalMembers}
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="flex items-center justify-between">
-                  <div className="text-4xl font-bold text-primary tabular-nums">
-                    {overview?.totalMembers || 0}
+            <Link href="/members" className="block h-full">
+              <Card
+                variant="glass"
+                hover="lift"
+                className="h-full cursor-pointer transition-colors hover:border-primary/40"
+              >
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-sm font-bold uppercase tracking-wide text-muted-foreground">
+                    {d.totalMembers}
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="flex items-center justify-between">
+                    <div className="text-4xl font-bold text-primary tabular-nums">
+                      {overview?.totalMembers || 0}
+                    </div>
+                    <Users className="h-9 w-9 text-primary/25" />
                   </div>
-                  <Users className="h-9 w-9 text-primary/25" />
-                </div>
-              </CardContent>
-            </Card>
+                </CardContent>
+              </Card>
+            </Link>
 
             <Card variant="glass" hover="lift">
               <CardHeader className="pb-2">
@@ -357,8 +363,11 @@ export default function Home() {
                   <CardHeader className="pb-3 border-b border-border/60">
                     <div className="flex items-center justify-between gap-3">
                       <CardTitle className="text-xl font-bold">{label}</CardTitle>
-                      <span className="text-sm text-muted-foreground tabular-nums">
-                        {stat?.count ?? 0} {d.members}
+                      <span className="text-2xl font-bold text-primary tabular-nums leading-none">
+                        {stat?.count ?? 0}
+                        <span className="ml-1.5 text-sm font-medium text-muted-foreground">
+                          {d.members}
+                        </span>
                       </span>
                     </div>
                   </CardHeader>
@@ -398,54 +407,56 @@ export default function Home() {
         <Card variant="glass" hover="lift">
           <CardHeader className="pb-3 border-b border-border/60">
             <div className="flex items-center justify-between gap-3">
-              <CardTitle className="text-sm font-bold uppercase tracking-wide text-muted-foreground">
-                {locale === "am" ? "ሴል ግሩፖች" : "Cell Groups"}
-              </CardTitle>
-              <Network className="h-5 w-5 text-muted-foreground/40" />
+              <div className="flex items-baseline gap-3 min-w-0">
+                <CardTitle className="text-sm font-bold uppercase tracking-wide text-muted-foreground">
+                  {locale === "am" ? "ሴል ግሩፖች" : "Cell Groups"}
+                </CardTitle>
+                {cellStatsLoading ? (
+                  <Skeleton className="h-8 w-12 rounded-md" />
+                ) : (
+                  <span className="text-4xl font-bold tabular-nums text-primary leading-none">
+                    {cellStats?.total ?? 0}
+                  </span>
+                )}
+              </div>
+              <div className="flex items-center gap-3 shrink-0">
+                <Link
+                  href="/cell-groups"
+                  className="text-sm font-medium text-primary hover:underline"
+                >
+                  {locale === "am" ? "ሁሉንም ይመልከቱ" : "View all"}
+                </Link>
+                <Network className="h-5 w-5 text-muted-foreground/40" />
+              </div>
             </div>
           </CardHeader>
           <CardContent className="pt-4">
             {cellStatsLoading ? (
               <Skeleton className="h-24 w-full rounded-lg" />
             ) : (
-              <div className="space-y-4">
-                <div className="flex items-end justify-between gap-3">
-                  <div>
-                    <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
-                      {locale === "am" ? "ጠቅላላ" : "Total"}
-                    </p>
-                    <p className="text-3xl font-bold tabular-nums">
-                      {cellStats?.total ?? 0}
-                    </p>
-                  </div>
-                  <Link href="/cell-groups" className="text-sm font-medium text-primary hover:underline">
-                    {locale === "am" ? "ሁሉንም ይመልከቱ" : "View all"}
-                  </Link>
-                </div>
-                <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
-                  {SUB_COMMUNITY_IDS.filter((group) => {
-                    const scoped = subCommunityForRole(user?.role)
-                    if (scoped) return group.id === scoped
-                    return true
-                  }).map((group) => {
-                    const label =
-                      group.key === "alpha"
-                        ? t.navigation.alpha
-                        : t.navigation[group.key]
-                    const count = cellStats?.bySubCommunity?.[group.id]?.count ?? 0
-                    return (
-                      <div
-                        key={group.id}
-                        className="rounded-lg bg-muted/70 px-3 py-2.5"
-                      >
-                        <p className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground truncate">
-                          {label}
-                        </p>
-                        <p className="text-xl font-bold tabular-nums leading-tight">{count}</p>
-                      </div>
-                    )
-                  })}
-                </div>
+              <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+                {SUB_COMMUNITY_IDS.filter((group) => {
+                  const scoped = subCommunityForRole(user?.role)
+                  if (scoped) return group.id === scoped
+                  return true
+                }).map((group) => {
+                  const label =
+                    group.key === "alpha"
+                      ? t.navigation.alpha
+                      : t.navigation[group.key]
+                  const count = cellStats?.bySubCommunity?.[group.id]?.count ?? 0
+                  return (
+                    <div
+                      key={group.id}
+                      className="rounded-lg bg-muted/70 px-3 py-2.5"
+                    >
+                      <p className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground truncate">
+                        {label}
+                      </p>
+                      <p className="text-2xl font-bold tabular-nums leading-tight">{count}</p>
+                    </div>
+                  )
+                })}
               </div>
             )}
           </CardContent>

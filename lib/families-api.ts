@@ -39,15 +39,17 @@ export interface FamilySearchResult {
 
 /**
  * Search families.
- * GET /api/families?search=<q>&page&limit
+ * GET /api/families?search=<q>&page&limit&subCommunity
  */
 export async function searchFamilies(
   search: string,
   page = 1,
   limit = 10,
+  subCommunity?: string,
 ): Promise<FamilySearchResult> {
   const params = new URLSearchParams()
   if (search) params.append("search", search)
+  if (subCommunity) params.append("subCommunity", subCommunity)
   params.append("page", String(page))
   params.append("limit", String(limit))
 

@@ -15,7 +15,6 @@ import {
   ChevronDown,
   Network,
   LayoutGrid,
-  UserMinus,
   ClipboardList,
 } from "lucide-react"
 import { useAuth } from "@/lib/auth-context"
@@ -88,6 +87,12 @@ export function Sidebar() {
     const isAgeScoped = isAgeScopedAdmin(role)
     const scopedAge = ageGroupForRole(role)
 
+    const leftMembersChild: NavChild = {
+      name: n.leftMembers,
+      href: "/members/left",
+      isActive: (p) => p.startsWith("/members/left"),
+    }
+
     const memberChildren: NavChild[] = []
     if (isScoped && scopedCommunity) {
       const communityLabels: Record<string, string> = {
@@ -96,32 +101,38 @@ export function Sidebar() {
         weyira: n.weyira,
         alpha: n.alpha,
       }
-      memberChildren.push({
-        name: communityLabels[scopedCommunity] || scopedCommunity,
-        href: `/members/community/${scopedCommunity}`,
-        isActive: (p) => p.startsWith(`/members/community/${scopedCommunity}`),
-      })
+      memberChildren.push(
+        {
+          name: communityLabels[scopedCommunity] || scopedCommunity,
+          href: `/members/community/${scopedCommunity}`,
+          isActive: (p) => p.startsWith(`/members/community/${scopedCommunity}`),
+        },
+        leftMembersChild,
+      )
     } else if (isAgeScoped) {
-      memberChildren.push({
-        name:
-          scopedAge === "Children"
-            ? t.members.children
-            : scopedAge === "Youth"
-              ? t.members.youth
-              : n.allMembers,
-        href:
-          scopedAge === "Children"
-            ? "/members/age/children"
-            : scopedAge === "Youth"
-              ? "/members/age/youth"
-              : "/members",
-        isActive: (p) =>
-          scopedAge === "Children"
-            ? p.startsWith("/members/age/children")
-            : scopedAge === "Youth"
-              ? p.startsWith("/members/age/youth")
-              : isMembersListPath(p),
-      })
+      memberChildren.push(
+        {
+          name:
+            scopedAge === "Children"
+              ? t.members.children
+              : scopedAge === "Youth"
+                ? t.members.youth
+                : n.allMembers,
+          href:
+            scopedAge === "Children"
+              ? "/members/age/children"
+              : scopedAge === "Youth"
+                ? "/members/age/youth"
+                : "/members",
+          isActive: (p) =>
+            scopedAge === "Children"
+              ? p.startsWith("/members/age/children")
+              : scopedAge === "Youth"
+                ? p.startsWith("/members/age/youth")
+                : isMembersListPath(p),
+        },
+        leftMembersChild,
+      )
     } else {
       memberChildren.push(
         {
@@ -159,6 +170,7 @@ export function Sidebar() {
           href: "/members/age/children",
           isActive: (p) => p.startsWith("/members/age/children"),
         },
+        leftMembersChild,
         {
           name: n.importExcel,
           href: "/members/import",
@@ -174,12 +186,6 @@ export function Sidebar() {
         name: n.members,
         icon: Users,
         children: memberChildren,
-      },
-      {
-        id: "left-members",
-        name: n.leftMembers,
-        href: "/members/left",
-        icon: UserMinus,
       },
       {
         id: "tasks",
