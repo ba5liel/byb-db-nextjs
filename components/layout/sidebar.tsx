@@ -27,7 +27,6 @@ import {
   isAgeScopedAdmin,
   ageGroupForRole,
   subCommunityForRole,
-  isSuperAdmin,
   isChildrenAdmin,
 } from "@/lib/role-utils"
 import { Button } from "@/components/ui/button"
@@ -181,16 +180,12 @@ export function Sidebar() {
         href: "/members/left",
         icon: UserMinus,
       },
-      ...(isSuperAdmin(role)
-        ? []
-        : [
-            {
-              id: "tasks",
-              name: n.tasks,
-              href: "/tasks",
-              icon: ClipboardList,
-            } satisfies NavItem,
-          ]),
+      {
+        id: "tasks",
+        name: n.tasks,
+        href: "/tasks",
+        icon: ClipboardList,
+      },
       {
         id: "cellgroups",
         name: locale === "am" ? "ሴል ግሩፖች" : "Cell Groups",
