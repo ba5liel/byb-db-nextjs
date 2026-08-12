@@ -24,6 +24,12 @@ export interface RoleNames {
   ADMIN: string;
   MINISTER: string;
   VIEWER: string;
+  BETHEL_ADMIN: string;
+  JEMMO_ADMIN: string;
+  YOUTH_ADMIN: string;
+  CHILDREN_ADMIN: string;
+  WEYIRA_ADMIN: string;
+  ALPHA_ADMIN: string;
 }
 
 export interface PermissionResource {
