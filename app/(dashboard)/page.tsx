@@ -73,7 +73,7 @@ function findAgeCount(
 ) {
   if (!ageGroupStats?.length) return { count: 0, male: 0, female: 0 }
   const keySet = new Set(keys.map(normalizeKey))
-  return ageGroupStats.reduce(
+  return ageGroupStats.reduce<{ count: number; male: number; female: number }>(
     (acc, stat) => {
       const key = normalizeKey(stat.ageGroup ?? stat._id)
       if (!keySet.has(key)) return acc
